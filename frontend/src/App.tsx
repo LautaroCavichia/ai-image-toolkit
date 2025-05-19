@@ -1,24 +1,30 @@
-import React from 'react';
-import logo from './logo.svg';
+// src/App.tsx
+import React, { useState } from 'react';
 import './App.css';
+import ImageUploader from './components/imageUploader';
+import JobStatusDisplay from './components/jobStatusDisplay';
+import { JobResponseDTO } from './types';
 
 function App() {
+  const [currentJob, setCurrentJob] = useState<JobResponseDTO | null>(null);
+
+  const handleNewJob = (job: JobResponseDTO) => {
+    setCurrentJob(job);
+  };
+
   return (
     <div className="App">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
+        <h1>AI Image Editor</h1>
       </header>
+      <main>
+        <ImageUploader onJobCreated={handleNewJob} />
+        {currentJob && (
+          <div style={{ marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '20px' }}>
+            <JobStatusDisplay initialJob={currentJob} />
+          </div>
+        )}
+      </main>
     </div>
   );
 }

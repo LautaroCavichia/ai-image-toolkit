@@ -49,8 +49,15 @@ public class JobService {
 
     @Transactional // Ensure DB operations are atomic
     public Job createAndDispatchJob(Image image, JobTypeEnum jobType, String imageStoragePath, Map<String, Object> jobConfig, UUID userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
+        // User user = userRepository.findById(userId)
+        //         .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
+
+        // FIXME: For now, use a dummy user
+        User user = new User();
+        user.setUserId(userId);
+
+        // save user so we have a user id and can link the job and image
+        userRepository.save(user);
 
         Job job = new Job();
         job.setUser(user);

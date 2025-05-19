@@ -17,8 +17,6 @@ import com.chunaudis.image_toolkit.repository.ImageRepository;
 import com.chunaudis.image_toolkit.repository.UserRepository;
 import com.chunaudis.image_toolkit.storage.FileStorageService;
 
-import jakarta.persistence.EntityNotFoundException;
-
 @Service
 public class ImageService {
     private static final Logger log = LoggerFactory.getLogger(ImageService.class);
@@ -28,9 +26,8 @@ public class ImageService {
     private final FileStorageService fileStorageService;
     private final JobService jobService;
 
-
     public ImageService(ImageRepository imageRepository, UserRepository userRepository,
-                        FileStorageService fileStorageService, JobService jobService) {
+            FileStorageService fileStorageService, JobService jobService) {
         this.imageRepository = imageRepository;
         this.userRepository = userRepository;
         this.fileStorageService = fileStorageService;
@@ -38,17 +35,34 @@ public class ImageService {
     }
 
     @Transactional
-    public Job processUploadedImage(MultipartFile file, ImageUploadRequestDTO requestDTO, Map<String, Object> jobConfig) {
+    public Job processUploadedImage(MultipartFile file, ImageUploadRequestDTO requestDTO,
+            Map<String, Object> jobConfig) {
         // In a real app, get userId from security context (e.g., JWT Principal)
-        UUID userId = UUID.fromString(requestDTO.getUserId()); // Temporary, get from auth
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
-
+        UUID userId = UUID.fromString(requestDTO.getUserId());
+    
+        // Try to find existing user first
+        User user = userRepository.findById(userId).orElse(null); 
+        
+        if (user == null) {
+            user = new User();
+            user.setUserId(userId);
+            user.setEmail("test_" + userId + "@example.com");
+            user.setPasswordHash("$2a$12$dummyHashForTestingOnly1234567890123456789012");
+            user.setDisplayName("Test User " + userId);
+            user = userRepository.save(user); // FIXME
+        }
         Image image = new Image();
         image.setUser(user);
         image.setOriginalFilename(file.getOriginalFilename());
         image.setOriginalFilesizeBytes(file.getSize());
-        // TODO: Extract format, width, height - perhaps after saving and using a library
+
+        // Set initial path using userId and imageId, will be updated with actual path
+        // after storage
+        String initialPath = String.format("originals/%s/%s", userId, image.getImageId());
+        image.setOriginalStoragePath(initialPath);
+
+        // TODO: Extract format, width, height - perhaps after saving and using a
+        // library
         image.setOriginalFormat(extractFormat(file.getContentType()));
         image.setOriginalWidth(0); // Placeholder
         image.setOriginalHeight(0); // Placeholder
