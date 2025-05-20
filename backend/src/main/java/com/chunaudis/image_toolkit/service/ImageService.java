@@ -17,12 +17,14 @@ import com.chunaudis.image_toolkit.repository.ImageRepository;
 import com.chunaudis.image_toolkit.repository.UserRepository;
 import com.chunaudis.image_toolkit.storage.FileStorageService;
 
+import jakarta.persistence.EntityNotFoundException;
+
 @Service
 public class ImageService {
     private static final Logger log = LoggerFactory.getLogger(ImageService.class);
 
     private final ImageRepository imageRepository;
-    private final UserRepository userRepository; // For fetching the user
+    private final UserRepository userRepository; 
     private final FileStorageService fileStorageService;
     private final JobService jobService;
 
@@ -37,20 +39,14 @@ public class ImageService {
     @Transactional
     public Job processUploadedImage(MultipartFile file, ImageUploadRequestDTO requestDTO,
             Map<String, Object> jobConfig) {
-        // In a real app, get userId from security context (e.g., JWT Principal)
+        // Get userId from the request DTO
         UUID userId = UUID.fromString(requestDTO.getUserId());
     
-        // Try to find existing user first
-        User user = userRepository.findById(userId).orElse(null); 
+        // Find existing user by ID
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
         
-        if (user == null) {
-            user = new User();
-            user.setUserId(userId);
-            user.setEmail("test_" + userId + "@example.com");
-            user.setPasswordHash("$2a$12$dummyHashForTestingOnly1234567890123456789012");
-            user.setDisplayName("Test User " + userId);
-            user = userRepository.save(user); // FIXME
-        }
+        // Create new image entity
         Image image = new Image();
         image.setUser(user);
         image.setOriginalFilename(file.getOriginalFilename());
@@ -61,11 +57,13 @@ public class ImageService {
         String initialPath = String.format("originals/%s/%s", userId, image.getImageId());
         image.setOriginalStoragePath(initialPath);
 
-        // TODO: Extract format, width, height - perhaps after saving and using a
-        // library
+        // Extract format from file
         image.setOriginalFormat(extractFormat(file.getContentType()));
-        image.setOriginalWidth(0); // Placeholder
-        image.setOriginalHeight(0); // Placeholder
+        
+        // TODO: Extract width and height using a proper library like ImageIO
+        // For now, using placeholder values
+        image.setOriginalWidth(800); // Placeholder
+        image.setOriginalHeight(600); // Placeholder
 
         // Save image metadata first to get an ID
         Image savedImage = imageRepository.save(image);
@@ -86,6 +84,6 @@ public class ImageService {
         if (contentType != null && contentType.startsWith("image/")) {
             return contentType.substring("image/".length()).toUpperCase();
         }
-        return "UNKNOWN"; // FIXME: handle better
+        return "UNKNOWN"; // Default for unknown format
     }
 }

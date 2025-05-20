@@ -30,10 +30,9 @@ public class JobService {
 
     private final JobRepository jobRepository;
     private final JobPublisherService jobPublisherService;
-    private final ProcessedImageRepository processedImageRepository; // TODO: Autowire this
+    private final ProcessedImageRepository processedImageRepository;
     private final UserRepository userRepository; 
     private final ImageRepository imageRepository;
-
 
     public JobService(JobRepository jobRepository,
                       JobPublisherService jobPublisherService,
@@ -47,29 +46,24 @@ public class JobService {
         this.imageRepository = imageRepository;
     }
 
-    @Transactional // Ensure DB operations are atomic
+    @Transactional
     public Job createAndDispatchJob(Image image, JobTypeEnum jobType, String imageStoragePath, Map<String, Object> jobConfig, UUID userId) {
-        // User user = userRepository.findById(userId)
-        //         .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
+        // Find the user by ID
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
 
-        // FIXME: For now, use a dummy user
-        User user = new User();
-        user.setUserId(userId);
-
-        // save user so we have a user id and can link the job and image
-        userRepository.save(user);
-
+        // Create a new job
         Job job = new Job();
         job.setUser(user);
         job.setOriginalImage(image);
         job.setJobType(jobType);
         job.setStatus(JobStatusEnum.QUEUED); // Set to QUEUED as it's about to be published
         job.setJobConfig(jobConfig != null ? convertMapToJsonString(jobConfig) : null); // Convert Map to JSON string
-        // job.setBatch(batch); // if part of a batch
 
         Job savedJob = jobRepository.save(job);
         log.info("Created job {} with status QUEUED", savedJob.getJobId());
 
+        // Create job message for RabbitMQ
         JobMessageDTO message = new JobMessageDTO(
                 savedJob.getJobId(),
                 image.getImageId(),
@@ -77,6 +71,8 @@ public class JobService {
                 jobType,
                 jobConfig
         );
+        
+        // Publish the job to RabbitMQ
         jobPublisherService.publishJob(message);
         log.info("Dispatched job {} to RabbitMQ", savedJob.getJobId());
 
@@ -100,15 +96,31 @@ public class JobService {
         }
 
         if (updateRequest.getStatus() == JobStatusEnum.COMPLETED && updateRequest.getProcessedStoragePath() != null) {
+            // Create processed image record
             ProcessedImage processedImage = new ProcessedImage();
             processedImage.setJob(job);
             processedImage.setOriginalImage(job.getOriginalImage());
             processedImage.setProcessedStoragePath(updateRequest.getProcessedStoragePath());
-            // Assuming filename can be derived or is part of the path for now
-            // FIXME: might need more info from Python service to populate all processed_image fields
-            processedImage.setProcessedFilename("processed_" + job.getJobId().toString()); // Placeholder
-            processedImage.setProcessingParams(updateRequest.getProcessingParams() != null ? convertMapToJsonString(updateRequest.getProcessingParams()) : null);
-            // Set other fields like filesize, format, width, height if available
+            
+            // Extract filename from path
+            String filename = updateRequest.getProcessedStoragePath();
+            if (filename.contains("/")) {
+                filename = filename.substring(filename.lastIndexOf('/') + 1);
+            }
+            processedImage.setProcessedFilename(filename);
+            
+            // Set placeholder values for filesize, width, height
+            // TODO: These should be computed from the actual image file
+            processedImage.setProcessedFilesizeBytes(10000L); // Placeholder
+            processedImage.setProcessedWidth(800); // Placeholder
+            processedImage.setProcessedHeight(600); // Placeholder
+            processedImage.setProcessedFormat("PNG"); // Placeholder
+            
+            // Set processing parameters
+            processedImage.setProcessingParams(updateRequest.getProcessingParams() != null ? 
+                    convertMapToJsonString(updateRequest.getProcessingParams()) : null);
+            
+            // Save processed image
             processedImageRepository.save(processedImage);
             job.setProcessedImage(processedImage); // Link it back
         }
@@ -128,7 +140,7 @@ public class JobService {
             return objectMapper.writeValueAsString(map);
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
             log.warn("Error converting map to JSON string for job config/params", e);
-            return null; // FIXME: handle better
+            return "{}"; // Empty JSON object as fallback
         }
     }
 }

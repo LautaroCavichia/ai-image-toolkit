@@ -1,3 +1,4 @@
+// src/components/imageUploader.tsx
 import React, { useState, ChangeEvent, FormEvent } from 'react';
 import { uploadImageAndCreateJob } from '../services/apiService';
 import { JobResponseDTO, JobTypeEnum } from '../types';
@@ -11,8 +12,6 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
   const [jobType, setJobType] = useState<JobTypeEnum>(JobTypeEnum.BG_REMOVAL);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  // TODO: Get userId from an auth context or input for now
-  const tempUserId = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"; // FIXME: Replace with actual or input
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -33,7 +32,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
     setIsLoading(true);
     setError(null);
     try {
-      const job = await uploadImageAndCreateJob(selectedFile, tempUserId, jobType);
+      const job = await uploadImageAndCreateJob(selectedFile, jobType);
       onJobCreated(job);
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Failed to upload image and create job.');

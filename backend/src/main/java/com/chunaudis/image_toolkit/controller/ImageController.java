@@ -2,11 +2,14 @@ package com.chunaudis.image_toolkit.controller;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,9 +23,11 @@ import com.chunaudis.image_toolkit.entity.Job;
 import com.chunaudis.image_toolkit.entity.enums.JobTypeEnum;
 import com.chunaudis.image_toolkit.service.ImageService;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 @RestController
 @RequestMapping("/api/v1/images")
-@CrossOrigin(origins = "*") // FIXME: Allow all for dev, restrict in prod!
+@CrossOrigin(origins = "*") // FIXME: restrict in production
 public class ImageController {
     private static final Logger log = LoggerFactory.getLogger(ImageController.class);
     private final ImageService imageService;
@@ -34,22 +39,37 @@ public class ImageController {
     @PostMapping("/upload")
     public ResponseEntity<JobResponseDTO> uploadImageAndCreateJob(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("userId") String userId, // TODO: Get from auth principal
-            @RequestParam("jobType") JobTypeEnum jobType
+            @RequestParam("jobType") JobTypeEnum jobType,
+            HttpServletRequest request
     ) {
+        // Get user ID from security context
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        // Get user ID from request attribute set in JwtRequestFilter
+        UUID userId = (UUID) request.getAttribute("userId");
+        if (userId == null) {
+            UUID authPrincipalUserId = (UUID) authentication.getPrincipal();
+            // Use authentication principal as fallback
+            userId = authPrincipalUserId;
+        }
+        
         log.info("Received image upload request for user: {}, jobType: {}", userId, jobType);
+        
         if (file.isEmpty()) {
-            return ResponseEntity.badRequest().build(); // FIXME: Or a custom error DTO
+            return ResponseEntity.badRequest().build();
         }
 
         ImageUploadRequestDTO requestDTO = new ImageUploadRequestDTO();
-        requestDTO.setUserId(userId);
+        requestDTO.setUserId(userId.toString());
         requestDTO.setJobType(jobType);
 
         // Example jobConfig, this could come from request params or a JSON body part
         Map<String, Object> jobConfig = new HashMap<>();
         if (jobType == JobTypeEnum.UPSCALE) {
-            jobConfig.put("scaleFactor", 2); // FIXME: Example
+            jobConfig.put("scaleFactor", 2); // Example
         }
 
         try {
