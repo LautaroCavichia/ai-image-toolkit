@@ -17,6 +17,8 @@ import com.chunaudis.image_toolkit.dto.JobResponseDTO;
 import com.chunaudis.image_toolkit.dto.JobStatusUpdateRequestDTO;
 import com.chunaudis.image_toolkit.entity.Job;
 import com.chunaudis.image_toolkit.service.JobService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RestController
 @RequestMapping("/api/v1/jobs")
@@ -25,23 +27,26 @@ import com.chunaudis.image_toolkit.service.JobService;
 public class JobController {
 private static final Logger log = LoggerFactory.getLogger(JobController.class);
 private final JobService jobService;
+private final ObjectMapper objectMapper;
 
-public JobController(JobService jobService) {
+public JobController(JobService jobService, ObjectMapper objectMapper) {
     this.jobService = jobService;
+    this.objectMapper = objectMapper;
 }
 
 // Endpoint for Python microservice to call back
 @PostMapping("/{jobId}/status")
 public ResponseEntity<Void> updateJobStatus(
         @PathVariable UUID jobId,
-        @RequestBody JobStatusUpdateRequestDTO updateRequest) {
-    log.info("Received status update for job {}: {}", jobId, updateRequest.getStatus());
+        @RequestBody String rawBody) {
+    log.info("Received  RAW status update for job {}: {}", jobId, rawBody);
     try {
+        JobStatusUpdateRequestDTO updateRequest = objectMapper.readValue(rawBody, JobStatusUpdateRequestDTO.class);
         jobService.updateJobStatus(jobId, updateRequest);
         return ResponseEntity.ok().build();
-    } catch (Exception e) {
-        log.error("Error updating job status for job {}: ", jobId, e);
-        return ResponseEntity.internalServerError().build();
+    } catch (JsonProcessingException e) {
+        log.error("Error parsing job status update for job {}: {}", jobId, e.getMessage());
+        return ResponseEntity.badRequest().build();
     }
 }
 

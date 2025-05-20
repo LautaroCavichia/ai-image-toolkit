@@ -1,5 +1,6 @@
-package com.chunaudis.image_toolkit.storage;
+package com.chunaudis.image_toolkit.storage;        
 
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -7,6 +8,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
+
+import javax.imageio.ImageIO;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,18 +27,26 @@ public class FileStorageService {
     private String basePathString;
     @Value("${app.storage.originals-subdir}")
     private String originalsSubDir;
+    @Value("${app.storage.processed-subdir}")
+    private String processedSubDir;
 
     private Path originalsLocation;
+    private Path processedLocation;
 
     @PostConstruct
     public void init() {
         try {
             this.originalsLocation = Paths.get(basePathString, originalsSubDir).toAbsolutePath().normalize();
+            this.processedLocation = Paths.get(basePathString, processedSubDir).toAbsolutePath().normalize();
+            
             Files.createDirectories(this.originalsLocation);
-            log.info("Initialized storage location: {}", this.originalsLocation);
+            Files.createDirectories(this.processedLocation);
+            
+            log.info("Initialized storage locations: originals={}, processed={}", 
+                this.originalsLocation, this.processedLocation);
         } catch (IOException ex) {
-            log.error("Could not initialize storage location", ex);
-            throw new RuntimeException("Could not initialize storage location", ex);
+            log.error("Could not initialize storage locations", ex);
+            throw new RuntimeException("Could not initialize storage locations", ex);
         }
     }
 
@@ -62,7 +73,13 @@ public class FileStorageService {
             try (InputStream inputStream = file.getInputStream()) {
                 Files.copy(inputStream, destinationFile, StandardCopyOption.REPLACE_EXISTING);
             }
-            log.info("Stored original file: {}", destinationFile.toString());
+            
+            // Extract image metadata (width, height)
+            int[] dimensions = getImageDimensions(destinationFile.toString());
+            
+            log.info("Stored original file: {} ({}x{})", 
+                     destinationFile.toString(), dimensions[0], dimensions[1]);
+            
             // Return relative path or full path as needed by your JobMessageDTO
             return destinationFile.toString(); // For local FS, full path might be needed by Python
         } catch (IOException e) {
@@ -71,5 +88,34 @@ public class FileStorageService {
         }
     }
 
-    // TODO: Add methods to store processed files, load files etc.
+    /**
+     * Get image dimensions (width and height)
+     * @param filePath Path to the image file
+     * @return int array with [width, height], or [0, 0] if reading fails
+     */
+    public int[] getImageDimensions(String filePath) {
+        try {
+            BufferedImage img = ImageIO.read(Paths.get(filePath).toFile());
+            if (img != null) {
+                return new int[] { img.getWidth(), img.getHeight() };
+            }
+        } catch (IOException e) {
+            log.warn("Failed to read image dimensions for {}: {}", filePath, e.getMessage());
+        }
+        return new int[] { 0, 0 }; // Default values if reading fails
+    }
+    
+    /**
+     * Get file size in bytes
+     * @param filePath Path to the file
+     * @return File size in bytes, or 0 if reading fails
+     */
+    public long getFileSize(String filePath) {
+        try {
+            return Files.size(Paths.get(filePath));
+        } catch (IOException e) {
+            log.warn("Failed to get file size for {}: {}", filePath, e.getMessage());
+            return 0L;
+        }
+    }
 }

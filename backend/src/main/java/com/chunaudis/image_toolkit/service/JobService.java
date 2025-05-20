@@ -53,7 +53,7 @@ public class JobService {
                 .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
 
         // Create a new job
-        Job job = new Job();
+        Job job = new Job();    
         job.setUser(user);
         job.setOriginalImage(image);
         job.setJobType(jobType);

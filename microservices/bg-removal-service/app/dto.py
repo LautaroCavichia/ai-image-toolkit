@@ -31,11 +31,10 @@ class JobMessageDTO(BaseModel):
     jobConfig: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 class JobStatusUpdateRequestDTO(BaseModel):
-    """
-    DTO for job status updates sent back to the Spring Boot backend.
-    Different fields are used depending on the status.
-    """
     status: JobStatus
     processedStoragePath: Optional[str] = None
     processingParams: Optional[Dict[str, Any]] = None
     errorMessage: Optional[str] = None
+
+    class Config:
+        use_enum_values = True

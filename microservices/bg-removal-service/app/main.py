@@ -126,6 +126,9 @@ async def send_status_update(job_id: str, status_update: JobStatusUpdateRequestD
             json=status_update.dict(exclude_none=True)
         )
         
+        # Log the actual payload being sent
+        logger.info(f"Callback payload: {status_update.dict(exclude_none=True)}")
+        
         if response.status_code >= 200 and response.status_code < 300:
             logger.info(f"Callback successful for job {job_id}: {response.status_code}")
             return True
