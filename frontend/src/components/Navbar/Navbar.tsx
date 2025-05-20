@@ -20,7 +20,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
     >
       <div className="navbar-container">
         <div className="navbar-logo">
-          <span className="logo-text">AI Image Toolkit</span>
+          <span className="logo-text">PixelPerfect AI</span>
         </div>
         
         <div className="navbar-user">

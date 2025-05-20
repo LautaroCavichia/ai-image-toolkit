@@ -10,6 +10,8 @@ import Navbar from './components/Navbar/Navbar';
 import Login from './components/Login/Login';
 import ImageUploader from './components/ImageUploader/ImageUploader';
 import JobStatusDisplay from './components/JobStatus/JobStatusDisplay';
+import AboutSection from './components/AboutSection/AboutSection';
+import Footer from './components/Footer/Footer';
 
 function App() {
   const [currentJob, setCurrentJob] = useState<JobResponseDTO | null>(null);
@@ -70,6 +72,10 @@ function App() {
               transition={{ duration: 0.5 }}
               className="login-container"
             >
+              <div className="hero-content">
+                <h1 className="hero-title">PixelPerfect AI</h1>
+                <p className="hero-subtitle">Advanced image enhancement made simple</p>
+              </div>
               <Login onLoginSuccess={handleLoginSuccess} />
             </motion.div>
           ) : (
@@ -105,10 +111,20 @@ function App() {
       </main>
       
       <div className="background">
-        <div className="gradient-blob gradient-blob-1"></div>
-        <div className="gradient-blob gradient-blob-2"></div>
-        <div className="gradient-blob gradient-blob-3"></div>
+        <div className="background-shapes">
+          <div className="shape shape-1"></div>
+          <div className="shape shape-2"></div>
+          <div className="shape shape-3"></div>
+        </div>
+        <div className="pattern"></div>
       </div>
+      
+      {isLoggedIn && (
+        <>
+          <AboutSection />
+          <Footer />
+        </>
+      )}
       
       <ToastContainer
         position="bottom-right"
@@ -120,7 +136,7 @@ function App() {
         pauseOnFocusLoss
         draggable
         pauseOnHover
-        theme="dark"
+        theme="light"
       />
     </div>
   );
