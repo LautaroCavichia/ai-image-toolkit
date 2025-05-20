@@ -49,11 +49,11 @@ public class Job {
     private Batch batch;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 50)
+    @Column(length = 50, nullable = false)
     private JobTypeEnum jobType;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 50)
+    @Column(length = 50, nullable = false)
     private JobStatusEnum status = JobStatusEnum.PENDING;
 
     private Integer priority;

@@ -39,8 +39,8 @@ public class Batch {
     @Column(length = 255)
     private String batchName;
 
-    @Enumerated(EnumType.STRING) 
-    @Column(nullable = false, length = 50) 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 50, nullable = false)
     private BatchStatusEnum status = BatchStatusEnum.PENDING; 
 
     @CreationTimestamp
