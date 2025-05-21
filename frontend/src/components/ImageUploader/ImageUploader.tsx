@@ -119,12 +119,6 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
 
   return (
     <div className="image-uploader-container">
-      <h2 className="uploader-title">Transform Your Images with AI</h2>
-      <p className="uploader-subtitle">
-        Upload an image and let our AI enhance it instantly. We offer background removal, 
-        upscaling, and enlargement in seconds.
-      </p>
-      
       <div className="uploader-content">
         <div 
           className={`drop-area ${isDragging ? 'dragging' : ''} ${preview ? 'has-preview' : ''}`}

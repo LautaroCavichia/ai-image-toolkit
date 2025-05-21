@@ -1,5 +1,5 @@
 // src/App.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ToastContainer, toast } from 'react-toastify';
 import { 
@@ -20,6 +20,9 @@ import JobStatusDisplay from './components/JobStatus/JobStatusDisplay';
 import AboutSection from './components/AboutSection/AboutSection';
 import Footer from './components/Footer/Footer';
 import GuestConversion from './components/GuestConversion/GuestConversion';
+import ContactForm from './components/ContactForm/ContactForm';
+import ApiSection from './components/ApiSection/ApiSection';
+import AboutUs from './components/AboutUs/AboutUs';
 
 function App() {
   const [currentJob, setCurrentJob] = useState<JobResponseDTO | null>(null);
@@ -29,6 +32,8 @@ function App() {
   const [showJobStatus, setShowJobStatus] = useState<boolean>(false);
   const [showAuth, setShowAuth] = useState<boolean>(false);
   const [tokenBalance, setTokenBalance] = useState<number>(0);
+  const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const appRef = useRef<HTMLDivElement>(null);
 
   // Initialize authentication state and axios interceptors on app load
   useEffect(() => {
@@ -59,6 +64,22 @@ function App() {
       handleCreateGuestUser();
     }
   }, []);
+
+  // Effect to handle body scroll when modal is open
+  useEffect(() => {
+    const isAnyModalOpen = showJobStatus || showAuth;
+    setModalOpen(isAnyModalOpen);
+    
+    if (isAnyModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'visible';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'visible';
+    };
+  }, [showJobStatus, showAuth]);
 
   const handleCreateGuestUser = async () => {
     try {
@@ -136,8 +157,15 @@ function App() {
     setShowAuth(prev => !prev);
   };
 
+  const scrollToSection = (sectionId: string) => {
+    const section = document.getElementById(sectionId);
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
-    <div className="app">
+    <div className="app" ref={appRef}>
       <Navbar 
         user={isLoggedIn ? user : null} 
         onLogout={handleLogout} 
@@ -147,7 +175,7 @@ function App() {
         onShowGuestConversion={toggleAuthModal}
       />
       
-      <main className="app-main">
+      <main className="app-main" id="home">
         <AnimatePresence mode="wait">
           <motion.div
             key="dashboard"
@@ -157,25 +185,65 @@ function App() {
             transition={{ duration: 0.5 }}
             className="dashboard-container"
           >
+            <motion.div 
+              className="hero-content"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <motion.h1 
+                className="hero-title"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.8, 
+                  delay: 0.3,
+                  type: "spring",
+                  stiffness: 100
+                }}
+              >
+                Transform Images with AI Magic
+              </motion.h1>
+              <motion.p 
+                className="hero-subtitle"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+              >
+                Background removal, upscaling, and enhancement powered by cutting-edge AI technology
+              </motion.p>
+            </motion.div>
+            
             <ImageUploader onJobCreated={handleNewJob} />
             
             <AnimatePresence>
               {showJobStatus && currentJob && (
                 <motion.div 
                   className="job-status-modal"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={(e) => {
+                    if (e.target === e.currentTarget) {
+                      closeJobStatus();
+                    }
+                  }}
                 >
-                  <div className="job-status-content">
+                  <motion.div 
+                    className="job-status-content"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <button onClick={closeJobStatus} className="close-button">×</button>
                     <JobStatusDisplay 
                       initialJob={currentJob}
                       onTokenBalanceChange={handleTokenBalanceChange}
                       onShowGuestConversion={toggleAuthModal}
                     />
-                  </div>
+                  </motion.div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -193,6 +261,19 @@ function App() {
       </div>
       
       <AboutSection />
+      
+      <div id="features">
+        <AboutUs />
+      </div>
+      
+      <div id="api">
+        <ApiSection />
+      </div>
+      
+      <div id="contact">
+        <ContactForm />
+      </div>
+      
       <Footer />
       
       <AnimatePresence>
@@ -202,12 +283,18 @@ function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                toggleAuthModal();
+              }
+            }}
           >
             <motion.div
               className="auth-modal-content"
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
             >
               <button onClick={toggleAuthModal} className="close-button">×</button>
               {isGuest ? (

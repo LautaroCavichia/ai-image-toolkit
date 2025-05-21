@@ -1,10 +1,16 @@
 // src/components/Navbar/Navbar.tsx
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faSignOutAlt, 
-  faSignInAlt
+  faSignInAlt,
+  faHome,
+  faInfo,
+  faEnvelope,
+  faFileAlt,
+  faBars,
+  faTimes
 } from '@fortawesome/free-solid-svg-icons';
 import TokenPanel from '../TokenPanel/TokenPanel';
 import './Navbar.css';
@@ -26,16 +32,66 @@ const Navbar: React.FC<NavbarProps> = ({
   onTokenBalanceChange,
   onShowGuestConversion
 }) => {
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const isScrolled = window.scrollY > 10;
+      if (isScrolled !== scrolled) {
+        setScrolled(isScrolled);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [scrolled]);
+
+  const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
+
   return (
     <motion.nav 
-      className="navbar"
+      className={`navbar ${scrolled ? 'scrolled' : ''}`}
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
     >
       <div className="navbar-container">
-        <div className="navbar-logo">
+        <motion.div 
+          className="navbar-logo"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <div className="logo-icon">
+            <div className="logo-square"></div>
+            <div className="logo-circle"></div>
+          </div>
           <span className="logo-text">PixelPerfect AI</span>
+        </motion.div>
+        
+        <div className="mobile-menu-toggle" onClick={toggleMobileMenu}>
+          <FontAwesomeIcon icon={mobileMenuOpen ? faTimes : faBars} />
+        </div>
+        
+        <div className={`navbar-links ${mobileMenuOpen ? 'active' : ''}`}>
+          <a href="#home" className="nav-link" onClick={() => setMobileMenuOpen(false)}>
+            <FontAwesomeIcon icon={faHome} />
+            <span>Home</span>
+          </a>
+          <a href="#features" className="nav-link" onClick={() => setMobileMenuOpen(false)}>
+            <FontAwesomeIcon icon={faInfo} />
+            <span>Features</span>
+          </a>
+          <a href="#api" className="nav-link" onClick={() => setMobileMenuOpen(false)}>
+            <FontAwesomeIcon icon={faFileAlt} />
+            <span>API</span>
+          </a>
+          <a href="#contact" className="nav-link" onClick={() => setMobileMenuOpen(false)}>
+            <FontAwesomeIcon icon={faEnvelope} />
+            <span>Contact</span>
+          </a>
         </div>
         
         <div className="navbar-actions">
@@ -49,27 +105,39 @@ const Navbar: React.FC<NavbarProps> = ({
           {user ? (
             /* User is logged in - show user info and logout button */
             <div className="navbar-user">
-              <div className={`user-avatar ${isGuest ? 'guest' : ''}`}>
+              <motion.div 
+                className={`user-avatar ${isGuest ? 'guest' : ''}`}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+              >
                 {user.displayName.charAt(0).toUpperCase()}
-              </div>
+              </motion.div>
               <div className="user-info">
                 <span className="user-name">{user.displayName}</span>
                 {isGuest && <span className="guest-badge">Guest</span>}
               </div>
-              <button onClick={onLogout} className="logout-button" title="Logout">
+              <motion.button 
+                onClick={onLogout} 
+                className="logout-button" 
+                title="Logout"
+                whileHover={{ scale: 1.1, rotate: 10 }}
+                whileTap={{ scale: 0.9 }}
+              >
                 <FontAwesomeIcon icon={faSignOutAlt} />
-              </button>
+              </motion.button>
             </div>
           ) : (
             /* No user - show login button */
-            <button 
+            <motion.button 
               className="auth-button"
               onClick={onShowGuestConversion}
               title="Sign In or Create Account"
+              whileHover={{ scale: 1.05, backgroundColor: "var(--primary-hover)" }}
+              whileTap={{ scale: 0.95 }}
             >
               <FontAwesomeIcon icon={faSignInAlt} />
               <span>Sign In</span>
-            </button>
+            </motion.button>
           )}
         </div>
       </div>
