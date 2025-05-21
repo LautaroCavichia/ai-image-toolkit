@@ -66,7 +66,6 @@ public class ImageController {
         requestDTO.setUserId(userId.toString());
         requestDTO.setJobType(jobType);
 
-        // Example jobConfig, this could come from request params or a JSON body part
         Map<String, Object> jobConfig = new HashMap<>();
         if (jobType == JobTypeEnum.UPSCALE) {
             jobConfig.put("scaleFactor", 2); // Example

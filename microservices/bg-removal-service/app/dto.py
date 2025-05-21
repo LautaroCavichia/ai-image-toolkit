@@ -10,7 +10,8 @@ from pydantic import BaseModel, Field
 class JobType(str, Enum):
     """Job types supported by the image processing system."""
     BG_REMOVAL = "BG_REMOVAL"
-    # Other job types would be listed here
+    UPSCALE = "UPSCALE"
+    ENLARGE = "ENLARGE"
 
 class JobStatus(str, Enum):
     """Status values for job processing."""
@@ -31,6 +32,9 @@ class JobMessageDTO(BaseModel):
     jobConfig: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 class JobStatusUpdateRequestDTO(BaseModel):
+    """
+    DTO for sending job status updates back to the Spring Boot backend.
+    """
     status: JobStatus
     processedStoragePath: Optional[str] = None
     processingParams: Optional[Dict[str, Any]] = None

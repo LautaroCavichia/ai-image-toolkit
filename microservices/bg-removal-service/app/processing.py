@@ -1,12 +1,15 @@
 """
 Image processing module for background removal.
-Currently implements a placeholder/dummy version of the background removal logic.
+Implements both full-quality and low-quality thumbnail generation.
 """
 
 import os
 import asyncio
 import logging
 from typing import Dict, Tuple, Any
+from pathlib import Path
+import io
+from PIL import Image, ImageDraw, ImageFont
 
 logger = logging.getLogger(__name__)
 
@@ -16,11 +19,8 @@ async def perform_background_removal(
     config: Dict[str, Any]
 ) -> Tuple[str, Dict[str, Any]]:
     """
-    Perform background removal on an image.
-    
-    This is currently a placeholder implementation that simulates work.
-    In a real implementation, this would use an AI model (e.g., U²-Net, Rembg)
-    to perform actual background removal.
+    Perform background removal on an image and generate both full-quality result
+    and a low-quality preview with watermark.
     
     Args:
         job_id: Unique identifier for the job
@@ -74,9 +74,81 @@ async def perform_background_removal(
     #    save_image(result_image, output_path)
     # ---------------------------------------------------------------------
     
-    # Create a dummy output path that would be used in production
-    # In reality, this would be a real path where the processed image is saved
-    dummy_processed_image_path = f"processed/{job_id}_bg_removed.png"
+    # Create full-quality output path
+    processed_dir = "processed"
+    os.makedirs(processed_dir, exist_ok=True)
+    
+    # In a real implementation, we would actually process the image
+    # For this demo, we'll create a dummy high-quality result
+    dummy_processed_image_path = f"{processed_dir}/{job_id}_bg_removed.png"
+    
+    # Create a thumbnail version with watermark
+    dummy_thumbnail_path = f"{processed_dir}/{job_id}_bg_removed_thumbnail.png"
+    
+    # For this demo, we'll create dummy images using PIL
+    try:
+        # Create a simple colored rectangle as our dummy result
+        # In a real implementation, this would be the actually processed image
+        img = Image.new('RGBA', (800, 600), (255, 255, 255, 0))
+        draw = ImageDraw.Draw(img)
+        draw.rectangle([(200, 150), (600, 450)], fill=(64, 128, 255, 255))
+        
+        # Save the full-quality version
+        img.save(dummy_processed_image_path, "PNG")
+        
+        # Create a low-quality version with watermark
+        # Reduce quality
+        thumbnail = img.copy()
+        thumbnail = thumbnail.resize((400, 300), Image.LANCZOS)
+        
+        # Add watermark
+        draw = ImageDraw.Draw(thumbnail)
+        
+        # Try to load a font, fall back to default if not available
+        try:
+            font = ImageFont.truetype("arial.ttf", 36)
+        except OSError:
+            font = ImageFont.load_default()
+            
+        # Add a semi-transparent overlay
+        overlay = Image.new('RGBA', thumbnail.size, (0, 0, 0, 0))
+        draw_overlay = ImageDraw.Draw(overlay)
+        draw_overlay.rectangle([(0, 0), thumbnail.size], fill=(255, 255, 255, 70))
+        
+        # Add watermark text
+        watermark_text = "PREVIEW ONLY"
+        text_width, text_height = draw.textbbox((0, 0), watermark_text, font=font)[2:4]
+        position = ((thumbnail.width - text_width) // 2, (thumbnail.height - text_height) // 2)
+        
+        # Draw the text with shadow for better visibility
+        for offset in [(1, 1), (-1, -1), (1, -1), (-1, 1)]:
+            draw_overlay.text((position[0] + offset[0], position[1] + offset[1]), 
+                      watermark_text, font=font, fill=(0, 0, 0, 128))
+        draw_overlay.text(position, watermark_text, font=font, fill=(255, 0, 0, 200))
+        
+        # Rotate overlay for diagonal watermark
+        overlay = overlay.rotate(45, expand=True)
+        
+        # Paste the overlay onto the thumbnail
+        x = (thumbnail.width - overlay.width) // 2
+        y = (thumbnail.height - overlay.height) // 2
+        
+        # Create a white background image
+        final_thumbnail = Image.new('RGB', thumbnail.size, (255, 255, 255))
+        # Paste the thumbnail first
+        final_thumbnail.paste(thumbnail, (0, 0), thumbnail)
+        # Paste the overlay with watermark
+        final_thumbnail.paste(overlay, (x, y), overlay)
+        
+        # Save the thumbnail
+        final_thumbnail.save(dummy_thumbnail_path, "PNG", quality=70)
+        
+        logger.info(f"Saved full-quality image at {dummy_processed_image_path}")
+        logger.info(f"Saved thumbnail at {dummy_thumbnail_path}")
+        
+    except Exception as e:
+        logger.error(f"Error creating output images: {e}")
+        raise RuntimeError(f"Failed to create output images: {e}")
     
     # Return dummy processing parameters
     dummy_processing_params = {

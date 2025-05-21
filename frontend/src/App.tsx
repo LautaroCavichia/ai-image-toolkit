@@ -2,7 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ToastContainer, toast } from 'react-toastify';
-import { isAuthenticated, logout, setupAxiosInterceptors, getCurrentUser } from './services/authService';
+import { 
+  isAuthenticated, 
+  logout, 
+  setupAxiosInterceptors, 
+  getCurrentUser, 
+  createGuestUser 
+} from './services/authService';
+import { fetchTokenBalance } from './services/tokenService';
 import { JobResponseDTO } from './types';
 import './styles/App.css';
 import 'react-toastify/dist/ReactToastify.css';
@@ -12,12 +19,17 @@ import ImageUploader from './components/ImageUploader/ImageUploader';
 import JobStatusDisplay from './components/JobStatus/JobStatusDisplay';
 import AboutSection from './components/AboutSection/AboutSection';
 import Footer from './components/Footer/Footer';
+import TokenPanel from './components/TokenPanel/TokenPanel';
+import GuestConversion from './components/GuestConversion/GuestConversion';
 
 function App() {
   const [currentJob, setCurrentJob] = useState<JobResponseDTO | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [user, setUser] = useState<{ userId: string; email: string; displayName: string } | null>(null);
+  const [isGuest, setIsGuest] = useState<boolean>(false);
+  const [user, setUser] = useState<{ userId: string; email?: string; displayName: string; isGuest?: boolean } | null>(null);
   const [showJobStatus, setShowJobStatus] = useState<boolean>(false);
+  const [showGuestConversion, setShowGuestConversion] = useState<boolean>(false);
+  const [tokenBalance, setTokenBalance] = useState<number>(0);
 
   // Initialize authentication state and axios interceptors on app load
   useEffect(() => {
@@ -26,12 +38,45 @@ function App() {
     
     // Check if user is already logged in (token exists in localStorage)
     const authenticated = isAuthenticated();
-    setIsLoggedIn(authenticated);
     
     if (authenticated) {
-      setUser(getCurrentUser());
+      const currentUser = getCurrentUser();
+      setIsLoggedIn(true);
+      setUser(currentUser);
+      
+      // Check if user is a guest
+      if (currentUser?.isGuest) {
+        setIsGuest(true);
+      }
+      
+      // Get token balance
+      if (currentUser?.tokenBalance !== undefined) {
+        setTokenBalance(currentUser.tokenBalance);
+      } else {
+        fetchTokenBalance().then(balance => setTokenBalance(balance));
+      }
+    } else {
+      // Auto-create a guest user if not authenticated
+      handleCreateGuestUser();
     }
   }, []);
+
+  const handleCreateGuestUser = async () => {
+    try {
+      const guestUser = await createGuestUser();
+      setIsLoggedIn(true);
+      setIsGuest(true);
+      setUser({
+        userId: guestUser.userId,
+        displayName: guestUser.displayName,
+        isGuest: true
+      });
+      setTokenBalance(guestUser.tokenBalance || 0);
+    } catch (error) {
+      console.error("Failed to create guest user:", error);
+      // If guest user creation fails, remain logged out
+    }
+  };
 
   const handleNewJob = (job: JobResponseDTO) => {
     setCurrentJob(job);
@@ -41,16 +86,46 @@ function App() {
   
   const handleLoginSuccess = () => {
     setIsLoggedIn(true);
-    setUser(getCurrentUser());
+    const currentUser = getCurrentUser();
+    setUser(currentUser);
+    setIsGuest(currentUser?.isGuest || false);
+    
+    // Update token balance
+    if (currentUser?.tokenBalance !== undefined) {
+      setTokenBalance(currentUser.tokenBalance);
+    } else {
+      fetchTokenBalance().then(balance => setTokenBalance(balance));
+    }
+    
     toast.success("Login successful!");
   };
   
   const handleLogout = () => {
     logout();
     setIsLoggedIn(false);
+    setIsGuest(false);
     setUser(null);
     setCurrentJob(null);
+    setTokenBalance(0);
     toast.info("Logged out successfully");
+    
+    // Auto-create a guest user after logout
+    handleCreateGuestUser();
+  };
+
+  const handleTokenBalanceChange = (newBalance: number) => {
+    setTokenBalance(newBalance);
+  };
+
+  const handleGuestConversionSuccess = () => {
+    setShowGuestConversion(false);
+    setIsGuest(false);
+    
+    // Update user data
+    const currentUser = getCurrentUser();
+    setUser(currentUser);
+    
+    toast.success("Account created successfully!");
   };
 
   const closeJobStatus = () => {
@@ -59,54 +134,48 @@ function App() {
 
   return (
     <div className="app">
-      {isLoggedIn && <Navbar user={user} onLogout={handleLogout} />}
+      <Navbar 
+        user={user} 
+        onLogout={handleLogout} 
+        isGuest={isGuest}
+        tokenBalance={tokenBalance}
+        onTokenBalanceChange={handleTokenBalanceChange}
+        onShowGuestConversion={() => setShowGuestConversion(true)}
+      />
       
       <main className="app-main">
         <AnimatePresence mode="wait">
-          {!isLoggedIn ? (
-            <motion.div
-              key="login"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.5 }}
-              className="login-container"
-            >
-              <div className="hero-content">
-                <h1 className="hero-title">PixelPerfect AI</h1>
-                <p className="hero-subtitle">Advanced image enhancement made simple</p>
-              </div>
-              <Login onLoginSuccess={handleLoginSuccess} />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="dashboard"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
-              className="dashboard-container"
-            >
-              <ImageUploader onJobCreated={handleNewJob} />
-              
-              <AnimatePresence>
-                {showJobStatus && currentJob && (
-                  <motion.div 
-                    className="job-status-modal"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  >
-                    <div className="job-status-content">
-                      <button onClick={closeJobStatus} className="close-button">×</button>
-                      <JobStatusDisplay initialJob={currentJob} />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          )}
+          <motion.div
+            key="dashboard"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            className="dashboard-container"
+          >
+            <ImageUploader onJobCreated={handleNewJob} />
+            
+            <AnimatePresence>
+              {showJobStatus && currentJob && (
+                <motion.div 
+                  className="job-status-modal"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                >
+                  <div className="job-status-content">
+                    <button onClick={closeJobStatus} className="close-button">×</button>
+                    <JobStatusDisplay 
+                      initialJob={currentJob}
+                      onTokenBalanceChange={handleTokenBalanceChange}
+                      onShowGuestConversion={() => setShowGuestConversion(true)}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
         </AnimatePresence>
       </main>
       
@@ -119,12 +188,18 @@ function App() {
         <div className="pattern"></div>
       </div>
       
-      {isLoggedIn && (
-        <>
-          <AboutSection />
-          <Footer />
-        </>
-      )}
+      <AboutSection />
+      <Footer />
+      
+      <AnimatePresence>
+        {showGuestConversion && user && (
+          <GuestConversion 
+            userId={user.userId}
+            onConversionSuccess={handleGuestConversionSuccess}
+            onCancel={() => setShowGuestConversion(false)}
+          />
+        )}
+      </AnimatePresence>
       
       <ToastContainer
         position="bottom-right"

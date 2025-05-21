@@ -15,6 +15,8 @@ import './JobStatusDisplay.css';
 
 interface JobStatusDisplayProps {
   initialJob: JobResponseDTO;
+  onTokenBalanceChange: (balance: number) => void; //TODO
+  onShowGuestConversion?: () => void; //TODO
 }
 
 const JobStatusDisplay: React.FC<JobStatusDisplayProps> = ({ initialJob }) => {

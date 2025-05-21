@@ -39,6 +39,14 @@ public class User {
     @Column(length = 100)
     private String displayName;
 
+    // New field: isGuest flag
+    @Column(nullable = false)
+    private Boolean isGuest = false;
+    
+    // New field: tokenBalance for premium features
+    @Column(nullable = false)
+    private Integer tokenBalance = 0;
+
     @CreationTimestamp 
     @Column(nullable = false, updatable = false) 
     private OffsetDateTime createdAt;

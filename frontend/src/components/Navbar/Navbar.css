@@ -1,89 +1,147 @@
 /* src/components/Navbar/Navbar.css */
 .navbar {
-    position: relative;
-    width: 100%;
-    z-index: 10;
-    padding: 1rem 0;
-  }
-  
+  position: sticky;
+  top: 0;
+  width: 100%;
+  z-index: 50;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+}
+
+.navbar-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+  height: 70px;
+}
+
+.navbar-logo {
+  display: flex;
+  align-items: center;
+}
+
+.logo-text {
+  font-size: 1.25rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 30px rgba(37, 99, 235, 0.2);
+}
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.create-account-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.create-account-button:hover {
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  transform: translateY(-1px);
+}
+
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 600;
+  color: white;
+  box-shadow: 0 0 15px rgba(37, 99, 235, 0.3);
+}
+
+.user-avatar.guest {
+  background: linear-gradient(135deg, #94a3b8, #64748b);
+  box-shadow: 0 0 15px rgba(100, 116, 139, 0.3);
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-weight: 500;
+  color: #1e293b;
+  font-size: 0.9rem;
+}
+
+.guest-badge {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #64748b;
+  background-color: #f1f5f9;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  margin-top: 0.2rem;
+}
+
+.logout-button {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.logout-button:hover {
+  color: #1e293b;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+@media (max-width: 768px) {
   .navbar-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 1.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(8px);
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
-    height: 70px;
-  }
-  
-  .navbar-logo {
-    display: flex;
-    align-items: center;
-  }
-  
-  .logo-text {
-    font-size: 1.25rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 30px rgba(37, 99, 235, 0.2);
-  }
-  
-  .navbar-user {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-  
-  .user-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-weight: 600;
-    color: white;
-    box-shadow: 0 0 15px rgba(37, 99, 235, 0.3);
+    padding: 0 1rem;
   }
   
   .user-name {
-    font-weight: 500;
-    color: #1e293b;
+    display: none;
   }
   
-  .logout-button {
-    background: none;
-    border: none;
-    color: #64748b;
-    cursor: pointer;
-    padding: 0.5rem;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: all 0.2s;
+  .create-account-button span {
+    display: none;
   }
   
-  .logout-button:hover {
-    color: #1e293b;
-    background-color: rgba(0, 0, 0, 0.05);
+  .navbar-actions {
+    gap: 0.5rem;
   }
-  
-  @media (max-width: 768px) {
-    .navbar-container {
-      padding: 0 1rem;
-    }
-    
-    .user-name {
-      display: none;
-    }
-  }
+}

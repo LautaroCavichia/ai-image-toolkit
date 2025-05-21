@@ -13,7 +13,6 @@ export const uploadImageAndCreateJob = async (
   formData.append('file', file);
   formData.append('jobType', jobType);
 
-  // Get the auth token
   const token = getToken();
   
   const response = await axios.post<JobResponseDTO>(`${API_BASE_URL}/images/upload`, formData, {
@@ -26,7 +25,6 @@ export const uploadImageAndCreateJob = async (
 };
 
 export const getJobStatus = async (jobId: string): Promise<JobResponseDTO> => {
-  // Get the auth token
   const token = getToken();
   
   const response = await axios.get<JobResponseDTO>(`${API_BASE_URL}/jobs/${jobId}/status`, {

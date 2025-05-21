@@ -17,5 +17,10 @@ public class JobResponseDTO {
     private OffsetDateTime createdAt;
     private OffsetDateTime completedAt;
     private String processedImageUrl; // URL to the result
+    private String thumbnailUrl; // Low quality preview
+    private Boolean isPremiumQuality; // Whether full quality is available
+    private Integer tokenCost; // Cost to unlock premium
     private String errorMessage;
+    private Integer tokenBalance; // Current user's token balance FIXME: is it updated?
 }
+
