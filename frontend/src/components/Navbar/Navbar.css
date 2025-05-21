@@ -45,7 +45,7 @@
   gap: 1rem;
 }
 
-.create-account-button {
+.auth-button {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -60,7 +60,7 @@
   transition: all 0.2s;
 }
 
-.create-account-button:hover {
+.auth-button:hover {
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
   transform: translateY(-1px);
 }
@@ -137,7 +137,7 @@
     display: none;
   }
   
-  .create-account-button span {
+  .auth-button span {
     display: none;
   }
   

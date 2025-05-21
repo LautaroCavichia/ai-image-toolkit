@@ -7,22 +7,32 @@ import {
   faExclamationTriangle, 
   faSpinner, 
   faDownload, 
-  faSync 
+  faSync,
+  faLock,
+  faCrown
 } from '@fortawesome/free-solid-svg-icons';
 import { getJobStatus } from '../../services/apiService';
+import { unlockPremiumQuality } from '../../services/tokenService';
 import { JobResponseDTO, JobStatusEnum } from '../../types';
+import { isGuestUser } from '../../services/authService';
 import './JobStatusDisplay.css';
 
 interface JobStatusDisplayProps {
   initialJob: JobResponseDTO;
-  onTokenBalanceChange: (balance: number) => void; //TODO
-  onShowGuestConversion?: () => void; //TODO
+  onTokenBalanceChange: (balance: number) => void;
+  onShowGuestConversion?: () => void;
 }
 
-const JobStatusDisplay: React.FC<JobStatusDisplayProps> = ({ initialJob }) => {
+const JobStatusDisplay: React.FC<JobStatusDisplayProps> = ({ 
+  initialJob, 
+  onTokenBalanceChange,
+  onShowGuestConversion
+}) => {
   const [job, setJob] = useState<JobResponseDTO>(initialJob);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<number>(0);
+  const [isUnlocking, setIsUnlocking] = useState<boolean>(false);
+  const [unlockError, setUnlockError] = useState<string | null>(null);
 
   useEffect(() => {
     setJob(initialJob); // Update if initialJob prop changes
@@ -91,6 +101,34 @@ const JobStatusDisplay: React.FC<JobStatusDisplayProps> = ({ initialJob }) => {
     }
   };
 
+  const handleUnlockPremium = async () => {
+    if (!job.jobId) return;
+    
+    // Check if guest user
+    if (isGuestUser() && onShowGuestConversion) {
+      onShowGuestConversion();
+      return;
+    }
+    
+    setIsUnlocking(true);
+    setUnlockError(null);
+    
+    try {
+      const updatedJob = await unlockPremiumQuality(job.jobId);
+      setJob(updatedJob);
+      
+      // Update token balance
+      if (updatedJob.tokenBalance !== undefined) {
+        onTokenBalanceChange(updatedJob.tokenBalance);
+      }
+    } catch (err: any) {
+      console.error('Failed to unlock premium quality:', err);
+      setUnlockError(err.response?.data || 'Insufficient tokens. Please purchase more tokens.');
+    } finally {
+      setIsUnlocking(false);
+    }
+  };
+
   const renderJobDetails = () => {
     return (
       <div className="job-details">
@@ -120,6 +158,15 @@ const JobStatusDisplay: React.FC<JobStatusDisplayProps> = ({ initialJob }) => {
               <span className="job-value">{new Date(job.completedAt).toLocaleString()}</span>
             </div>
           )}
+          {job.tokenCost !== undefined && (
+            <div className="job-info-row">
+              <span className="job-label">Premium Cost:</span>
+              <span className="job-value token-cost">
+                <FontAwesomeIcon icon={faCrown} className="crown-icon" /> 
+                {job.tokenCost} {job.tokenCost === 1 ? 'Token' : 'Tokens'}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -140,7 +187,7 @@ const JobStatusDisplay: React.FC<JobStatusDisplayProps> = ({ initialJob }) => {
   };
 
   const renderResult = () => {
-    if (job.status === JobStatusEnum.COMPLETED && job.processedImageUrl) {
+    if (job.status === JobStatusEnum.COMPLETED) {
       return (
         <motion.div 
           className="result-container"
@@ -149,24 +196,92 @@ const JobStatusDisplay: React.FC<JobStatusDisplayProps> = ({ initialJob }) => {
           transition={{ duration: 0.5 }}
         >
           <h3 className="result-title">Processing Complete!</h3>
+          
           <div className="result-image-container">
             <img 
-              src={job.processedImageUrl} 
+              src={job.isPremiumQuality ? job.processedImageUrl : job.thumbnailUrl} 
               alt="Processed" 
               className="result-image"
             />
+            {!job.isPremiumQuality && (
+              <div className="quality-indicator free">Free Preview</div>
+            )}
+            {job.isPremiumQuality && (
+              <div className="quality-indicator premium">
+                <FontAwesomeIcon icon={faCrown} /> Premium Quality
+              </div>
+            )}
           </div>
-          <motion.a 
-            href={job.processedImageUrl} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="download-button"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <FontAwesomeIcon icon={faDownload} />
-            <span>Download Result</span>
-          </motion.a>
+
+          <div className="download-options">
+            {/* Free Download Button - Always available */}
+            {job.thumbnailUrl && (
+              <motion.a 
+                href={job.thumbnailUrl} 
+                download
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="download-button free"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <FontAwesomeIcon icon={faDownload} />
+                <span>Download Free</span>
+                <span className="quality-label">Low Quality</span>
+              </motion.a>
+            )}
+            
+            {/* Premium Download Button - Conditional */}
+            {job.isPremiumQuality && job.processedImageUrl ? (
+              <motion.a 
+                href={job.processedImageUrl} 
+                download
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="download-button premium"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <FontAwesomeIcon icon={faCrown} />
+                <span>Download Premium</span>
+                <span className="quality-label">HD Quality</span>
+              </motion.a>
+            ) : (
+              <motion.button 
+                className="download-button premium unlock"
+                onClick={handleUnlockPremium}
+                disabled={isUnlocking}
+                whileHover={{ scale: isUnlocking ? 1 : 1.05 }}
+                whileTap={{ scale: isUnlocking ? 1 : 0.95 }}
+              >
+                {isUnlocking ? (
+                  <>
+                    <FontAwesomeIcon icon={faSpinner} className="spinner" />
+                    <span>Unlocking...</span>
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faLock} />
+                    <span>Unlock Premium</span>
+                    <span className="quality-label">
+                      {job.tokenCost} {job.tokenCost === 1 ? 'Token' : 'Tokens'}
+                    </span>
+                  </>
+                )}
+              </motion.button>
+            )}
+          </div>
+          
+          {unlockError && (
+            <motion.div 
+              className="unlock-error"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              {unlockError}
+            </motion.div>
+          )}
+          
         </motion.div>
       );
     }

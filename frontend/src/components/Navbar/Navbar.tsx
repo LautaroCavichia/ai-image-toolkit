@@ -2,7 +2,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSignOutAlt, faUserPlus } from '@fortawesome/free-solid-svg-icons';
+import { 
+  faSignOutAlt, 
+  faSignInAlt
+} from '@fortawesome/free-solid-svg-icons';
 import TokenPanel from '../TokenPanel/TokenPanel';
 import './Navbar.css';
 
@@ -36,26 +39,16 @@ const Navbar: React.FC<NavbarProps> = ({
         </div>
         
         <div className="navbar-actions">
-          {isGuest && (
-            <button 
-              className="create-account-button"
-              onClick={onShowGuestConversion}
-            >
-              <FontAwesomeIcon icon={faUserPlus} />
-              <span>Create Account</span>
-            </button>
-          )}
-          
+          {/* Show token panel for all users */}
           <TokenPanel 
             tokenBalance={tokenBalance}
             onBalanceChange={onTokenBalanceChange}
             onShowGuestConversion={onShowGuestConversion}
           />
-        </div>
-        
-        <div className="navbar-user">
-          {user && (
-            <>
+          
+          {user ? (
+            /* User is logged in - show user info and logout button */
+            <div className="navbar-user">
               <div className={`user-avatar ${isGuest ? 'guest' : ''}`}>
                 {user.displayName.charAt(0).toUpperCase()}
               </div>
@@ -66,7 +59,17 @@ const Navbar: React.FC<NavbarProps> = ({
               <button onClick={onLogout} className="logout-button" title="Logout">
                 <FontAwesomeIcon icon={faSignOutAlt} />
               </button>
-            </>
+            </div>
+          ) : (
+            /* No user - show login button */
+            <button 
+              className="auth-button"
+              onClick={onShowGuestConversion}
+              title="Sign In or Create Account"
+            >
+              <FontAwesomeIcon icon={faSignInAlt} />
+              <span>Sign In</span>
+            </button>
           )}
         </div>
       </div>

@@ -6,8 +6,8 @@ import {
   isAuthenticated, 
   logout, 
   setupAxiosInterceptors, 
-  getCurrentUser, 
-  createGuestUser 
+  getCurrentUser,
+  createGuestUser
 } from './services/authService';
 import { fetchTokenBalance } from './services/tokenService';
 import { JobResponseDTO } from './types';
@@ -19,7 +19,6 @@ import ImageUploader from './components/ImageUploader/ImageUploader';
 import JobStatusDisplay from './components/JobStatus/JobStatusDisplay';
 import AboutSection from './components/AboutSection/AboutSection';
 import Footer from './components/Footer/Footer';
-import TokenPanel from './components/TokenPanel/TokenPanel';
 import GuestConversion from './components/GuestConversion/GuestConversion';
 
 function App() {
@@ -28,7 +27,7 @@ function App() {
   const [isGuest, setIsGuest] = useState<boolean>(false);
   const [user, setUser] = useState<{ userId: string; email?: string; displayName: string; isGuest?: boolean } | null>(null);
   const [showJobStatus, setShowJobStatus] = useState<boolean>(false);
-  const [showGuestConversion, setShowGuestConversion] = useState<boolean>(false);
+  const [showAuth, setShowAuth] = useState<boolean>(false);
   const [tokenBalance, setTokenBalance] = useState<number>(0);
 
   // Initialize authentication state and axios interceptors on app load
@@ -86,6 +85,7 @@ function App() {
   
   const handleLoginSuccess = () => {
     setIsLoggedIn(true);
+    setShowAuth(false);
     const currentUser = getCurrentUser();
     setUser(currentUser);
     setIsGuest(currentUser?.isGuest || false);
@@ -118,7 +118,7 @@ function App() {
   };
 
   const handleGuestConversionSuccess = () => {
-    setShowGuestConversion(false);
+    setShowAuth(false);
     setIsGuest(false);
     
     // Update user data
@@ -132,15 +132,19 @@ function App() {
     setShowJobStatus(false);
   };
 
+  const toggleAuthModal = () => {
+    setShowAuth(prev => !prev);
+  };
+
   return (
     <div className="app">
       <Navbar 
-        user={user} 
+        user={isLoggedIn ? user : null} 
         onLogout={handleLogout} 
         isGuest={isGuest}
         tokenBalance={tokenBalance}
         onTokenBalanceChange={handleTokenBalanceChange}
-        onShowGuestConversion={() => setShowGuestConversion(true)}
+        onShowGuestConversion={toggleAuthModal}
       />
       
       <main className="app-main">
@@ -169,7 +173,7 @@ function App() {
                     <JobStatusDisplay 
                       initialJob={currentJob}
                       onTokenBalanceChange={handleTokenBalanceChange}
-                      onShowGuestConversion={() => setShowGuestConversion(true)}
+                      onShowGuestConversion={toggleAuthModal}
                     />
                   </div>
                 </motion.div>
@@ -192,12 +196,31 @@ function App() {
       <Footer />
       
       <AnimatePresence>
-        {showGuestConversion && user && (
-          <GuestConversion 
-            userId={user.userId}
-            onConversionSuccess={handleGuestConversionSuccess}
-            onCancel={() => setShowGuestConversion(false)}
-          />
+        {showAuth && (
+          <motion.div 
+            className="auth-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="auth-modal-content"
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+            >
+              <button onClick={toggleAuthModal} className="close-button">×</button>
+              {isGuest ? (
+                <GuestConversion 
+                  userId={user?.userId || ''}
+                  onConversionSuccess={handleGuestConversionSuccess}
+                  onCancel={toggleAuthModal}
+                />
+              ) : (
+                <Login onLoginSuccess={handleLoginSuccess} />
+              )}
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
       

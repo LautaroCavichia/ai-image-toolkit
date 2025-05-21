@@ -1,47 +1,9 @@
 /* src/components/GuestConversion/GuestConversion.css */
 
-.guest-conversion-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
+.guest-conversion-container {
     width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 100;
-    padding: 1rem;
-  }
-  
-  .guest-conversion-card {
-    position: relative;
-    width: 100%;
-    max-width: 480px;
     padding: 2rem;
     overflow: visible;
-  }
-  
-  .close-button {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    background: none;
-    border: none;
-    color: var(--text-dark);
-    font-size: 1.5rem;
-    cursor: pointer;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 50%;
-    transition: background-color 0.2s;
-  }
-  
-  .close-button:hover {
-    background-color: rgba(0, 0, 0, 0.05);
   }
   
   .conversion-header {
