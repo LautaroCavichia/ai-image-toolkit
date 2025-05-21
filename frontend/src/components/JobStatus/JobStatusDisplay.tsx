@@ -199,8 +199,9 @@ const JobStatusDisplay: React.FC<JobStatusDisplayProps> = ({
           
           <div className="result-image-container">
             <img 
-              src={job.isPremiumQuality ? job.processedImageUrl : job.thumbnailUrl} 
-              alt="Processed" 
+              // src={job.isPremiumQuality ? job.processedImageUrl : job.thumbnailUrl} 
+              src={job.isPremiumQuality ? "http://localhost:4000/" + job.jobId + "_bg_removed.png" : "http://localhost:4000/" + job.jobId + "_bg_removed_thumbnail.png"} 
+              alt="Processed"   
               className="result-image"
             />
             {!job.isPremiumQuality && (

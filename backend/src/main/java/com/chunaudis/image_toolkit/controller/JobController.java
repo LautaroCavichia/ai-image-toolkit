@@ -99,6 +99,8 @@ public class JobController {
             JobResponseDTO response = mapJobToJobResponseDTO(job, userId);
             response.setIsPremiumQuality(true);
             response.setProcessedImageUrl(job.getProcessedImage().getProcessedStoragePath());
+
+
             
             // Include updated token balance
             response.setTokenBalance(tokenService.getTokenBalance(userId));
@@ -129,6 +131,8 @@ public class JobController {
             String originalPath = job.getProcessedImage().getProcessedStoragePath();
             String thumbnailPath = originalPath.substring(0, originalPath.lastIndexOf('.')) + "_thumbnail.png";
             dto.setThumbnailUrl(thumbnailPath);
+            // print the job.getProcessedImage().getProcessedStoragePath()
+            log.info("Processed image path: {}", thumbnailPath);
             
             // Check if this is a premium result that the user has paid for
             boolean hasPaidForPremium = false;
