@@ -22,6 +22,8 @@ import com.chunaudis.image_toolkit.dto.JobResponseDTO;
 import com.chunaudis.image_toolkit.entity.Job;
 import com.chunaudis.image_toolkit.entity.enums.JobTypeEnum;
 import com.chunaudis.image_toolkit.service.ImageService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -31,15 +33,18 @@ import jakarta.servlet.http.HttpServletRequest;
 public class ImageController {
     private static final Logger log = LoggerFactory.getLogger(ImageController.class);
     private final ImageService imageService;
+    private final ObjectMapper objectMapper;
 
-    public ImageController(ImageService imageService) {
+    public ImageController(ImageService imageService, ObjectMapper objectMapper) {
         this.imageService = imageService;
+        this.objectMapper = objectMapper;
     }
 
     @PostMapping("/upload")
     public ResponseEntity<JobResponseDTO> uploadImageAndCreateJob(
             @RequestParam("file") MultipartFile file,
             @RequestParam("jobType") JobTypeEnum jobType,
+            @RequestParam(value = "jobConfig", required = false) String jobConfigJson,
             HttpServletRequest request
     ) {
         // Get user ID from security context
@@ -66,9 +71,26 @@ public class ImageController {
         requestDTO.setUserId(userId.toString());
         requestDTO.setJobType(jobType);
 
+        // Parse job config if provided
         Map<String, Object> jobConfig = new HashMap<>();
+        if (jobConfigJson != null && !jobConfigJson.trim().isEmpty()) {
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> parsedConfig = objectMapper.readValue(jobConfigJson, Map.class);
+                jobConfig.putAll(parsedConfig);
+                log.info("Parsed job config: {}", jobConfig);
+            } catch (JsonProcessingException e) {
+                log.warn("Failed to parse job config JSON: {}", jobConfigJson, e);
+                // Continue with empty config instead of failing
+            }
+        }
+
+        // Set default configs based on job type
         if (jobType == JobTypeEnum.UPSCALE) {
-            jobConfig.put("scaleFactor", 2); // Example
+            jobConfig.putIfAbsent("quality", "FREE"); // Default to free quality
+            jobConfig.putIfAbsent("scale", 2); // Default scale factor
+        } else if (jobType == JobTypeEnum.ENLARGE) {
+            jobConfig.putIfAbsent("scaleFactor", 2); // Default scale factor for enlarge
         }
 
         try {

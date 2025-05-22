@@ -7,7 +7,9 @@ import {
   faImage, 
   faSpinner,
   faExpand,
-  faArrowsUpDown
+  faArrowsUpDown,
+  faCrown,
+  faCoins
 } from '@fortawesome/free-solid-svg-icons';
 import { uploadImageAndCreateJob } from '../../services/apiService';
 import { JobResponseDTO, JobTypeEnum } from '../../types';
@@ -17,14 +19,47 @@ interface ImageUploaderProps {
   onJobCreated: (job: JobResponseDTO) => void;
 }
 
+interface UpscaleQuality {
+  type: 'FREE' | 'PREMIUM';
+  label: string;
+  description: string;
+  icon: any;
+  tokenCost: number;
+  scale: string;
+  processing: string;
+}
+
 const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [jobType, setJobType] = useState<JobTypeEnum>(JobTypeEnum.BG_REMOVAL);
+  const [upscaleQuality, setUpscaleQuality] = useState<'FREE' | 'PREMIUM'>('FREE');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [showUpscaleOptions, setShowUpscaleOptions] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const upscaleQualityOptions: UpscaleQuality[] = [
+    {
+      type: 'FREE',
+      label: 'Standard Quality',
+      description: 'Fast 2x upscaling with good quality',
+      icon: faArrowsUpDown,
+      tokenCost: 0,
+      scale: '2x',
+      processing: 'Fast (~30s)'
+    },
+    {
+      type: 'PREMIUM',
+      label: 'Premium Quality',
+      description: 'High-quality 4x upscaling with AI enhancement',
+      icon: faCrown,
+      tokenCost: 1,
+      scale: '4x',
+      processing: 'Slower (~2-3min)'
+    }
+  ];
 
   const handleFileChange = (file: File) => {
     setSelectedFile(file);
@@ -69,6 +104,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
 
   const handleJobTypeChange = (type: JobTypeEnum) => {
     setJobType(type);
+    setShowUpscaleOptions(type === JobTypeEnum.UPSCALE);
   };
 
   const handleSubmit = async () => {
@@ -81,7 +117,17 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
     setError(null);
     
     try {
-      const job = await uploadImageAndCreateJob(selectedFile, jobType);
+      // Create job config based on job type
+      const jobConfig: any = {};
+      
+      if (jobType === JobTypeEnum.UPSCALE) {
+        jobConfig.quality = upscaleQuality;
+        jobConfig.scale = upscaleQuality === 'PREMIUM' ? 4 : 2;
+      } else if (jobType === JobTypeEnum.ENLARGE) {
+        jobConfig.scaleFactor = 2; // Example for enlarge
+      }
+
+      const job = await uploadImageAndCreateJob(selectedFile, jobType, jobConfig);
       onJobCreated(job);
       // Keep the preview but reset loading
       setIsLoading(false);
@@ -96,6 +142,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
     setSelectedFile(null);
     setPreview(null);
     setError(null);
+    setShowUpscaleOptions(false);
   };
 
   const openFileSelector = () => {
@@ -114,6 +161,17 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
         return <FontAwesomeIcon icon={faExpand} />;
       default:
         return <FontAwesomeIcon icon={faImage} />;
+    }
+  };
+
+  const getJobTypeLabel = (type: JobTypeEnum) => {
+    switch (type) {
+      case JobTypeEnum.BG_REMOVAL:
+        return 'Background Removal';
+      case JobTypeEnum.UPSCALE:
+        return 'AI Upscaling';
+      case JobTypeEnum.ENLARGE:
+        return 'Image Enlargement';
     }
   };
 
@@ -178,11 +236,60 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
                     onClick={() => handleJobTypeChange(type)}
                   >
                     <span className="job-type-icon">{getJobTypeIcon(type)}</span>
-                    <span className="job-type-label">{type.replace('_', ' ')}</span>
+                    <span className="job-type-label">{getJobTypeLabel(type)}</span>
                   </button>
                 ))}
               </div>
             </div>
+
+            <AnimatePresence>
+              {showUpscaleOptions && (
+                <motion.div 
+                  className="upscale-quality-selector"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <p className="selector-label">Choose Upscaling Quality:</p>
+                  <div className="quality-options">
+                    {upscaleQualityOptions.map((option) => (
+                      <div
+                        key={option.type}
+                        className={`quality-option ${upscaleQuality === option.type ? 'active' : ''}`}
+                        onClick={() => setUpscaleQuality(option.type)}
+                      >
+                        <div className="quality-header">
+                          <div className="quality-icon">
+                            <FontAwesomeIcon icon={option.icon} />
+                          </div>
+                          <div className="quality-info">
+                            <h4 className="quality-title">{option.label}</h4>
+                            <p className="quality-description">{option.description}</p>
+                          </div>
+                          {option.tokenCost > 0 && (
+                            <div className="quality-cost">
+                              <FontAwesomeIcon icon={faCoins} />
+                              <span>{option.tokenCost}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="quality-details">
+                          <div className="quality-detail">
+                            <span className="detail-label">Scale:</span>
+                            <span className="detail-value">{option.scale}</span>
+                          </div>
+                          <div className="quality-detail">
+                            <span className="detail-label">Speed:</span>
+                            <span className="detail-value">{option.processing}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
             
             <motion.button 
               className="process-button"
@@ -200,6 +307,12 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
                 <>
                   {getJobTypeIcon(jobType)}
                   <span>Process Image</span>
+                  {jobType === JobTypeEnum.UPSCALE && upscaleQuality === 'PREMIUM' && (
+                    <div className="button-token-cost">
+                      <FontAwesomeIcon icon={faCoins} />
+                      <span>1</span>
+                    </div>
+                  )}
                 </>
               )}
             </motion.button>

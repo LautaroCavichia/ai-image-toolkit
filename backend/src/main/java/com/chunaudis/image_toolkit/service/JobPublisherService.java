@@ -19,7 +19,9 @@ public class JobPublisherService {
 
     @Value("${app.rabbitmq.queues.bg-removal.routing-key}")
     private String bgRemovalRoutingKey;
-    // Inject other routing keys or have a map
+
+    @Value("${app.rabbitmq.queues.upscaling.routing-key}")
+    private String upscalingRoutingKey;
 
     public JobPublisherService(RabbitTemplate rabbitTemplate) {
         this.rabbitTemplate = rabbitTemplate;
@@ -32,8 +34,11 @@ public class JobPublisherService {
             case BG_REMOVAL:
                 routingKey = bgRemovalRoutingKey;
                 break;
-            // case UPSCALE:
-            // routingKey = upscaleRoutingKey;
+            case UPSCALE:
+                routingKey = upscalingRoutingKey;
+                break;
+            // case ENLARGE:
+            // routingKey = enlargeRoutingKey;
             // break;
             default:
                 log.error("Unsupported job type for routing: {}", jobMessage.getJobType());
@@ -45,4 +50,4 @@ public class JobPublisherService {
                 jobMessage.getJobId(), imageProcessingExchangeName, routingKey);
         rabbitTemplate.convertAndSend(imageProcessingExchangeName, routingKey, jobMessage);
     }
-}   
+}

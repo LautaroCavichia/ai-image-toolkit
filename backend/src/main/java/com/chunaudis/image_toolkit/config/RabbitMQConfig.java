@@ -25,6 +25,12 @@ public class RabbitMQConfig {
     @Value("${app.rabbitmq.queues.bg-removal.routing-key}")
     private String bgRemovalRoutingKey;
 
+    @Value("${app.rabbitmq.queues.upscaling.name}")
+    private String upscalingQueueName;
+
+    @Value("${app.rabbitmq.queues.upscaling.routing-key}")
+    private String upscalingRoutingKey;
+
     // --- Queue, Exchange, Binding ---
 
     @Bean
@@ -38,10 +44,22 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    Queue upscalingQueue() {
+        return QueueBuilder.durable(upscalingQueueName).build();
+    }
+
+    @Bean
     Binding backgroundRemovalBinding(Queue backgroundRemovalQueue, TopicExchange imageProcessingExchange) {
         return BindingBuilder.bind(backgroundRemovalQueue)
                              .to(imageProcessingExchange)
                              .with(bgRemovalRoutingKey);
+    }
+
+    @Bean
+    Binding upscalingBinding(Queue upscalingQueue, TopicExchange imageProcessingExchange) {
+        return BindingBuilder.bind(upscalingQueue)
+                             .to(imageProcessingExchange)
+                             .with(upscalingRoutingKey);
     }
 
     // --- Message converter (JSON) ---

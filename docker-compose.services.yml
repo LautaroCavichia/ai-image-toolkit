@@ -1,0 +1,124 @@
+version: '3.8'
+
+services:
+  # Background Removal Service
+  bg-removal-service:
+    build:
+      context: ./microservices/bg-removal-service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - CONSUME_QUEUE_NAME=q_bg_removal
+      - CONSUME_EXCHANGE_NAME=image_processing_exchange
+      - CONSUME_ROUTING_KEY=job.bg_removal
+      - SPRING_BOOT_CALLBACK_URL_TEMPLATE=http://backend:8080/api/v1/jobs/{job_id}/status
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      - LOG_LEVEL=INFO
+    depends_on:
+      - rabbitmq
+    volumes:
+      - ./microservices/bg-removal-service:/app
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # Image Upscaling Service
+  upscaling-service:
+    build:
+      context: ./microservices/upscaling-service
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - CONSUME_QUEUE_NAME=q_upscale
+      - CONSUME_EXCHANGE_NAME=image_processing_exchange
+      - CONSUME_ROUTING_KEY=job.upscale
+      - SPRING_BOOT_CALLBACK_URL_TEMPLATE=http://backend:8080/api/v1/jobs/{job_id}/status
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      - USE_GPU=false  # Set to true if GPU available
+      - FREE_TIER_MAX_SCALE=2.0
+      - PREMIUM_TIER_MAX_SCALE=4.0
+      - LOG_LEVEL=INFO
+    depends_on:
+      - rabbitmq
+    volumes:
+      - ./microservices/upscaling-service:/app
+    restart: unless-stopped
+    networks:
+      - app-network
+    # Uncomment if you have NVIDIA GPU support
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # Spring Boot Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_URL=${DB_URL}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
+    depends_on:
+      - rabbitmq
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_BASE_URL=http://localhost:8080/api/v1
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - app-network
+
+volumes:
+  rabbitmq_data:
+
+networks:
+  app-network:
+    driver: bridge

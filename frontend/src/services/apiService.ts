@@ -7,11 +7,17 @@ const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:808
 
 export const uploadImageAndCreateJob = async (
   file: File,
-  jobType: JobTypeEnum
+  jobType: JobTypeEnum,
+  jobConfig?: any
 ): Promise<JobResponseDTO> => {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('jobType', jobType);
+  
+  // Add job config if provided
+  if (jobConfig) {
+    formData.append('jobConfig', JSON.stringify(jobConfig));
+  }
 
   const token = getToken();
   
