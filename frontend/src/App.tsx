@@ -1,4 +1,4 @@
-// src/App.tsx
+// src/App.tsx - Updated for seamless guest experience
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ToastContainer, toast } from 'react-toastify';
@@ -23,34 +23,37 @@ import GuestConversion from './components/GuestConversion/GuestConversion';
 import ContactForm from './components/ContactForm/ContactForm';
 import ApiSection from './components/ApiSection/ApiSection';
 import AboutUs from './components/AboutUs/AboutUs';
+import UserProfile from './components/UserProfile/UserProfile';
+
 
 function App() {
   const [currentJob, setCurrentJob] = useState<JobResponseDTO | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [isGuest, setIsGuest] = useState<boolean>(false);
+  const [isGuest, setIsGuest] = useState<boolean>(true); // Start as guest by default
   const [user, setUser] = useState<{ userId: string; email?: string; displayName: string; isGuest?: boolean } | null>(null);
   const [showJobStatus, setShowJobStatus] = useState<boolean>(false);
   const [showAuth, setShowAuth] = useState<boolean>(false);
+  const [showProfile, setShowProfile] = useState<boolean>(false);
   const [tokenBalance, setTokenBalance] = useState<number>(0);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const appRef = useRef<HTMLDivElement>(null);
 
   // Initialize authentication state and axios interceptors on app load
   useEffect(() => {
-    // Set up axios interceptors for authentication
     setupAxiosInterceptors();
     
-    // Check if user is already logged in (token exists in localStorage)
     const authenticated = isAuthenticated();
     
     if (authenticated) {
+      // User has an existing session
       const currentUser = getCurrentUser();
       setIsLoggedIn(true);
       setUser(currentUser);
       
-      // Check if user is a guest
       if (currentUser?.isGuest) {
         setIsGuest(true);
+      } else {
+        setIsGuest(false);
       }
       
       // Get token balance
@@ -60,14 +63,14 @@ function App() {
         fetchTokenBalance().then(balance => setTokenBalance(balance));
       }
     } else {
-      // Auto-create a guest user if not authenticated
-      handleCreateGuestUser();
+      // No session - create a silent guest user
+      handleCreateSilentGuestUser();
     }
   }, []);
 
   // Effect to handle body scroll when modal is open
   useEffect(() => {
-    const isAnyModalOpen = showJobStatus || showAuth;
+    const isAnyModalOpen = showJobStatus || showAuth || showProfile;
     setModalOpen(isAnyModalOpen);
     
     if (isAnyModalOpen) {
@@ -79,22 +82,24 @@ function App() {
     return () => {
       document.body.style.overflow = 'visible';
     };
-  }, [showJobStatus, showAuth]);
+  }, [showJobStatus, showAuth, showProfile]);
 
-  const handleCreateGuestUser = async () => {
+  const handleCreateSilentGuestUser = async () => {
     try {
       const guestUser = await createGuestUser();
-      setIsLoggedIn(true);
-      setIsGuest(true);
+      // Silent login - user doesn't know they're logged in as guest
       setUser({
         userId: guestUser.userId,
         displayName: guestUser.displayName,
         isGuest: true
       });
+      setIsGuest(true);
+      setIsLoggedIn(false); // Don't show as "logged in" in UI
       setTokenBalance(guestUser.tokenBalance || 0);
     } catch (error) {
-      console.error("Failed to create guest user:", error);
-      // If guest user creation fails, remain logged out
+      console.error("Failed to create silent guest user:", error);
+      // Show error or fallback UI
+      toast.error("Service temporarily unavailable. Please try again later.");
     }
   };
 
@@ -106,10 +111,10 @@ function App() {
   
   const handleLoginSuccess = () => {
     setIsLoggedIn(true);
+    setIsGuest(false);
     setShowAuth(false);
     const currentUser = getCurrentUser();
     setUser(currentUser);
-    setIsGuest(currentUser?.isGuest || false);
     
     // Update token balance
     if (currentUser?.tokenBalance !== undefined) {
@@ -118,20 +123,21 @@ function App() {
       fetchTokenBalance().then(balance => setTokenBalance(balance));
     }
     
-    toast.success("Login successful!");
+    toast.success("Welcome back!");
   };
   
   const handleLogout = () => {
     logout();
     setIsLoggedIn(false);
-    setIsGuest(false);
+    setIsGuest(true);
     setUser(null);
     setCurrentJob(null);
     setTokenBalance(0);
+    setShowProfile(false);
     toast.info("Logged out successfully");
     
-    // Auto-create a guest user after logout
-    handleCreateGuestUser();
+    // Auto-create a new silent guest user after logout
+    handleCreateSilentGuestUser();
   };
 
   const handleTokenBalanceChange = (newBalance: number) => {
@@ -141,12 +147,13 @@ function App() {
   const handleGuestConversionSuccess = () => {
     setShowAuth(false);
     setIsGuest(false);
+    setIsLoggedIn(true);
     
     // Update user data
     const currentUser = getCurrentUser();
     setUser(currentUser);
     
-    toast.success("Account created successfully!");
+    toast.success("Account created successfully! Welcome aboard!");
   };
 
   const closeJobStatus = () => {
@@ -157,22 +164,31 @@ function App() {
     setShowAuth(prev => !prev);
   };
 
-  const scrollToSection = (sectionId: string) => {
-    const section = document.getElementById(sectionId);
-    if (section) {
-      section.scrollIntoView({ behavior: 'smooth' });
+  const toggleProfileModal = () => {
+    setShowProfile(prev => !prev);
+  };
+
+  const handleShowGuestConversion = () => {
+    if (isGuest && !isLoggedIn) {
+      // Show conversion for silent guests
+      setShowAuth(true);
+    } else {
+      // Show login for completely anonymous users
+      setShowAuth(true);
     }
   };
 
   return (
     <div className="app" ref={appRef}>
       <Navbar 
-        user={isLoggedIn ? user : null} 
+        user={isLoggedIn ? user : null} // Only show user info if actually logged in
         onLogout={handleLogout} 
-        isGuest={isGuest}
+        isGuest={isGuest && isLoggedIn} // Only show guest badge if explicitly logged in as guest
         tokenBalance={tokenBalance}
         onTokenBalanceChange={handleTokenBalanceChange}
-        onShowGuestConversion={toggleAuthModal}
+        onShowGuestConversion={handleShowGuestConversion}
+        onShowProfile={toggleProfileModal}
+        showProfile={isLoggedIn} // Only show profile option for logged in users
       />
       
       <main className="app-main" id="home">
@@ -241,7 +257,7 @@ function App() {
                     <JobStatusDisplay 
                       initialJob={currentJob}
                       onTokenBalanceChange={handleTokenBalanceChange}
-                      onShowGuestConversion={toggleAuthModal}
+                      onShowGuestConversion={handleShowGuestConversion}
                     />
                   </motion.div>
                 </motion.div>
@@ -276,6 +292,7 @@ function App() {
       
       <Footer />
       
+      {/* Auth Modal - for login/signup */}
       <AnimatePresence>
         {showAuth && (
           <motion.div 
@@ -297,15 +314,48 @@ function App() {
               onClick={(e) => e.stopPropagation()}
             >
               <button onClick={toggleAuthModal} className="close-button">×</button>
-              {isGuest ? (
+              {isGuest && user ? (
                 <GuestConversion 
-                  userId={user?.userId || ''}
+                  userId={user.userId}
                   onConversionSuccess={handleGuestConversionSuccess}
                   onCancel={toggleAuthModal}
                 />
               ) : (
                 <Login onLoginSuccess={handleLoginSuccess} />
               )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Profile Modal - for logged in users */}
+      <AnimatePresence>
+        {showProfile && isLoggedIn && (
+          <motion.div 
+            className="auth-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                toggleProfileModal();
+              }
+            }}
+          >
+            <motion.div
+              className="auth-modal-content profile-modal"
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button onClick={toggleProfileModal} className="close-button">×</button>
+              <UserProfile 
+                user={user}
+                tokenBalance={tokenBalance}
+                onTokenBalanceChange={handleTokenBalanceChange}
+                onClose={toggleProfileModal}
+              />
             </motion.div>
           </motion.div>
         )}

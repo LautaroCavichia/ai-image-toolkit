@@ -1,4 +1,4 @@
-// src/components/Navbar/Navbar.tsx
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -10,7 +10,9 @@ import {
   faEnvelope,
   faFileAlt,
   faBars,
-  faTimes
+  faTimes,
+  faUser,
+  faHistory
 } from '@fortawesome/free-solid-svg-icons';
 import TokenPanel from '../TokenPanel/TokenPanel';
 import './Navbar.css';
@@ -22,6 +24,8 @@ interface NavbarProps {
   onLogout: () => void;
   onTokenBalanceChange: (newBalance: number) => void;
   onShowGuestConversion?: () => void;
+  onShowProfile?: () => void;
+  showProfile?: boolean;
 }
 
 const Navbar: React.FC<NavbarProps> = ({ 
@@ -30,7 +34,9 @@ const Navbar: React.FC<NavbarProps> = ({
   tokenBalance, 
   onLogout,
   onTokenBalanceChange,
-  onShowGuestConversion
+  onShowGuestConversion,
+  onShowProfile,
+  showProfile = false
 }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -95,7 +101,7 @@ const Navbar: React.FC<NavbarProps> = ({
         </div>
         
         <div className="navbar-actions">
-          {/* Show token panel for all users */}
+          {/* Always show token panel */}
           <TokenPanel 
             tokenBalance={tokenBalance}
             onBalanceChange={onTokenBalanceChange}
@@ -103,12 +109,14 @@ const Navbar: React.FC<NavbarProps> = ({
           />
           
           {user ? (
-            /* User is logged in - show user info and logout button */
+            /* User is logged in - show user info and actions */
             <div className="navbar-user">
               <motion.div 
                 className={`user-avatar ${isGuest ? 'guest' : ''}`}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
+                onClick={onShowProfile}
+                style={{ cursor: 'pointer' }}
               >
                 {user.displayName.charAt(0).toUpperCase()}
               </motion.div>
@@ -116,23 +124,39 @@ const Navbar: React.FC<NavbarProps> = ({
                 <span className="user-name">{user.displayName}</span>
                 {isGuest && <span className="guest-badge">Guest</span>}
               </div>
-              <motion.button 
-                onClick={onLogout} 
-                className="logout-button" 
-                title="Logout"
-                whileHover={{ scale: 1.1, rotate: 10 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                <FontAwesomeIcon icon={faSignOutAlt} />
-              </motion.button>
+              
+              {/* Show profile and logout options for logged in users */}
+              <div className="user-actions">
+                {showProfile && onShowProfile && (
+                  <motion.button 
+                    onClick={onShowProfile} 
+                    className="profile-button" 
+                    title="Profile & History"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <FontAwesomeIcon icon={faUser} />
+                  </motion.button>
+                )}
+                
+                <motion.button 
+                  onClick={onLogout} 
+                  className="logout-button" 
+                  title="Logout"
+                  whileHover={{ scale: 1.1, rotate: 10 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <FontAwesomeIcon icon={faSignOutAlt} />
+                </motion.button>
+              </div>
             </div>
           ) : (
-            /* No user - show login button */
+            /* No user or anonymous - show sign in button */
             <motion.button 
               className="auth-button"
               onClick={onShowGuestConversion}
               title="Sign In or Create Account"
-              whileHover={{ scale: 1.05, backgroundColor: "var(--primary-hover)" }}
+              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
               <FontAwesomeIcon icon={faSignInAlt} />

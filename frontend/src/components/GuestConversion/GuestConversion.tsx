@@ -1,10 +1,9 @@
-// src/components/GuestConversion/GuestConversion.tsx
-
+// src/components/GuestConversion/GuestConversion.tsx - Updated messaging
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUserPlus, faEnvelope, faLock, faUser } from '@fortawesome/free-solid-svg-icons';
-import { convertGuestToRegistered } from '../../services/authService';
+import { faUserPlus, faEnvelope, faLock, faUser, faSignInAlt } from '@fortawesome/free-solid-svg-icons';
+import { convertGuestToRegistered, login } from '../../services/authService';
 import './GuestConversion.css';
 
 interface GuestConversionProps {
@@ -14,13 +13,14 @@ interface GuestConversionProps {
 }
 
 const GuestConversion: React.FC<GuestConversionProps> = ({ userId, onConversionSuccess, onCancel }) => {
+  const [mode, setMode] = useState<'signup' | 'login'>('signup');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email || !password || !displayName) {
@@ -36,11 +36,33 @@ const GuestConversion: React.FC<GuestConversionProps> = ({ userId, onConversionS
       if (success) {
         onConversionSuccess();
       } else {
-        setError('Failed to convert account. Email may already be in use.');
+        setError('Failed to create account. Email may already be in use.');
       }
     } catch (err: any) {
-      console.error('Conversion error:', err);
-      setError(err.response?.data || 'Failed to convert account.');
+      console.error('Signup error:', err);
+      setError(err.response?.data || 'Failed to create account.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email || !password) {
+      setError('Email and password are required');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      await login({ email, password });
+      onConversionSuccess();
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setError(err.response?.data || 'Invalid email or password.');
     } finally {
       setIsLoading(false);
     }
@@ -49,23 +71,45 @@ const GuestConversion: React.FC<GuestConversionProps> = ({ userId, onConversionS
   return (
     <div className="guest-conversion-container">
       <div className="conversion-header">
-        <h2>Create Your Account</h2>
-        <p>Save your work and unlock premium features</p>
+        <h2>{mode === 'signup' ? 'Create Your Account' : 'Welcome Back'}</h2>
+        <p>
+          {mode === 'signup' 
+            ? 'Unlock premium features and save your work' 
+            : 'Sign in to access your account'
+          }
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="conversion-form">
-        <div className="form-group">
-          <div className="input-icon">
-            <FontAwesomeIcon icon={faUser} />
+      <div className="conversion-mode-toggle">
+        <button
+          className={`mode-button ${mode === 'signup' ? 'active' : ''}`}
+          onClick={() => setMode('signup')}
+        >
+          Create Account
+        </button>
+        <button
+          className={`mode-button ${mode === 'login' ? 'active' : ''}`}
+          onClick={() => setMode('login')}
+        >
+          Sign In
+        </button>
+      </div>
+
+      <form onSubmit={mode === 'signup' ? handleSignup : handleLogin} className="conversion-form">
+        {mode === 'signup' && (
+          <div className="form-group">
+            <div className="input-icon">
+              <FontAwesomeIcon icon={faUser} />
+            </div>
+            <input
+              type="text"
+              placeholder="Display Name"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              disabled={isLoading}
+            />
           </div>
-          <input
-            type="text"
-            placeholder="Display Name"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            disabled={isLoading}
-          />
-        </div>
+        )}
         
         <div className="form-group">
           <div className="input-icon">
@@ -110,7 +154,7 @@ const GuestConversion: React.FC<GuestConversionProps> = ({ userId, onConversionS
             onClick={onCancel}
             disabled={isLoading}
           >
-            Not Now
+            Maybe Later
           </button>
           
           <motion.button
@@ -120,26 +164,38 @@ const GuestConversion: React.FC<GuestConversionProps> = ({ userId, onConversionS
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
           >
-            <FontAwesomeIcon icon={faUserPlus} className="button-icon" />
-            {isLoading ? 'Creating Account...' : 'Create Account'}
+            <FontAwesomeIcon 
+              icon={mode === 'signup' ? faUserPlus : faSignInAlt} 
+              className="button-icon" 
+            />
+            {isLoading 
+              ? (mode === 'signup' ? 'Creating Account...' : 'Signing In...') 
+              : (mode === 'signup' ? 'Create Account' : 'Sign In')
+            }
           </motion.button>
         </div>
       </form>
       
-      <div className="conversion-benefits">
-        <div className="benefit-item">
-          <span className="benefit-icon">✓</span>
-          <span>Save your image processing history</span>
+      {mode === 'signup' && (
+        <div className="conversion-benefits">
+          <div className="benefit-item">
+            <span className="benefit-icon">✓</span>
+            <span>Save your image processing history</span>
+          </div>
+          <div className="benefit-item">
+            <span className="benefit-icon">✓</span>
+            <span>Download high-resolution results</span>
+          </div>
+          <div className="benefit-item">
+            <span className="benefit-icon">✓</span>
+            <span>Earn and manage tokens more easily</span>
+          </div>
+          <div className="benefit-item">
+            <span className="benefit-icon">✓</span>
+            <span>Access 30-day processing history</span>
+          </div>
         </div>
-        <div className="benefit-item">
-          <span className="benefit-icon">✓</span>
-          <span>Download high-resolution results</span>
-        </div>
-        <div className="benefit-item">
-          <span className="benefit-icon">✓</span>
-          <span>Earn and manage tokens more easily</span>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

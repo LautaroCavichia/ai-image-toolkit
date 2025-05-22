@@ -919,3 +919,82 @@ button {
     grid-template-columns: 1fr;
   }
 }
+.auth-modal-content.profile-modal {
+  max-width: 800px;
+  max-height: 85vh;
+  overflow: hidden;
+  padding: 0;
+}
+
+.profile-modal .close-button {
+  top: 1.5rem;
+  right: 1.5rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  color: var(--text-muted);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.profile-modal .close-button:hover {
+  background: white;
+  color: var(--text-dark);
+  transform: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Custom scrollbar for profile modal */
+.user-profile::-webkit-scrollbar {
+  width: 6px;
+}
+
+.user-profile::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.5);
+  border-radius: 3px;
+}
+
+.user-profile::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.3);
+  border-radius: 3px;
+}
+
+.user-profile::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.5);
+}
+
+/* Enhanced modal backdrop for profile */
+.auth-modal.profile-modal-backdrop {
+  backdrop-filter: blur(8px);
+}
+
+/* Responsive adjustments for profile modal */
+@media (max-width: 768px) {
+  .auth-modal-content.profile-modal {
+    max-width: 95vw;
+    max-height: 90vh;
+    margin: 1rem;
+  }
+  
+  .profile-modal .close-button {
+    top: 1rem;
+    right: 1rem;
+    width: 32px;
+    height: 32px;
+    font-size: 1.2rem;
+  }
+}
+
+/* Animation improvements */
+.auth-modal-content.profile-modal {
+  animation: profileModalSlideIn 0.3s ease-out;
+}
+
+@keyframes profileModalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}

@@ -1,4 +1,4 @@
-/* src/components/Navbar/Navbar.css */
+
 .navbar {
   position: fixed;
   top: 0;
@@ -151,11 +151,21 @@
   color: white;
   box-shadow: 0 0 15px rgba(37, 99, 235, 0.3);
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.user-avatar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.4);
 }
 
 .user-avatar.guest {
   background: linear-gradient(135deg, #94a3b8, #64748b);
   box-shadow: 0 0 15px rgba(100, 116, 139, 0.3);
+}
+
+.user-avatar.guest:hover {
+  box-shadow: 0 4px 20px rgba(100, 116, 139, 0.4);
 }
 
 .user-info {
@@ -179,6 +189,13 @@
   margin-top: 0.2rem;
 }
 
+.user-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.profile-button,
 .logout-button {
   background: none;
   border: none;
@@ -186,10 +203,18 @@
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 50%;
+  width: 36px;
+  height: 36px;
   display: flex;
   justify-content: center;
   align-items: center;
   transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.profile-button:hover {
+  color: var(--primary);
+  background-color: rgba(59, 130, 246, 0.1);
 }
 
 .logout-button:hover {
@@ -253,5 +278,16 @@
   
   .navbar-actions {
     gap: 0.5rem;
+  }
+  
+  .user-actions {
+    gap: 0.25rem;
+  }
+  
+  .profile-button,
+  .logout-button {
+    width: 32px;
+    height: 32px;
+    font-size: 0.8rem;
   }
 }
