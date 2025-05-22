@@ -32,7 +32,7 @@ public class Image {
     private User user;
 
     @Column(nullable = false, length = 1024) 
-    private String originalStoragePath;
+    private String originalStoragePath; // Cloudinary URL
 
     @Column(nullable = false, length = 50)
     private String originalFilename;
@@ -53,14 +53,15 @@ public class Image {
     @Column(nullable = false, updatable = false)
     private OffsetDateTime uploadedAt;
 
+    // Cloudinary-specific field
+    @Column(length = 255)
+    private String cloudinaryPublicId; // For deletion purposes
 
     @OneToMany(mappedBy = "originalImage", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Job> jobs;
 
-
     @OneToMany(mappedBy = "originalImage", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ProcessedImage> processedImages;
-
 
     public Image() {
         this.imageId = UUID.randomUUID();

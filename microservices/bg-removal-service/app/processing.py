@@ -1,67 +1,85 @@
 """
-Image processing module for background removal.
+Image processing module for background removal with Cloudinary integration.
 Implements both full-quality and low-quality thumbnail generation.
 """
 
-import os
-import asyncio
 import logging
 from typing import Dict, Tuple, Any
-from pathlib import Path
 import io
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
+from rembg import remove
+
+from app.cloudinary_service import CloudinaryService
 
 logger = logging.getLogger(__name__)
 
-from rembg import remove
-
 async def perform_background_removal(
     job_id: str,
-    image_path: str,
+    image_url: str,  # Now receives Cloudinary URL instead of local path
     config: Dict[str, Any]
 ) -> Tuple[str, Dict[str, Any]]:
-    logger.info(f"Processing job {job_id} with image: {image_path}")
+    """
+    Perform background removal on image from Cloudinary URL.
     
-    if not os.path.exists(image_path):
-        raise FileNotFoundError(f"Image not found: {image_path}")
-
+    Args:
+        job_id: Unique job identifier
+        image_url: Cloudinary URL of the original image
+        config: Processing configuration
+        
+    Returns:
+        Tuple of (processed_image_url, processing_info)
+    """
+    logger.info(f"Processing job {job_id} with image URL: {image_url}")
+    
     try:
-        # Load input image
-        with open(image_path, 'rb') as i:
-            input_image_bytes = i.read()
-
+        # Download image from Cloudinary
+        logger.info(f"Downloading image from Cloudinary: {image_url}")
+        input_image_bytes = CloudinaryService.download_image_from_url(image_url)
+        
         # Perform background removal using rembg
+        logger.info(f"Performing background removal for job {job_id}")
         output_bytes = remove(input_image_bytes)
 
-        # Save full-quality result
-        processed_dir = "../../storage/processed"
-        os.makedirs(processed_dir, exist_ok=True)
-        output_path = os.path.join(processed_dir, f"{job_id}_bg_removed.png")
-
-        with open(output_path, 'wb') as o:
-            o.write(output_bytes)
-
-        # Load image from output for thumbnail
+        # Load image from output for thumbnail creation
         output_image = Image.open(io.BytesIO(output_bytes)).convert("RGBA")
-        thumbnail = output_image.resize((400, 300), Image.LANCZOS)
+        
+        # Create thumbnail (low quality for free users)
+        thumbnail = output_image.copy()
+        thumbnail.thumbnail((400, 300), Image.Resampling.LANCZOS)
+        
+        # Convert thumbnail to bytes
+        thumbnail_buffer = io.BytesIO()
+        thumbnail.save(thumbnail_buffer, format="PNG", optimize=True, quality=70)
+        thumbnail_bytes = thumbnail_buffer.getvalue()
 
-        # Save thumbnail (no watermark as per your note)
-        thumbnail_path = os.path.join(processed_dir, f"{job_id}_bg_removed_thumbnail.png")
-        thumbnail.save(thumbnail_path, "PNG", quality=70)
+        # Upload full-quality result to Cloudinary
+        processed_url, processed_public_id = CloudinaryService.upload_processed_image(
+            output_bytes, job_id, "bg_removed"
+        )
+        
+        # Upload thumbnail to Cloudinary  
+        thumbnail_url, thumbnail_public_id = CloudinaryService.upload_thumbnail(
+            thumbnail_bytes, job_id
+        )
 
-        logger.info(f"Saved background-removed image: {output_path}")
-        logger.info(f"Saved thumbnail image: {thumbnail_path}")
+        logger.info(f"Successfully processed job {job_id}")
+        logger.info(f"Full quality URL: {processed_url}")
+        logger.info(f"Thumbnail URL: {thumbnail_url}")
 
         processing_info = {
             "model_version": "rembg_u2net",
-            "mode": "lightweight_cpu",
+            "mode": "cloudinary_integration",
             "processing_time_seconds": 0,  # You can measure with time.perf_counter() if needed
             "confidence_score": 1.0,  # rembg doesn't return this, but you can simulate
-            "threshold_applied": config.get("threshold", None)
+            "threshold_applied": config.get("threshold", None),
+            "full_quality_public_id": processed_public_id,
+            "thumbnail_public_id": thumbnail_public_id,
+            "thumbnail_url": thumbnail_url
         }
 
-        return output_path, processing_info
+        # Return the full quality URL - the backend will handle access control
+        return processed_url, processing_info
 
     except Exception as e:
-        logger.error(f"Background removal failed: {e}")
+        logger.error(f"Background removal failed for job {job_id}: {e}")
         raise RuntimeError(f"Background removal failed: {e}")

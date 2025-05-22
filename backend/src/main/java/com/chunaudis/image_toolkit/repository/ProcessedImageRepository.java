@@ -1,5 +1,6 @@
 package com.chunaudis.image_toolkit.repository;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -45,4 +46,18 @@ public interface ProcessedImageRepository extends JpaRepository<ProcessedImage, 
      * @param originalImageId the UUID of the original image
      */
     void deleteByOriginalImage_ImageId(UUID originalImageId);
+    
+    /**
+     * Find images scheduled for deletion before a certain time
+     * @param dateTime the cutoff time
+     * @return List of images to delete
+     */
+    List<ProcessedImage> findByScheduledDeletionAtBefore(OffsetDateTime dateTime);
+    
+    /**
+     * Find images created before a certain time (for emergency cleanup)
+     * @param dateTime the cutoff time
+     * @return List of old images
+     */
+    List<ProcessedImage> findByCreatedAtBefore(OffsetDateTime dateTime);
 }

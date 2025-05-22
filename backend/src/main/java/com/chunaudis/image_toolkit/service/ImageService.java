@@ -1,7 +1,12 @@
 package com.chunaudis.image_toolkit.service;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
+
+import javax.imageio.ImageIO;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,7 +20,7 @@ import com.chunaudis.image_toolkit.entity.Job;
 import com.chunaudis.image_toolkit.entity.User;
 import com.chunaudis.image_toolkit.repository.ImageRepository;
 import com.chunaudis.image_toolkit.repository.UserRepository;
-import com.chunaudis.image_toolkit.storage.FileStorageService;
+import com.chunaudis.image_toolkit.storage.CloudinaryStorageService;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -25,20 +30,28 @@ public class ImageService {
 
     private final ImageRepository imageRepository;
     private final UserRepository userRepository; 
-    private final FileStorageService fileStorageService;
+    private final CloudinaryStorageService cloudinaryStorageService;
     private final JobService jobService;
 
-    public ImageService(ImageRepository imageRepository, UserRepository userRepository,
-            FileStorageService fileStorageService, JobService jobService) {
+    public ImageService(ImageRepository imageRepository, 
+                       UserRepository userRepository,
+                       CloudinaryStorageService cloudinaryStorageService, 
+                       JobService jobService) {
         this.imageRepository = imageRepository;
         this.userRepository = userRepository;
-        this.fileStorageService = fileStorageService;
+        this.cloudinaryStorageService = cloudinaryStorageService;
         this.jobService = jobService;
     }
 
     @Transactional
     public Job processUploadedImage(MultipartFile file, ImageUploadRequestDTO requestDTO,
             Map<String, Object> jobConfig) {
+        
+        // Validate file
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("File cannot be empty");
+        }
+        
         // Get userId from the request DTO
         UUID userId = UUID.fromString(requestDTO.getUserId());
     
@@ -46,38 +59,60 @@ public class ImageService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
         
-        // Create new image entity
+        // Create new image entity with generated UUID
         Image image = new Image();
-        image.setUser(user);
-        image.setOriginalFilename(file.getOriginalFilename());
-        image.setOriginalFilesizeBytes(file.getSize());
-
-        // Set initial path using userId and imageId, will be updated with actual path
-        // after storage
-        String initialPath = String.format("originals/%s/%s", userId, image.getImageId());
-        image.setOriginalStoragePath(initialPath);
-
-        // Extract format from file
-        image.setOriginalFormat(extractFormat(file.getContentType()));
+        UUID imageId = image.getImageId(); // Get the auto-generated UUID
         
-        // TODO: Extract width and height using a proper library like ImageIO
-        // For now, using placeholder values
-        image.setOriginalWidth(800); // Placeholder
-        image.setOriginalHeight(600); // Placeholder
+        log.info("Processing image upload for user {} with image ID: {}", userId, imageId);
+        
+        try {
+            // Set basic image metadata
+            image.setUser(user);
+            image.setOriginalFilename(file.getOriginalFilename());
+            image.setOriginalFilesizeBytes(file.getSize());
+            image.setOriginalFormat(extractFormat(file.getContentType()));
+            
+            // Extract width and height from uploaded file
+            int[] dimensions = getImageDimensions(file);
+            image.setOriginalWidth(dimensions[0]);
+            image.setOriginalHeight(dimensions[1]);
 
-        // Save image metadata first to get an ID
-        Image savedImage = imageRepository.save(image);
-        log.info("Saved image metadata for ID: {}", savedImage.getImageId());
+            // Upload to Cloudinary FIRST (before saving to database)
+            log.info("Uploading image to Cloudinary for image ID: {}", imageId);
+            String cloudinaryUrl = cloudinaryStorageService.uploadOriginalImage(file, userId, imageId);
+            
+            // Extract and store the public ID for future deletion
+            String publicId = cloudinaryStorageService.extractPublicId(cloudinaryUrl);
+            image.setCloudinaryPublicId(publicId);
+            image.setOriginalStoragePath(cloudinaryUrl);
 
-        // Then store the file using the generated imageId for naming
-        String storedFilePath = fileStorageService.storeOriginalFile(file, userId, savedImage.getImageId());
-        savedImage.setOriginalStoragePath(storedFilePath); // Update with actual path
-        imageRepository.save(savedImage); // Save again to update path
+            // Now save the image entity with all required fields populated
+            Image savedImage = imageRepository.save(image);
+            log.info("Saved image metadata for ID: {} with Cloudinary URL: {}", savedImage.getImageId(), cloudinaryUrl);
 
-        log.info("Image file stored at: {}", storedFilePath);
-
-        // Create and dispatch job
-        return jobService.createAndDispatchJob(savedImage, requestDTO.getJobType(), storedFilePath, jobConfig, userId);
+            // Create and dispatch job
+            return jobService.createAndDispatchJob(savedImage, requestDTO.getJobType(), cloudinaryUrl, jobConfig, userId);
+            
+        } catch (Exception e) {
+            log.error("Failed to process image upload for user {}: {}", userId, e.getMessage(), e);
+            
+            // If we have a Cloudinary URL, try to clean it up
+            if (image.getCloudinaryPublicId() != null) {
+                try {
+                    cloudinaryStorageService.deleteImage(image.getCloudinaryPublicId());
+                    log.info("Cleaned up Cloudinary image after failed upload: {}", image.getCloudinaryPublicId());
+                } catch (Exception cleanupException) {
+                    log.warn("Failed to cleanup Cloudinary image: {}", image.getCloudinaryPublicId(), cleanupException);
+                }
+            }
+            
+            // Re-throw the original exception
+            if (e instanceof RuntimeException) {
+                throw (RuntimeException) e;
+            } else {
+                throw new RuntimeException("Failed to process image upload", e);
+            }
+        }
     }
 
     private String extractFormat(String contentType) {
@@ -85,5 +120,20 @@ public class ImageService {
             return contentType.substring("image/".length()).toUpperCase();
         }
         return "UNKNOWN"; // Default for unknown format
+    }
+
+    /**
+     * Get image dimensions from uploaded file
+     */
+    private int[] getImageDimensions(MultipartFile file) {
+        try {
+            BufferedImage img = ImageIO.read(new ByteArrayInputStream(file.getBytes()));
+            if (img != null) {
+                return new int[] { img.getWidth(), img.getHeight() };
+            }
+        } catch (IOException e) {
+            log.warn("Failed to read image dimensions for {}: {}", file.getOriginalFilename(), e.getMessage());
+        }
+        return new int[] { 800, 600 }; // Default values if reading fails
     }
 }

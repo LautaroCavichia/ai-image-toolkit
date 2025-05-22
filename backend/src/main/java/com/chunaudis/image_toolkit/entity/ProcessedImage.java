@@ -36,7 +36,7 @@ public class ProcessedImage {
     private Job job;
 
     @Column(nullable = false, length = 1024)
-    private String processedStoragePath;
+    private String processedStoragePath; // Cloudinary URL
 
     @Column(nullable = false, length = 255)
     private String processedFilename;
@@ -60,6 +60,16 @@ public class ProcessedImage {
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private OffsetDateTime createdAt;
+
+    // Cloudinary-specific fields
+    @Column(length = 255)
+    private String cloudinaryPublicId; // For deletion purposes
+
+    @Column
+    private OffsetDateTime scheduledDeletionAt; // When this image should be deleted
+
+    @Column(nullable = false)
+    private Boolean isPremium = false; // Whether user paid for premium quality
 
     public ProcessedImage() {
         this.processedImageId = UUID.randomUUID();

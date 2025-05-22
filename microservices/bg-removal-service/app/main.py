@@ -1,6 +1,6 @@
 """
 Main application module for the background removal service.
-Implements FastAPI app, RabbitMQ consumer, and job processing logic.
+Implements FastAPI app, RabbitMQ consumer, and job processing logic with Cloudinary integration.
 """
 
 import json
@@ -27,6 +27,7 @@ from app.config import (
 )
 from app.processing import perform_background_removal
 from app.dto import JobMessageDTO, JobStatusUpdateRequestDTO, JobStatus
+from app.cloudinary_config import *  # Initialize Cloudinary configuration
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -34,8 +35,8 @@ logger = logging.getLogger(__name__)
 # Create the FastAPI application
 app = FastAPI(
     title="Background Removal Service",
-    description="Microservice for AI-powered background removal from images",
-    version="0.1.0",
+    description="Microservice for AI-powered background removal from images with Cloudinary integration",
+    version="0.2.0",
 )
 
 # Global variables for the RabbitMQ connection and HTTP client
@@ -57,12 +58,9 @@ async def startup_event():
         # Start RabbitMQ consumer
         asyncio.create_task(start_rabbitmq_consumer())
         
-        logger.info("Background Removal Service started successfully")
+        logger.info("Background Removal Service with Cloudinary started successfully")
     except Exception as e:
         logger.error(f"Failed to start the service: {e}")
-        # In a production environment, we might want to exit here
-        # import sys
-        # sys.exit(1)
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -93,7 +91,8 @@ async def health_check():
         content={
             "status": "healthy" if rabbitmq_status == "connected" else "degraded",
             "services": {
-                "rabbitmq": rabbitmq_status
+                "rabbitmq": rabbitmq_status,
+                "cloudinary": "configured"
             }
         },
         status_code=200 if rabbitmq_status == "connected" else 503
@@ -159,6 +158,7 @@ async def process_message(message: AbstractIncomingMessage) -> None:
         job_id = job_dto.jobId
         
         logger.info(f"Received job {job_id} of type {job_dto.jobType}")
+        logger.info(f"Image URL: {job_dto.imageStoragePath}")
         
         # Only process BG_REMOVAL job type
         if job_dto.jobType != "BG_REMOVAL":
@@ -171,28 +171,29 @@ async def process_message(message: AbstractIncomingMessage) -> None:
         processing_status = JobStatusUpdateRequestDTO(status=JobStatus.PROCESSING)
         await send_status_update(job_id, processing_status)
         
-        # Perform background removal
+        # Perform background removal with Cloudinary integration
         try:
-            processed_image_path, processing_params = await perform_background_removal(
+            processed_image_url, processing_params = await perform_background_removal(
                 job_id,
-                job_dto.imageStoragePath,
+                job_dto.imageStoragePath,  # This is now a Cloudinary URL
                 job_dto.jobConfig or {}
             )
             
-            # Send COMPLETED status update
+            # Send COMPLETED status update with Cloudinary URL
             completed_status = JobStatusUpdateRequestDTO(
                 status=JobStatus.COMPLETED,
-                processedStoragePath=processed_image_path,
+                processedStoragePath=processed_image_url,  # Cloudinary URL
                 processingParams=processing_params
             )
             await send_status_update(job_id, completed_status)
             
             # Acknowledge the message on successful processing
             await message.ack()
-            logger.info(f"Job {job_id} completed successfully")
+            logger.info(f"Job {job_id} completed successfully with Cloudinary integration")
             
         except Exception as e:
             logger.error(f"Error processing job {job_id}: {e}")
+            logger.error(traceback.format_exc())
             
             # Send FAILED status update
             failed_status = JobStatusUpdateRequestDTO(
@@ -259,6 +260,7 @@ async def start_rabbitmq_consumer() -> None:
             )
             
             logger.info(f"Connected to RabbitMQ, consuming from queue: {CONSUME_QUEUE_NAME}")
+            logger.info("Cloudinary integration enabled for image processing")
             
             # Start consuming messages
             await queue.consume(process_message)

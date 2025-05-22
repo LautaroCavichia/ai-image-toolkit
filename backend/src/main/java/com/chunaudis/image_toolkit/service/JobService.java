@@ -21,6 +21,7 @@ import com.chunaudis.image_toolkit.repository.ImageRepository;
 import com.chunaudis.image_toolkit.repository.JobRepository;
 import com.chunaudis.image_toolkit.repository.ProcessedImageRepository;
 import com.chunaudis.image_toolkit.repository.UserRepository;
+import com.chunaudis.image_toolkit.storage.CloudinaryStorageService;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -33,17 +34,23 @@ public class JobService {
     private final ProcessedImageRepository processedImageRepository;
     private final UserRepository userRepository; 
     private final ImageRepository imageRepository;
+    private final CloudinaryStorageService cloudinaryStorageService;
+    private final CloudinaryCleanupService cloudinaryCleanupService;
 
     public JobService(JobRepository jobRepository,
                       JobPublisherService jobPublisherService,
                       ProcessedImageRepository processedImageRepository,
                       UserRepository userRepository,
-                      ImageRepository imageRepository) {
+                      ImageRepository imageRepository,
+                      CloudinaryStorageService cloudinaryStorageService,
+                      CloudinaryCleanupService cloudinaryCleanupService) {
         this.jobRepository = jobRepository;
         this.jobPublisherService = jobPublisherService;
         this.processedImageRepository = processedImageRepository;
         this.userRepository = userRepository;
         this.imageRepository = imageRepository;
+        this.cloudinaryStorageService = cloudinaryStorageService;
+        this.cloudinaryCleanupService = cloudinaryCleanupService;
     }
 
     @Transactional
@@ -67,7 +74,7 @@ public class JobService {
         JobMessageDTO message = new JobMessageDTO(
                 savedJob.getJobId(),
                 image.getImageId(),
-                imageStoragePath, // This needs to be accessible by Python
+                imageStoragePath, // Cloudinary URL
                 jobType,
                 jobConfig
         );
@@ -100,17 +107,18 @@ public class JobService {
             ProcessedImage processedImage = new ProcessedImage();
             processedImage.setJob(job);
             processedImage.setOriginalImage(job.getOriginalImage());
-            processedImage.setProcessedStoragePath(updateRequest.getProcessedStoragePath());
+            processedImage.setProcessedStoragePath(updateRequest.getProcessedStoragePath()); // Cloudinary URL
             
-            // Extract filename from path
-            String filename = updateRequest.getProcessedStoragePath();
-            if (filename.contains("/")) {
-                filename = filename.substring(filename.lastIndexOf('/') + 1);
-            }
+            // Extract Cloudinary public ID for future deletion
+            String publicId = cloudinaryStorageService.extractPublicId(updateRequest.getProcessedStoragePath());
+            processedImage.setCloudinaryPublicId(publicId);
+            
+            // Extract filename from URL
+            String filename = extractFilenameFromUrl(updateRequest.getProcessedStoragePath());
             processedImage.setProcessedFilename(filename);
             
             // Set placeholder values for filesize, width, height
-            // TODO: These should be computed from the actual image file
+            // TODO: These should be computed from the actual image file or from Cloudinary API
             processedImage.setProcessedFilesizeBytes(10000L); // Placeholder
             processedImage.setProcessedWidth(800); // Placeholder
             processedImage.setProcessedHeight(600); // Placeholder
@@ -120,10 +128,19 @@ public class JobService {
             processedImage.setProcessingParams(updateRequest.getProcessingParams() != null ? 
                     convertMapToJsonString(updateRequest.getProcessingParams()) : null);
             
+            // Initially set as non-premium (free version)
+            processedImage.setIsPremium(false);
+            
             // Save processed image
-            processedImageRepository.save(processedImage);
-            job.setProcessedImage(processedImage); // Link it back
+            ProcessedImage savedProcessedImage = processedImageRepository.save(processedImage);
+            job.setProcessedImage(savedProcessedImage); // Link it back
+            
+            // Schedule deletion for non-premium images (immediate after download)
+            cloudinaryCleanupService.scheduleImmediateDeletion(savedProcessedImage.getProcessedImageId());
+            
+            log.info("Created processed image record with Cloudinary URL: {}", updateRequest.getProcessedStoragePath());
         }
+        
         log.info("Updating job {} to status {}", jobId, updateRequest.getStatus());
         return jobRepository.save(job);
     }
@@ -131,6 +148,25 @@ public class JobService {
     public Job getJobStatus(UUID jobId) {
         return jobRepository.findById(jobId)
                 .orElseThrow(() -> new EntityNotFoundException("Job not found with ID: " + jobId));
+    }
+
+    /**
+     * Upgrade processed image to premium and schedule 30-day deletion
+     */
+    @Transactional
+    public void upgradeToP(UUID jobId) {
+        Job job = getJobStatus(jobId);
+        if (job.getProcessedImage() != null) {
+            ProcessedImage processedImage = job.getProcessedImage();
+            processedImage.setIsPremium(true);
+            processedImage.setScheduledDeletionAt(null); // Remove immediate deletion
+            processedImageRepository.save(processedImage);
+            
+            // Schedule 30-day deletion for premium
+            cloudinaryCleanupService.schedulePremiumDeletion(processedImage.getProcessedImageId());
+            
+            log.info("Upgraded job {} to premium quality", jobId);
+        }
     }
 
     // Helper to convert Map to JSON string
@@ -142,5 +178,12 @@ public class JobService {
             log.warn("Error converting map to JSON string for job config/params", e);
             return "{}"; // Empty JSON object as fallback
         }
+    }
+
+    // Helper to extract filename from Cloudinary URL
+    private String extractFilenameFromUrl(String url) {
+        if (url == null) return "unknown";
+        String[] parts = url.split("/");
+        return parts[parts.length - 1];
     }
 }

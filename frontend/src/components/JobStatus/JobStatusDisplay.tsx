@@ -198,11 +198,12 @@ const JobStatusDisplay: React.FC<JobStatusDisplayProps> = ({
           <h3 className="result-title">Processing Complete!</h3>
           
           <div className="result-image-container">
+            {/* Always show thumbnail first, then upgrade to premium if unlocked */}
             <img 
-              // src={job.isPremiumQuality ? job.processedImageUrl : job.thumbnailUrl} 
-              src={job.isPremiumQuality ? "http://localhost:4000/" + job.jobId + "_bg_removed.png" : "http://localhost:4000/" + job.jobId + "_bg_removed_thumbnail.png"} 
+              src={job.isPremiumQuality ? job.processedImageUrl : job.thumbnailUrl} 
               alt="Processed"   
               className="result-image"
+              crossOrigin="anonymous"
             />
             {!job.isPremiumQuality && (
               <div className="quality-indicator free">Free Preview</div>
@@ -215,11 +216,11 @@ const JobStatusDisplay: React.FC<JobStatusDisplayProps> = ({
           </div>
 
           <div className="download-options">
-            {/* Free Download Button - Always available */}
+            {/* Free Download Button - Always available (thumbnail) */}
             {job.thumbnailUrl && (
               <motion.a 
                 href={job.thumbnailUrl} 
-                download
+                download={`processed_image_${job.jobId}_preview.png`}
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="download-button free"
@@ -236,7 +237,7 @@ const JobStatusDisplay: React.FC<JobStatusDisplayProps> = ({
             {job.isPremiumQuality && job.processedImageUrl ? (
               <motion.a 
                 href={job.processedImageUrl} 
-                download
+                download={`processed_image_${job.jobId}_hd.png`}
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="download-button premium"

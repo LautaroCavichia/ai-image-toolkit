@@ -44,7 +44,7 @@ public class JobController {
     public ResponseEntity<Void> updateJobStatus(
             @PathVariable UUID jobId,
             @RequestBody String rawBody) {
-        log.info("Received  RAW status update for job {}: {}", jobId, rawBody);
+        log.info("Received RAW status update for job {}: {}", jobId, rawBody);
         try {
             JobStatusUpdateRequestDTO updateRequest = objectMapper.readValue(rawBody, JobStatusUpdateRequestDTO.class);
             jobService.updateJobStatus(jobId, updateRequest);
@@ -61,7 +61,6 @@ public class JobController {
             @PathVariable UUID jobId, 
             HttpServletRequest request) {
         try {
-
             UUID userId = (UUID) request.getAttribute("userId");
             
             Job job = jobService.getJobStatus(jobId);
@@ -95,12 +94,13 @@ public class JobController {
                 return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED).body("Not enough tokens to unlock premium quality");
             }
             
+            // Upgrade to premium
+            jobService.upgradeToP(jobId);
+            
             // Return the job with updated access
             JobResponseDTO response = mapJobToJobResponseDTO(job, userId);
             response.setIsPremiumQuality(true);
             response.setProcessedImageUrl(job.getProcessedImage().getProcessedStoragePath());
-
-
             
             // Include updated token balance
             response.setTokenBalance(tokenService.getTokenBalance(userId));
@@ -111,7 +111,7 @@ public class JobController {
         }
     }
 
-    // Modified to include quality info
+    // Modified to work with Cloudinary URLs
     private JobResponseDTO mapJobToJobResponseDTO(Job job, UUID userId) {
         JobResponseDTO dto = new JobResponseDTO();
         dto.setJobId(job.getJobId());
@@ -127,25 +127,24 @@ public class JobController {
         dto.setTokenCost(tokenCost);
         
         if (job.getProcessedImage() != null) {
-            // For free users or those who haven't paid, provide the thumbnail path
-            String originalPath = job.getProcessedImage().getProcessedStoragePath();
-            String thumbnailPath = originalPath.substring(0, originalPath.lastIndexOf('.')) + "_thumbnail.png";
-            dto.setThumbnailUrl(thumbnailPath);
-            // print the job.getProcessedImage().getProcessedStoragePath()
-            log.info("Processed image path: {}", thumbnailPath);
+            // For Cloudinary, we'll create thumbnail URLs using URL transformations
+            String originalUrl = job.getProcessedImage().getProcessedStoragePath();
             
-            // Check if this is a premium result that the user has paid for
-            boolean hasPaidForPremium = false;
-            if (userId != null) {
-                hasPaidForPremium = tokenService.hasEnoughTokens(userId, job.getJobType());
-            }
-            dto.setIsPremiumQuality(hasPaidForPremium);
+            // Create thumbnail URL using Cloudinary transformations
+            String thumbnailUrl = createThumbnailUrl(originalUrl);
+            dto.setThumbnailUrl(thumbnailUrl);
             
-            // Only include the full quality URL if user has paid or the job doesn't require tokens
-            if (hasPaidForPremium) {
-                dto.setProcessedImageUrl(job.getProcessedImage().getProcessedStoragePath());
+            log.info("Processed image URL: {}", originalUrl);
+            log.info("Thumbnail URL: {}", thumbnailUrl);
+            
+            // Check if this user has premium access
+            boolean hasPremiumAccess = job.getProcessedImage().getIsPremium();
+            dto.setIsPremiumQuality(hasPremiumAccess);
+            
+            // Only include the full quality URL if user has premium access
+            if (hasPremiumAccess) {
+                dto.setProcessedImageUrl(originalUrl);
             } else {
-                // For unpaid premium content, only the thumbnail is available
                 dto.setProcessedImageUrl(null);
             }
         }
@@ -158,5 +157,34 @@ public class JobController {
         }
         
         return dto;
+    }
+
+    /**
+     * Create thumbnail URL using Cloudinary transformations
+     * This keeps the same image but applies quality reduction
+     */
+    private String createThumbnailUrl(String originalUrl) {
+        if (originalUrl == null || !originalUrl.contains("cloudinary.com")) {
+            return originalUrl;
+        }
+        
+        try {
+            // Insert transformation parameters into Cloudinary URL
+            // Original: https://res.cloudinary.com/cloud/image/upload/v123/folder/image.jpg
+            // Thumbnail: https://res.cloudinary.com/cloud/image/upload/w_400,h_300,c_fit,q_70/v123/folder/image.jpg
+            
+            String[] parts = originalUrl.split("/upload/");
+            if (parts.length == 2) {
+                String baseUrl = parts[0] + "/upload/";
+                String transformation = "w_400,h_300,c_fit,q_70/"; // Low quality transformation
+                String imagePath = parts[1];
+                
+                return baseUrl + transformation + imagePath;
+            }
+        } catch (Exception e) {
+            log.error("Failed to create thumbnail URL from: {}", originalUrl, e);
+        }
+        
+        return originalUrl; // Fallback to original URL
     }
 }
