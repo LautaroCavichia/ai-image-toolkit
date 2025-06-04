@@ -8,6 +8,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+//Retrys
+import org.springframework.retry.annotation.Retryable;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.transaction.annotation.Transactional;
+
 
 import com.chunaudis.image_toolkit.dto.JobMessageDTO;
 import com.chunaudis.image_toolkit.dto.JobStatusUpdateRequestDTO;
@@ -26,6 +31,7 @@ import com.chunaudis.image_toolkit.storage.CloudinaryStorageService;
 import jakarta.persistence.EntityNotFoundException;
 
 @Service
+
 public class JobService {
     private static final Logger log = LoggerFactory.getLogger(JobService.class);
 
@@ -53,38 +59,50 @@ public class JobService {
         this.cloudinaryCleanupService = cloudinaryCleanupService;
     }
 
-    @Transactional
-    public Job createAndDispatchJob(Image image, JobTypeEnum jobType, String imageStoragePath, Map<String, Object> jobConfig, UUID userId) {
-        // Find the user by ID
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
+   @Retryable(
+    value = { Exception.class },
+    maxAttempts = 3,
+    backoff = @Backoff(delay = 2000) // Espera 2 segundos entre reintentos
+)
+@Transactional
+public Job createAndDispatchJob(Image image, JobTypeEnum jobType, String imageStoragePath, Map<String, Object> jobConfig, UUID userId) {
+    // Buscar usuario
+    User user = userRepository.findById(userId)
+            .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
 
-        // Create a new job
-        Job job = new Job();    
-        job.setUser(user);
-        job.setOriginalImage(image);
-        job.setJobType(jobType);
-        job.setStatus(JobStatusEnum.QUEUED); // Set to QUEUED as it's about to be published
-        job.setJobConfig(jobConfig != null ? convertMapToJsonString(jobConfig) : null); // Convert Map to JSON string
+    // Crear el job
+    Job job = new Job();
+    job.setUser(user);
+    job.setOriginalImage(image);
+    job.setJobType(jobType);
+    job.setStatus(JobStatusEnum.QUEUED);
+    job.setJobConfig(jobConfig != null ? convertMapToJsonString(jobConfig) : null);
 
-        Job savedJob = jobRepository.save(job);
-        log.info("Created job {} with status QUEUED", savedJob.getJobId());
+    Job savedJob = jobRepository.save(job);
+    log.info("Created job {} with status QUEUED", savedJob.getJobId());
 
-        // Create job message for RabbitMQ
-        JobMessageDTO message = new JobMessageDTO(
-                savedJob.getJobId(),
-                image.getImageId(),
-                imageStoragePath, // Cloudinary URL
-                jobType,
-                jobConfig
-        );
-        
-        // Publish the job to RabbitMQ
+    // Preparar mensaje RabbitMQ
+    JobMessageDTO message = new JobMessageDTO(
+            savedJob.getJobId(),
+            image.getImageId(),
+            imageStoragePath,
+            jobType,
+            jobConfig
+    );
+
+    // Publicar mensaje con manejo de errores
+    try {
         jobPublisherService.publishJob(message);
         log.info("Dispatched job {} to RabbitMQ", savedJob.getJobId());
-
-        return savedJob;
+    } catch (Exception e) {
+        log.error("Failed to dispatch job {} to RabbitMQ: {}", savedJob.getJobId(), e.getMessage(), e);
+        savedJob.setStatus(JobStatusEnum.FAILED); // Estado como fallido
+        jobRepository.save(savedJob);
+        throw e; // Re-lanzamos para que Retryable lo intente de nuevo si es posible
     }
+
+    return savedJob;
+}
 
     @Transactional
     public Job updateJobStatus(UUID jobId, JobStatusUpdateRequestDTO updateRequest) {

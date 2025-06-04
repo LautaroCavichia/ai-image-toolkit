@@ -66,6 +66,15 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Batch> batches;
 
+
+    @Column(nullable = false)
+    private int failedLoginAttempts = 0;
+
+    private OffsetDateTime lastFailedLogin;
+
+    @Column(nullable = false)
+    private boolean accountLocked = false;
+
     // Default constructor (required by JPA)
     public User() {
         // Let JPA/Hibernate generate the UUID

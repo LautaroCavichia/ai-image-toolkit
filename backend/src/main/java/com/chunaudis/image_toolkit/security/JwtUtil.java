@@ -51,9 +51,10 @@ public class JwtUtil {
         return expiration.before(new Date());
     }
 
-    public String generateToken(UUID userId, String email) {
+    public String generateToken(UUID userId, String email, boolean isGuest) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("email", email);
+        claims.put("isGuest", isGuest);
         return doGenerateToken(claims, userId.toString());
     }
 

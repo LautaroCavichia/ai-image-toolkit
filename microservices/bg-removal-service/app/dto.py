@@ -19,6 +19,7 @@ class JobStatus(str, Enum):
     PROCESSING = "PROCESSING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
+    RETRYING = "RETRYING"
 
 class JobMessageDTO(BaseModel):
     """

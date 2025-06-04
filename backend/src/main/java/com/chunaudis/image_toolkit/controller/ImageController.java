@@ -63,9 +63,17 @@ public class ImageController {
         
         log.info("Received image upload request for user: {}, jobType: {}", userId, jobType);
         
-        if (file.isEmpty()) {
-            return ResponseEntity.badRequest().build();
-        }
+      
+
+        if (imageService.isImageCorrupt(file)) {
+    JobResponseDTO dto = new JobResponseDTO();
+    dto.setErrorMessage("Corrupt image or invalid image extension.");
+    return ResponseEntity.badRequest().body(dto);
+}
+
+
+
+
 
         ImageUploadRequestDTO requestDTO = new ImageUploadRequestDTO();
         requestDTO.setUserId(userId.toString());
@@ -93,16 +101,18 @@ public class ImageController {
             jobConfig.putIfAbsent("scaleFactor", 2); // Default scale factor for enlarge
         }
 
-        try {
-            Job createdJob = imageService.processUploadedImage(file, requestDTO, jobConfig);
-            JobResponseDTO response = mapJobToJobResponseDTO(createdJob);
-            return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
-        } catch (Exception e) {
-            log.error("Error processing image upload: ", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
+       try {
+ 
 
+    Job createdJob = imageService.processUploadedImage(file, requestDTO, jobConfig);
+    JobResponseDTO response = mapJobToJobResponseDTO(createdJob);
+    return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+
+} catch (Exception e) {
+    log.error("Error processing image upload: ", e);
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+}
+}
     // Helper to map Job entity to DTO
     private JobResponseDTO mapJobToJobResponseDTO(Job job) {
         JobResponseDTO dto = new JobResponseDTO();

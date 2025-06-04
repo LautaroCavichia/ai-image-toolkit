@@ -4,6 +4,8 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import './styles/index.css';
+import { setupAxiosInterceptors } from './services/authService';
+
 
 // Import FontAwesome configuration
 import { library } from '@fortawesome/fontawesome-svg-core';
@@ -39,6 +41,9 @@ library.add(
   faExpand,
   faArrowsUpDown
 );
+
+
+setupAxiosInterceptors();
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement

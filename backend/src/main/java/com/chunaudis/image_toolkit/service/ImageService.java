@@ -22,6 +22,8 @@ import com.chunaudis.image_toolkit.repository.ImageRepository;
 import com.chunaudis.image_toolkit.repository.UserRepository;
 import com.chunaudis.image_toolkit.storage.CloudinaryStorageService;
 
+
+
 import jakarta.persistence.EntityNotFoundException;
 
 @Service
@@ -136,4 +138,18 @@ public class ImageService {
         }
         return new int[] { 800, 600 }; // Default values if reading fails
     }
+
+
+    public boolean isImageCorrupt(MultipartFile file) {
+    try {
+        BufferedImage img = ImageIO.read(file.getInputStream());
+        if (img == null) {
+            return true;
+        }
+        return false;
+    } catch (Exception e) {
+        return true;
+    }
+}
+
 }

@@ -12,6 +12,8 @@ import {
 import { purchaseTokens, earnTokenFromAd } from '../../services/tokenService';
 import { isGuestUser } from '../../services/authService';
 import './TokenPanel.css';
+import { getCurrentUser } from '../../services/authService';
+
 
 interface TokenPanelProps {
   tokenBalance: number;
@@ -61,28 +63,36 @@ const TokenPanel: React.FC<TokenPanelProps> = ({
     }
   };
   
-  const handleWatchAd = async () => {
-    setError(null);
-    setWatchingAd(true);
+ const handleWatchAd = async () => {
+  setError(null);
+  setWatchingAd(true);
+  
+  try {
+    // Simular anuncio
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
-    try {
-      // Simulate ad playback
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      const success = await earnTokenFromAd();
-      if (success) {
-        onBalanceChange(tokenBalance + 1);
-        setShowOptions(false);
-      } else {
-        setError('Failed to earn token. Please try again.');
+    const success = await earnTokenFromAd();
+    if (success) {
+      const userData = getCurrentUser();
+      if (userData) {
+        // Traer balance actualizado desde localStorage o response de earnTokenFromAd
+        const updatedBalance = localStorage.getItem('tokenBalance');
+        if (updatedBalance) {
+          onBalanceChange(Number(updatedBalance)); // actualizar estado padre/UI
+        }
       }
-    } catch (err) {
-      console.error('Watch ad error:', err);
-      setError('An error occurred while processing the ad reward.');
-    } finally {
-      setWatchingAd(false);
+      setShowOptions(false);
+    } else {
+      setError('Failed to earn token. Please try again.');
     }
-  };
+  } catch (err) {
+    console.error('Watch ad error:', err);
+    setError('An error occurred while processing the ad reward.');
+  } finally {
+    setWatchingAd(false);
+  }
+};
+
   
   return (
     <div className="token-panel">

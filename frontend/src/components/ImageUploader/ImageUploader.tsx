@@ -1,7 +1,10 @@
 // src/components/ImageUploader/ImageUploader.tsx
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTimes } from '@fortawesome/free-solid-svg-icons';
+
+
 import { 
   faUpload, 
   faImage, 
@@ -38,7 +41,37 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [showUpscaleOptions, setShowUpscaleOptions] = useState<boolean>(false);
+  const [tokenReady, setTokenReady] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  
+const getJwtToken = () => localStorage.getItem("token");
+useEffect(() => {
+  const validateToken = async () => {
+    try {
+      const token = getJwtToken; 
+      
+      if (!token) {
+        // No hay token, redirigir
+        window.location.href = '/login';
+        return;
+      }
+
+    
+      // Token válido
+      setTokenReady(true);
+      
+    } catch (error) {
+      console.error('Error validating token:', error);
+      window.location.href = '/login';
+    }
+  };
+
+  validateToken();
+  
+}, []); 
+
+
 
   const upscaleQualityOptions: UpscaleQuality[] = [
     {
@@ -64,8 +97,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
   const handleFileChange = (file: File) => {
     setSelectedFile(file);
     setError(null);
-    
-    // Create preview
+
     const reader = new FileReader();
     reader.onloadend = () => {
       setPreview(reader.result as string);
@@ -82,7 +114,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
   const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
       if (file.type.startsWith('image/')) {
@@ -108,35 +140,36 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
   };
 
   const handleSubmit = async () => {
-    if (!selectedFile) {
-      setError('Please select an image file');
-      return;
-    }
-    
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      // Create job config based on job type
-      const jobConfig: any = {};
-      
-      if (jobType === JobTypeEnum.UPSCALE) {
-        jobConfig.quality = upscaleQuality;
-        jobConfig.scale = upscaleQuality === 'PREMIUM' ? 4 : 2;
-      } else if (jobType === JobTypeEnum.ENLARGE) {
-        jobConfig.scaleFactor = 2; // Example for enlarge
-      }
+  if (!selectedFile) {
+    setError('Please select an image file');
+    return;
+  }
 
-      const job = await uploadImageAndCreateJob(selectedFile, jobType, jobConfig);
-      onJobCreated(job);
-      // Keep the preview but reset loading
-      setIsLoading(false);
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Failed to upload image and create job');
-      console.error(err);
-      setIsLoading(false);
+  setIsLoading(true);
+  setError(null);
+
+  try {
+    const jobConfig: any = {};
+
+    if (jobType === JobTypeEnum.UPSCALE) {
+      jobConfig.quality = upscaleQuality;
+      jobConfig.scale = upscaleQuality === 'PREMIUM' ? 4 : 2;
+    } else if (jobType === JobTypeEnum.ENLARGE) {
+      jobConfig.scaleFactor = 2;
     }
-  };
+
+    const job = await uploadImageAndCreateJob(selectedFile, jobType, jobConfig);
+    onJobCreated(job);
+    
+  } catch (err: any) {
+    const backendErrorMsg = err.response?.data?.errorMessage || err.response?.data?.message;
+    setError(backendErrorMsg || err.message || 'Failed to upload image and create job');
+  } finally {
+    // ✅ SIEMPRE se ejecuta, sin importar si hubo éxito o error
+    setIsLoading(false);
+  }
+};
+
 
   const resetUploader = () => {
     setSelectedFile(null);
@@ -175,6 +208,10 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
     }
   };
 
+  if (!tokenReady) {
+    return <FontAwesomeIcon icon={faSpinner} className="spinner" />;
+  }
+
   return (
     <div className="image-uploader-container">
       <div className="uploader-content">
@@ -201,10 +238,13 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
             </div>
           ) : (
             <div className="image-preview-container">
-              <img 
-                src={preview} 
-                alt="Preview" 
-                className="image-preview" 
+              <motion.img
+                src={preview}
+                alt="Preview"
+                className="image-preview"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6 }}
               />
               <button 
                 className="remove-image-btn"
@@ -213,7 +253,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
                   resetUploader();
                 }}
               >
-                ×
+                <FontAwesomeIcon icon={faTimes} />
               </button>
             </div>
           )}

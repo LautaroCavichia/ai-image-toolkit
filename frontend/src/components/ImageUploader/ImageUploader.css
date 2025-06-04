@@ -83,18 +83,39 @@
 }
 
 .image-preview-container {
-  width: 100%;
-  height: 100%;
+  display: inline-block; /* para que el ancho sea el de la imagen */
+  max-width: 100%; /* no se pase del contenedor padre */
+  max-height: 250px;
   position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 2px solid transparent;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .image-preview {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 250px;
   border-radius: 16px;
   backdrop-filter: blur(8px);
+  transition: transform 0.3s ease;
+  margin: 0 auto;
 }
+
+/* Hover solo cuando se está sobre el contenedor de la imagen */
+.image-preview-container:hover {
+  border-color: rgba(59, 130, 246, 0.7);
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+  cursor: pointer;
+}
+
+.image-preview-container:hover .image-preview {
+  transform: scale(1.03);
+}
+
 
 .remove-image-btn {
   position: absolute;
@@ -103,23 +124,34 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  color: #64748b;
-  font-size: 1.5rem;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  color: #475569; /* un azul grisáceo más oscuro para mejor contraste */
+  font-size: 1.6rem;
+  font-weight: 600;
   display: flex;
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  z-index: 5;
-  transition: all 0.2s;
+  z-index: 10;
+  transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease, transform 0.15s ease;
+  user-select: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.remove-image-btn:hover {
-  color: #0f172a;
+.remove-image-btn:hover,
+.remove-image-btn:focus {
+  color: #1e293b; /* azul más oscuro para el hover/focus */
   background: rgba(255, 255, 255, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  transform: scale(1.1);
+  outline: none;
 }
+
+.remove-image-btn:active {
+  transform: scale(0.95);
+}
+
 
 .image-actions {
   display: flex;

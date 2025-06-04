@@ -29,51 +29,61 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
-            throws ServletException, IOException {
+protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+        throws ServletException, IOException {
 
-        final String requestTokenHeader = request.getHeader("Authorization");
+    String path = request.getRequestURI();
+      System.out.println("[JwtRequestFilter] URI entrante: \"" + path + "\"");
 
-        String userId = null;
-        String jwtToken = null;
+    // Si la ruta es /api/v1/auth/forgot-password o /reset-password, pasa sin validar JWT
+  if ("/auth/forgot-password".equals(path) || "/auth/reset-password".equals(path)) {
+    chain.doFilter(request, response);
+    return;
+}
 
-        // JWT Token is in the form "Bearer token". Remove "Bearer " and get token
-        if (requestTokenHeader != null && requestTokenHeader.startsWith("Bearer ")) {
-            jwtToken = requestTokenHeader.substring(7);
-            try {
-                userId = jwtUtil.getUserIdFromToken(jwtToken).toString();
-            } catch (IllegalArgumentException e) {
-                log.debug("Unable to get JWT Token");
-            } catch (ExpiredJwtException e) {
-                log.debug("JWT Token has expired");
-            } catch (Exception e) {
-                log.debug("Error processing JWT token: {}", e.getMessage());
-            }
-        } else {
-            log.trace("JWT Token does not begin with Bearer String or is missing");
+    final String requestTokenHeader = request.getHeader("Authorization");
+
+    String userId = null;
+    String jwtToken = null;
+
+    // JWT Token is in the form "Bearer token". Remove "Bearer " and get token
+    if (requestTokenHeader != null && requestTokenHeader.startsWith("Bearer ")) {
+        jwtToken = requestTokenHeader.substring(7);
+        try {
+            userId = jwtUtil.getUserIdFromToken(jwtToken).toString();
+        } catch (IllegalArgumentException e) {
+            log.debug("Unable to get JWT Token");
+        } catch (ExpiredJwtException e) {
+            log.debug("JWT Token has expired");
+        } catch (Exception e) {
+            log.debug("Error processing JWT token: {}", e.getMessage());
         }
-        
-        if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            try {
-                UUID userUUID = UUID.fromString(userId);
-                
-                if (jwtUtil.validateToken(jwtToken, userUUID)) {
-                    UsernamePasswordAuthenticationToken authentication = 
-                            new UsernamePasswordAuthenticationToken(userUUID, null, new ArrayList<>());
-                    
-                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                    
-                    request.setAttribute("userId", userUUID);
-                    
-                    log.debug("Authentication set for user ID: {}", userUUID);
-                }
-            } catch (Exception e) {
-                log.debug("Cannot set user authentication: {}", e.getMessage());
-            }
-        }
-        
-        chain.doFilter(request, response);
+    } else {
+        log.trace("JWT Token does not begin with Bearer String or is missing");
     }
+    
+    if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        try {
+            UUID userUUID = UUID.fromString(userId);
+            
+            if (jwtUtil.validateToken(jwtToken, userUUID)) {
+                UsernamePasswordAuthenticationToken authentication = 
+                        new UsernamePasswordAuthenticationToken(userUUID, null, new ArrayList<>());
+                
+                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+                
+                request.setAttribute("userId", userUUID);
+                
+                log.debug("Authentication set for user ID: {}", userUUID);
+            }
+        } catch (Exception e) {
+            log.debug("Cannot set user authentication: {}", e.getMessage());
+        }
+    }
+    
+    chain.doFilter(request, response);
+}
+
 }

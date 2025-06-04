@@ -4,10 +4,11 @@ import { motion } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEnvelope, faLock, faUserCheck } from '@fortawesome/free-solid-svg-icons';
 import { login, createTestUser } from '../../services/authService';
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import './Login.css';
 
 interface LoginProps {
-  onLoginSuccess: () => void;
+ onLoginSuccess: (type?: 'login' | 'guest') => void;
 }
 
 const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
@@ -15,27 +16,29 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) {
-      setError('Email and password are required');
-      return;
-    }
 
-    setIsLoading(true);
-    setError(null);
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!email || !password) {
+    setError('Email and password are required');
+    return;
+  }
 
-    try {
-      await login({ email, password });
-      onLoginSuccess();
-    } catch (err: any) {
-      console.error('Login error:', err);
-      setError(err.response?.data || 'Failed to log in. Please check your credentials.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  setIsLoading(true);
+  setError(null);
+
+  try {
+    await login({ email, password });
+    onLoginSuccess('login');  // <-- PASÁ 'login' para indicar login real
+  } catch (err: any) {
+    console.error('Login error:', err);
+    setError(err.response?.data || 'Failed to log in. Please check your credentials.');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleTestUserLogin = async () => {
     setIsLoading(true);
@@ -43,7 +46,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
     try {
       await createTestUser();
-      onLoginSuccess();
+      onLoginSuccess('login');
     } catch (err: any) {
       console.error('Test user creation error:', err);
       setError(err.response?.data || 'Failed to create test user.');
@@ -80,19 +83,28 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             />
           </div>
 
-          <div className="form-group">
-            <div className="input-icon">
-              <FontAwesomeIcon icon={faLock} />
-            </div>
-            <input
-              type="password"
-              id="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={isLoading}
-            />
-          </div>
+      <div className="form-group">
+  <div className="input-icon">
+    <FontAwesomeIcon icon={faLock} />
+  </div>
+  <input
+    type={showPassword ? "text" : "password"}
+    id="password"
+    placeholder="Password"
+    value={password}
+    onChange={(e) => setPassword(e.target.value)}
+    disabled={isLoading}
+  />
+  <button
+    type="button"
+    onClick={() => setShowPassword(!showPassword)}
+    className="toggle-password-visibility"
+    aria-label={showPassword ? "Hide password" : "Show password"}
+  >
+    <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+  </button>
+</div>
+
 
           {error && (
             <motion.div 

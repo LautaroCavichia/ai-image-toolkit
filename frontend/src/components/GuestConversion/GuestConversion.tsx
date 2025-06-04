@@ -2,9 +2,11 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUserPlus, faEnvelope, faLock, faUser, faSignInAlt } from '@fortawesome/free-solid-svg-icons';
-import { convertGuestToRegistered, login } from '../../services/authService';
+import { faUserPlus, faEnvelope, faLock, faUser, faSignInAlt,faEyeSlash,faEye } from '@fortawesome/free-solid-svg-icons';
+import { convertGuestToRegistered, login, storeUserData } from '../../services/authService';
 import './GuestConversion.css';
+
+
 
 interface GuestConversionProps {
   userId: string;
@@ -19,6 +21,8 @@ const GuestConversion: React.FC<GuestConversionProps> = ({ userId, onConversionS
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,27 +50,43 @@ const GuestConversion: React.FC<GuestConversionProps> = ({ userId, onConversionS
     }
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email || !password) {
-      setError('Email and password are required');
-      return;
-    }
+const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    setIsLoading(true);
-    setError(null);
+  if (!email || !password) {
+    setError('Email and password are required');
+    return;
+  }
+
+  setIsLoading(true);
+  setError(null);
+
+  // Timeout de respaldo para evitar bloqueo indefinido
+  const timeoutId = setTimeout(() => {
+    setIsLoading(false);
+    setError('Request timeout. Please try again.');
+  }, 15000); // 15 segundos
+
+  try {
+    const authData = await login({ email, password });
+
+    clearTimeout(timeoutId); // Cancelar timeout si el login fue exitoso
 
     try {
-      await login({ email, password });
+      storeUserData(authData);
       onConversionSuccess();
-    } catch (err: any) {
-      console.error('Login error:', err);
-      setError(err.response?.data || 'Invalid email or password.');
-    } finally {
-      setIsLoading(false);
+    } catch (storageError) {
+      setError('Failed to save user data. Please try again.');
     }
-  };
+
+  } catch (err: any) {
+    clearTimeout(timeoutId); // Cancelar timeout si hay error
+    setError(err.message || 'Login failed. Please try again.');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   return (
     <div className="guest-conversion-container">
@@ -94,22 +114,37 @@ const GuestConversion: React.FC<GuestConversionProps> = ({ userId, onConversionS
           Sign In
         </button>
       </div>
+<form 
+  onSubmit={async (e) => {
+    e.preventDefault();
+    try {
+      if (mode === 'signup') {
+        await handleSignup(e);
+      } else {
+        await handleLogin(e);
+      }
+    } catch (err) {
+      console.error('Unexpected form error:', err);
+      setError('Unexpected error occurred');
+    }
+  }} 
+  className="conversion-form"
+>
+  {mode === 'signup' && (
+    <div className="form-group">
+      <div className="input-icon">
+        <FontAwesomeIcon icon={faUser} />
+      </div>
+      <input
+        type="text"
+        placeholder="Display Name"
+        value={displayName}
+        onChange={(e) => setDisplayName(e.target.value)}
+        disabled={isLoading}
+      />
+    </div>
+  )}
 
-      <form onSubmit={mode === 'signup' ? handleSignup : handleLogin} className="conversion-form">
-        {mode === 'signup' && (
-          <div className="form-group">
-            <div className="input-icon">
-              <FontAwesomeIcon icon={faUser} />
-            </div>
-            <input
-              type="text"
-              placeholder="Display Name"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              disabled={isLoading}
-            />
-          </div>
-        )}
         
         <div className="form-group">
           <div className="input-icon">
@@ -124,18 +159,27 @@ const GuestConversion: React.FC<GuestConversionProps> = ({ userId, onConversionS
           />
         </div>
 
-        <div className="form-group">
-          <div className="input-icon">
-            <FontAwesomeIcon icon={faLock} />
-          </div>
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={isLoading}
-          />
-        </div>
+ <div className="form-group">
+  <div className="input-icon">
+    <FontAwesomeIcon icon={faLock} />
+  </div>
+  <input
+    type={showPassword ? "text" : "password"}
+    id="password"
+    placeholder="Password"
+    value={password}
+    onChange={(e) => setPassword(e.target.value)}
+    disabled={isLoading}
+  />
+  <button
+    type="button"
+    onClick={() => setShowPassword(!showPassword)}
+    className="toggle-password-visibility"
+    aria-label={showPassword ? "Hide password" : "Show password"}
+  >
+    <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+  </button>
+</div>
 
         {error && (
           <motion.div 

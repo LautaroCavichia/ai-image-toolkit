@@ -16,6 +16,9 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+
+
+
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -29,31 +32,34 @@ public class SecurityConfig {
         this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
     }
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-            .csrf(csrf -> csrf.disable())
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/auth/**")).permitAll()
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/jobs/*/status")).permitAll() // Allow job status callbacks
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")).permitAll() // For development
-                .requestMatchers(AntPathRequestMatcher.antMatcher("/health")).permitAll()
-                .anyRequest().authenticated()
-            )
-            .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+   @Bean
+public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    http
+        .csrf(csrf -> csrf.disable())
+        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-        // Add JWT filter
-        http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
-        
-        return http.build();
-    }
+       .authorizeHttpRequests(auth -> auth
+    .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/auth/**")).permitAll()
+    .requestMatchers(AntPathRequestMatcher.antMatcher("/auth/**")).permitAll()
+            .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/jobs/*/status")).permitAll() // Allow job status callbacks
+            .requestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")).permitAll() // For development
+            .requestMatchers(AntPathRequestMatcher.antMatcher("/health")).permitAll()
+            .anyRequest().authenticated()
+        )
+        .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
+        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+
+    // Add JWT filter
+    http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
+    
+    return http.build();
+}
 
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+
     
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {

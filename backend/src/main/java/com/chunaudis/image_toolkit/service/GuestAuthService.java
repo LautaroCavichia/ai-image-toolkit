@@ -40,26 +40,28 @@ public class GuestAuthService {
             
             // Create and save guest user
             User guestUser = new User();
-            guestUser.setEmail(guestEmail);
-            guestUser.setPasswordHash(passwordHash);
-            guestUser.setDisplayName(displayName);
-            guestUser.setIsGuest(true);
-            guestUser.setTokenBalance(0); 
+guestUser.setEmail(guestEmail); // ej: "guest1234@example.com" o email temporal generado
+guestUser.setPasswordHash(passwordHash); // ej: password encoder aplicado a alguna clave random
+guestUser.setDisplayName(displayName); // ej: "Guest User"
+guestUser.setIsGuest(true);
+guestUser.setTokenBalance(0);
+userRepository.save(guestUser);
+
             
             User savedUser = userRepository.save(guestUser);
             log.info("Created guest user with ID: {}", savedUser.getUserId());
             
             // Generate JWT token
-            String token = jwtUtil.generateToken(savedUser.getUserId(), savedUser.getEmail());
-            
-            // Return guest auth response
-            return new GuestAuthResponseDTO(
-                token,
-                savedUser.getUserId().toString(),
-                savedUser.getDisplayName(),
-                true,
-                savedUser.getTokenBalance()
-            );
+       String token = jwtUtil.generateToken(savedUser.getUserId(), savedUser.getEmail(), savedUser.getIsGuest());
+
+return new GuestAuthResponseDTO(
+    token,
+    savedUser.getUserId().toString(),
+    savedUser.getDisplayName(),
+    true,
+    savedUser.getTokenBalance()
+);
+
             
         } catch (Exception e) {
             log.error("Failed to create guest user", e);

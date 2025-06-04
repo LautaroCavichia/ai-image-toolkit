@@ -148,7 +148,9 @@ const UserProfile: React.FC<UserProfileProps> = ({
         <div className="profile-info">
           <h2 className="profile-name">{user.displayName}</h2>
           {user.email && <p className="profile-email">{user.email}</p>}
-          {user.isGuest && <span className="guest-badge">Guest Account</span>}
+          {user.isGuest 
+          ? <span className="guest-badge">Guest Account</span> 
+          : <span className="guest-badge">Registered</span>}
         </div>
       </div>
 

@@ -1,9 +1,11 @@
 /* src/components/GuestConversion/GuestConversion.css - Updated with mode toggle */
 .guest-conversion-container {
   width: 100%;
+  max-height: 90vh;
   padding: 2rem;
-  overflow: visible;
+  overflow: auto;
 }
+
 
 .conversion-header {
   text-align: center;

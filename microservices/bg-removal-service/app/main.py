@@ -25,7 +25,7 @@ from app.config import (
     SERVICE_HOST,
     SERVICE_PORT
 )
-from app.processing import perform_background_removal
+from app.processing import perform_background_removal, ImageProcessingError
 from app.dto import JobMessageDTO, JobStatusUpdateRequestDTO, JobStatus
 from app.cloudinary_config import *  # Initialize Cloudinary configuration
 
@@ -42,6 +42,9 @@ app = FastAPI(
 # Global variables for the RabbitMQ connection and HTTP client
 rabbitmq_connection: Optional[AbstractRobustConnection] = None
 http_client: Optional[httpx.AsyncClient] = None
+
+
+
 
 @app.on_event("startup")
 async def startup_event():
@@ -139,82 +142,104 @@ async def send_status_update(job_id: str, status_update: JobStatusUpdateRequestD
         logger.error(f"Callback request error for job {job_id}: {e}")
         return False
 
+MAX_RETRIES = 3  # Máximo número de intentos permitidos
+
 async def process_message(message: AbstractIncomingMessage) -> None:
     """
-    Process a message from RabbitMQ.
+    Process a message from RabbitMQ with retry logic and status updates visible to frontend.
     
     Args:
         message: The incoming message from RabbitMQ
     """
     job_id = "unknown"
-    
-    try:
-        # Parse the message body as JSON
-        message_body = message.body.decode("utf-8")
-        message_data = json.loads(message_body)
-        
-        # Validate the message structure using Pydantic
-        job_dto = JobMessageDTO(**message_data)
-        job_id = job_dto.jobId
-        
-        logger.info(f"Received job {job_id} of type {job_dto.jobType}")
-        logger.info(f"Image URL: {job_dto.imageStoragePath}")
-        
-        # Only process BG_REMOVAL job type
-        if job_dto.jobType != "BG_REMOVAL":
-            logger.warning(f"Ignoring job {job_id} with unsupported type: {job_dto.jobType}")
-            # Acknowledge the message to remove it from the queue
-            await message.ack()
-            return
-        
-        # Send PROCESSING status update
-        processing_status = JobStatusUpdateRequestDTO(status=JobStatus.PROCESSING)
-        await send_status_update(job_id, processing_status)
-        
-        # Perform background removal with Cloudinary integration
+    retry_count = 0
+
+    while retry_count <= MAX_RETRIES:
         try:
+            # Parse the message body as JSON
+            message_body = message.body.decode("utf-8")
+            message_data = json.loads(message_body)
+
+            # Validate the message structure using Pydantic
+            job_dto = JobMessageDTO(**message_data)
+            job_id = job_dto.jobId
+
+            logger.info(f"Received job {job_id} of type {job_dto.jobType} (attempt {retry_count + 1})")
+            logger.info(f"Image URL: {job_dto.imageStoragePath}")
+
+            # Only process BG_REMOVAL job type
+            if job_dto.jobType != "BG_REMOVAL":
+                logger.warning(f"Ignoring job {job_id} with unsupported type: {job_dto.jobType}")
+                await message.ack()
+                return
+
+            # Enviar estado PROCESSING en el primer intento, RETRYING en los siguientes
+            if retry_count == 0:
+                status_update = JobStatusUpdateRequestDTO(status=JobStatus.PROCESSING)
+            else:
+                status_update = JobStatusUpdateRequestDTO(
+                    status=JobStatus.RETRYING,
+                    processingParams={"retryCount": retry_count}
+                )
+            await send_status_update(job_id, status_update)
+            
+            
+
+            # Perform background removal with Cloudinary integration
             processed_image_url, processing_params = await perform_background_removal(
                 job_id,
                 job_dto.imageStoragePath,  # This is now a Cloudinary URL
                 job_dto.jobConfig or {}
             )
-            
+
             # Send COMPLETED status update with Cloudinary URL
             completed_status = JobStatusUpdateRequestDTO(
                 status=JobStatus.COMPLETED,
-                processedStoragePath=processed_image_url,  # Cloudinary URL
+                processedStoragePath=processed_image_url,
                 processingParams=processing_params
             )
             await send_status_update(job_id, completed_status)
-            
+
             # Acknowledge the message on successful processing
             await message.ack()
-            logger.info(f"Job {job_id} completed successfully with Cloudinary integration")
-            
-        except Exception as e:
-            logger.error(f"Error processing job {job_id}: {e}")
-            logger.error(traceback.format_exc())
-            
-            # Send FAILED status update
-            failed_status = JobStatusUpdateRequestDTO(
-                status=JobStatus.FAILED,
-                errorMessage=str(e)
-            )
-            await send_status_update(job_id, failed_status)
-            
-            # Negative acknowledge without requeuing for unrecoverable errors
+            logger.info(f"Job {job_id} completed successfully on attempt {retry_count + 1}")
+            return  # Salir después de éxito
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse message as JSON: {e}")
             await message.nack(requeue=False)
-            
-    except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse message as JSON: {e}")
-        # This is an unrecoverable error, so don't requeue
-        await message.nack(requeue=False)
+            return  # No reintentar si el JSON es inválido
         
-    except Exception as e:
-        logger.error(f"Unexpected error processing message: {str(e)}")
-        logger.error(traceback.format_exc())
-        # For unexpected errors, don't requeue to avoid potential infinite loops
-        await message.nack(requeue=False)
+      
+
+        except Exception as e:
+            retry_count += 1
+            logger.error(f"Error processing job {job_id} on attempt {retry_count}: {e}")
+            logger.error(traceback.format_exc())
+
+            if retry_count > MAX_RETRIES:
+                # Enviar estado FAILED y no reintentar más
+                failed_status = JobStatusUpdateRequestDTO(
+                    status=JobStatus.FAILED,
+                    errorMessage=str(e)
+                )
+                await send_status_update(job_id, failed_status)
+                await message.nack(requeue=False)
+                return
+            else:
+                # Enviar estado RETRYING y esperar un poco antes de reintentar
+                retry_status = JobStatusUpdateRequestDTO(
+                    status=JobStatus.RETRYING,
+                    processingParams={"retryCount": retry_count},
+                    errorMessage=str(e)
+                )
+                await send_status_update(job_id, retry_status)
+                await asyncio.sleep(2)  # Espera opcional antes de reintentar
+
+        # Si hay error inesperado fuera del try, no queremos que quede el mensaje sin ack/nack
+    # En caso extremo, nack sin requeue
+    await message.nack(requeue=False)
+
 
 async def start_rabbitmq_consumer() -> None:
     """

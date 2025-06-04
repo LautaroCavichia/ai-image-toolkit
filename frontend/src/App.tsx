@@ -2,12 +2,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ToastContainer, toast } from 'react-toastify';
-import { 
-  isAuthenticated, 
-  logout, 
-  setupAxiosInterceptors, 
+import {
+  isAuthenticated,
+  logout,
   getCurrentUser,
-  createGuestUser
+  createGuestUser,
+  registerUnauthorizedHandler,
+
 } from './services/authService';
 import { fetchTokenBalance } from './services/tokenService';
 import { JobResponseDTO } from './types';
@@ -24,12 +25,20 @@ import ContactForm from './components/ContactForm/ContactForm';
 import ApiSection from './components/ApiSection/ApiSection';
 import AboutUs from './components/AboutUs/AboutUs';
 import UserProfile from './components/UserProfile/UserProfile';
+import BeforeAfterSlider from './components/ImageSlider/BeforeAfterSlider';
+import axios from 'axios';
+
+
+
 
 
 function App() {
   const [currentJob, setCurrentJob] = useState<JobResponseDTO | null>(null);
+  // Para la UI, consideramos "logueado" sólo si es usuario real.
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [isGuest, setIsGuest] = useState<boolean>(true); // Start as guest by default
+  // En el estado interno se guardará la info del usuario (puede ser invitado),
+  // pero la UI siempre mostrará "Log in" si isLoggedIn es false.
+  const [isGuest, setIsGuest] = useState<boolean>(false);
   const [user, setUser] = useState<{ userId: string; email?: string; displayName: string; isGuest?: boolean } | null>(null);
   const [showJobStatus, setShowJobStatus] = useState<boolean>(false);
   const [showAuth, setShowAuth] = useState<boolean>(false);
@@ -37,97 +46,131 @@ function App() {
   const [tokenBalance, setTokenBalance] = useState<number>(0);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const appRef = useRef<HTMLDivElement>(null);
+   
+    
 
-  // Initialize authentication state and axios interceptors on app load
-  useEffect(() => {
-    setupAxiosInterceptors();
-    
-    const authenticated = isAuthenticated();
-    
-    if (authenticated) {
-      // User has an existing session
-      const currentUser = getCurrentUser();
-      setIsLoggedIn(true);
-      setUser(currentUser);
-      
-      if (currentUser?.isGuest) {
-        setIsGuest(true);
-      } else {
-        setIsGuest(false);
-      }
-      
-      // Get token balance
-      if (currentUser?.tokenBalance !== undefined) {
-        setTokenBalance(currentUser.tokenBalance);
-      } else {
-        fetchTokenBalance().then(balance => setTokenBalance(balance));
-      }
-    } else {
-      // No session - create a silent guest user
-      handleCreateSilentGuestUser();
-    }
-  }, []);
 
-  // Effect to handle body scroll when modal is open
-  useEffect(() => {
-    const isAnyModalOpen = showJobStatus || showAuth || showProfile;
-    setModalOpen(isAnyModalOpen);
-    
-    if (isAnyModalOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'visible';
-    }
-    
-    return () => {
-      document.body.style.overflow = 'visible';
-    };
-  }, [showJobStatus, showAuth, showProfile]);
 
+  
+  // Helper: crea un guest "en segundo plano" y lo guarda, pero deja la UI como no logueada.
   const handleCreateSilentGuestUser = async () => {
+    
     try {
       const guestUser = await createGuestUser();
-      // Silent login - user doesn't know they're logged in as guest
+
+      // Guarda el token en localStorage para futuras peticiones
+      if (guestUser.token) {
+        localStorage.setItem('token', guestUser.token);
+      }
+
+      // Actualizamos el estado interno, pero para la UI no se marca como logueado.
       setUser({
         userId: guestUser.userId,
         displayName: guestUser.displayName,
         isGuest: true
       });
       setIsGuest(true);
-      setIsLoggedIn(false); // Don't show as "logged in" in UI
+      setIsLoggedIn(false);
       setTokenBalance(guestUser.tokenBalance || 0);
     } catch (error) {
       console.error("Failed to create silent guest user:", error);
-      // Show error or fallback UI
       toast.error("Service temporarily unavailable. Please try again later.");
     }
   };
+
+ 
+
+  useEffect(() => {
+    
+   const initializeUser = async () => {
+  
+    try {
+      const authenticated = isAuthenticated();
+      if (authenticated) {
+        // Obtener usuario actual y balance de tokens en paralelo
+        const [currentUser, tokenBalance] = await Promise.all([
+          getCurrentUser(),
+          fetchTokenBalance()
+        ]);
+
+        if (currentUser) {
+          setUser(currentUser);
+          setTokenBalance(tokenBalance);
+          
+          if (currentUser.isGuest) {
+            setIsGuest(true);
+            setIsLoggedIn(false);
+          } else {
+            setIsGuest(false);
+            setIsLoggedIn(true);
+          }
+        }
+      } else {
+        await handleCreateSilentGuestUser();
+      }
+    } catch (error) {
+      console.error('Error initializing user:', error);
+      toast.error("Error loading user data");
+      await handleCreateSilentGuestUser();
+    }
+  };
+
+  initializeUser();
+
+  return () => {
+    registerUnauthorizedHandler(undefined);
+  };
+}, []);
+
+
+  // Manejo del body scroll cuando se abren modales
+  useEffect(() => {
+    const isAnyModalOpen = showJobStatus || showAuth || showProfile;
+    setModalOpen(isAnyModalOpen);
+
+    if (isAnyModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'visible';
+    }
+
+    return () => {
+      document.body.style.overflow = 'visible';
+    };
+  }, [showJobStatus, showAuth, showProfile]);
 
   const handleNewJob = (job: JobResponseDTO) => {
     setCurrentJob(job);
     setShowJobStatus(true);
     toast.success("Job submitted successfully!");
   };
-  
-  const handleLoginSuccess = () => {
-    setIsLoggedIn(true);
-    setIsGuest(false);
-    setShowAuth(false);
-    const currentUser = getCurrentUser();
-    setUser(currentUser);
-    
-    // Update token balance
-    if (currentUser?.tokenBalance !== undefined) {
-      setTokenBalance(currentUser.tokenBalance);
-    } else {
-      fetchTokenBalance().then(balance => setTokenBalance(balance));
+
+  const handleLoginSuccess = async (type: 'login' | 'guest' = 'login') => {
+    if (type === 'login') {
+      try {
+        // Always fetch fresh balance after login
+        const updatedBalance = await fetchTokenBalance();
+        const updatedUser = getCurrentUser();
+        
+        if (updatedUser) {
+          setUser(updatedUser);
+          setTokenBalance(updatedBalance); // Use fetched balance
+          setIsLoggedIn(true);
+          setIsGuest(false);
+          setShowAuth(false);
+          toast.success("Welcome back!");
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        toast.error("Error loading user data");
+      }
     }
-    
-    toast.success("Welcome back!");
   };
-  
-  const handleLogout = () => {
+
+
+  const handleLogout = async () => {
     logout();
+    localStorage.removeItem('token');
     setIsLoggedIn(false);
     setIsGuest(true);
     setUser(null);
@@ -135,26 +178,34 @@ function App() {
     setTokenBalance(0);
     setShowProfile(false);
     toast.info("Logged out successfully");
-    
-    // Auto-create a new silent guest user after logout
-    handleCreateSilentGuestUser();
+
+    // Crear nuevo guest silencioso (el usuario sigue viendo "Log in")
+    await handleCreateSilentGuestUser();
   };
 
   const handleTokenBalanceChange = (newBalance: number) => {
     setTokenBalance(newBalance);
   };
 
-  const handleGuestConversionSuccess = () => {
-    setShowAuth(false);
-    setIsGuest(false);
-    setIsLoggedIn(true);
-    
-    // Update user data
-    const currentUser = getCurrentUser();
-    setUser(currentUser);
-    
-    toast.success("Account created successfully! Welcome aboard!");
-  };
+ const handleGuestConversionSuccess = async () => {
+  setShowAuth(false);
+  setIsGuest(false);
+  setIsLoggedIn(true);
+
+  try {
+    const balance = await fetchTokenBalance(); // llamada a la API para obtener el balance real
+    setTokenBalance(balance);
+  } catch (error) {
+    console.error("Error fetching token balance:", error);
+    // Opcional: manejar error, por ejemplo poner un balance por defecto o mostrar mensaje
+    setTokenBalance(0);
+  }
+
+  const updatedUser = getCurrentUser();
+  setUser(updatedUser);
+
+  toast.success("¡Welcome back!");
+};
 
   const closeJobStatus = () => {
     setShowJobStatus(false);
@@ -169,26 +220,24 @@ function App() {
   };
 
   const handleShowGuestConversion = () => {
-    if (isGuest && !isLoggedIn) {
-      // Show conversion for silent guests
-      setShowAuth(true);
-    } else {
-      // Show login for completely anonymous users
-      setShowAuth(true);
-    }
+    // Siempre mostramos el modal de autenticación ("Log in")
+    setShowAuth(true);
   };
 
   return (
     <div className="app" ref={appRef}>
       <Navbar 
-        user={isLoggedIn ? user : null} // Only show user info if actually logged in
-        onLogout={handleLogout} 
-        isGuest={isGuest && isLoggedIn} // Only show guest badge if explicitly logged in as guest
+        // Para la UI, se muestra el usuario real solo si isLoggedIn es true.
+        // Mientras el usuario esté en modo guest, se mostrará null y se verá el botón "Log in".
+        user={isLoggedIn ? user : null}
+        onLogout={handleLogout}
+        // Aunque en estado interno el usuario sea guest, la UI considera isLoggedIn para mostrar perfil.
+        isGuest={isGuest && isLoggedIn}
         tokenBalance={tokenBalance}
         onTokenBalanceChange={handleTokenBalanceChange}
         onShowGuestConversion={handleShowGuestConversion}
         onShowProfile={toggleProfileModal}
-        showProfile={isLoggedIn} // Only show profile option for logged in users
+        showProfile={isLoggedIn}
       />
       
       <main className="app-main" id="home">
@@ -267,6 +316,9 @@ function App() {
         </AnimatePresence>
       </main>
       
+
+
+      
       <div className="background">
         <div className="background-shapes">
           <div className="shape shape-1"></div>
@@ -276,16 +328,32 @@ function App() {
         <div className="pattern"></div>
       </div>
       
+      
+  {/* Versión simple sin fondo */}
+  
       <AboutSection />
       
       <div id="features">
         <AboutUs />
       </div>
+
+          
+        <BeforeAfterSlider 
+        beforeSrc="/assets/before.png"
+        afterSrc="/assets/after.png"
+        title="Unmatched Quality Results"
+        subtitle="Experience the difference with our professional transformation. Slide to reveal the stunning before and after comparison."
+        
+      />
+
+
       
+   
+
       <div id="api">
         <ApiSection />
       </div>
-      
+
       <div id="contact">
         <ContactForm />
       </div>

@@ -7,6 +7,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.chunaudis.image_toolkit.dto.JobMessageDTO;
+import org.springframework.retry.annotation.Retryable;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Backoff;
+ // si usás backoff en Retryable
+
 
 @Service
 public class JobPublisherService {
@@ -27,9 +32,18 @@ public class JobPublisherService {
         this.rabbitTemplate = rabbitTemplate;
     }
 
-    public void publishJob(JobMessageDTO jobMessage) {
+
+  
+    @Retryable(
+        value = { RuntimeException.class },
+        maxAttempts = 3,
+        backoff = @Backoff(delay = 2000)
+    )
+ public void publishJob(JobMessageDTO jobMessage) {
         String routingKey;
-        // Determine routing key based on jobMessage.getJobType()
+        
+
+
         switch (jobMessage.getJobType()) {
             case BG_REMOVAL:
                 routingKey = bgRemovalRoutingKey;
@@ -37,17 +51,24 @@ public class JobPublisherService {
             case UPSCALE:
                 routingKey = upscalingRoutingKey;
                 break;
-            // case ENLARGE:
-            // routingKey = enlargeRoutingKey;
-            // break;
             default:
                 log.error("Unsupported job type for routing: {}", jobMessage.getJobType());
-                // TODO: Potentially throw an exception or handle as an error
-                return;
+                throw new IllegalArgumentException("Unsupported job type: " + jobMessage.getJobType());
         }
 
-        log.info("Publishing job {} to exchange {} with routing key {}",
+ log.info("Intentando publicar job {} en exchange {} con routing key {}",
                 jobMessage.getJobId(), imageProcessingExchangeName, routingKey);
+
+        // Simular error (solo si estás probando el retry, después lo borrás)
+       // throw new RuntimeException("Error simulado para probar el retry");
+
         rabbitTemplate.convertAndSend(imageProcessingExchangeName, routingKey, jobMessage);
     }
+
+   @Recover
+public void recover(RuntimeException e, JobMessageDTO failedMessage) {
+    log.error("❌ Falló el envío del job {} después de 3 intentos. Error: {}", failedMessage.getJobId(), e.getMessage());
+    // Podés agregar lógica extra aquí, como notificar o guardar el fallo en DB
+}
+
 }
