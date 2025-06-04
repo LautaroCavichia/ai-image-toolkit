@@ -9,4 +9,4 @@ cloudinary==1.36.0
 requests==2.31.0
 rembg
 onnxruntime
-tesseractor
+pytesseract
