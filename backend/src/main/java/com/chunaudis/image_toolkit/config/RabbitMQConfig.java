@@ -31,6 +31,12 @@ public class RabbitMQConfig {
     @Value("${app.rabbitmq.queues.upscaling.routing-key}")
     private String upscalingRoutingKey;
 
+    @Value("${app.rabbitmq.queues.enlarge.name}")
+    private String enlargeQueueName;
+
+    @Value("${app.rabbitmq.queues.enlarge.routing-key}")
+    private String enlargeRoutingKey;
+
     // --- Queue, Exchange, Binding ---
 
     @Bean
@@ -51,15 +57,27 @@ public class RabbitMQConfig {
     @Bean
     Binding backgroundRemovalBinding(Queue backgroundRemovalQueue, TopicExchange imageProcessingExchange) {
         return BindingBuilder.bind(backgroundRemovalQueue)
-                             .to(imageProcessingExchange)
-                             .with(bgRemovalRoutingKey);
+                .to(imageProcessingExchange)
+                .with(bgRemovalRoutingKey);
     }
 
     @Bean
     Binding upscalingBinding(Queue upscalingQueue, TopicExchange imageProcessingExchange) {
         return BindingBuilder.bind(upscalingQueue)
-                             .to(imageProcessingExchange)
-                             .with(upscalingRoutingKey);
+                .to(imageProcessingExchange)
+                .with(upscalingRoutingKey);
+    }
+
+    @Bean
+    Queue enlargeQueue() {
+        return QueueBuilder.durable(enlargeQueueName).build();
+    }
+
+    @Bean
+    Binding enlargeBinding(Queue enlargeQueue, TopicExchange imageProcessingExchange) {
+        return BindingBuilder.bind(enlargeQueue)
+                .to(imageProcessingExchange)
+                .with(enlargeRoutingKey);
     }
 
     // --- Message converter (JSON) ---
@@ -71,7 +89,7 @@ public class RabbitMQConfig {
 
     @Bean
     public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory,
-                                         MessageConverter jsonMessageConverter) {
+            MessageConverter jsonMessageConverter) {
         RabbitTemplate template = new RabbitTemplate(connectionFactory);
         template.setMessageConverter(jsonMessageConverter);
         return template;

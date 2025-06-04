@@ -28,6 +28,9 @@ public class JobPublisherService {
     @Value("${app.rabbitmq.queues.upscaling.routing-key}")
     private String upscalingRoutingKey;
 
+    @Value("${app.rabbitmq.queues.enlarge.routing-key}")
+    private String enlargeRoutingKey;
+
     public JobPublisherService(RabbitTemplate rabbitTemplate) {
         this.rabbitTemplate = rabbitTemplate;
     }
@@ -50,6 +53,9 @@ public class JobPublisherService {
                 break;
             case UPSCALE:
                 routingKey = upscalingRoutingKey;
+                break;
+            case ENLARGE:
+                routingKey = enlargeRoutingKey;
                 break;
             default:
                 log.error("Unsupported job type for routing: {}", jobMessage.getJobType());
