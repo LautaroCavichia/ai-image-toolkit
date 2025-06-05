@@ -1,4 +1,4 @@
-@echo off
+@echo off 
 REM Cambia a la carpeta raíz del proyecto (ajustá la ruta si es necesario)
 cd /d "C:\Users\Bruno\Desktop\ai-image-toolkit"
 
@@ -8,8 +8,15 @@ docker start some-rabbit
 echo Iniciando Backend...
 start cmd /k "cd backend && call mvnw.cmd spring-boot:run"
 
-echo Iniciando Microservicio...
+echo Iniciando Microservicio bg-removal-service...
 start cmd /k "cd microservices\bg-removal-service && call .venv\Scripts\activate.bat && uvicorn app.main:app --host 0.0.0.0 --port 8001"
+
+echo Iniciando Microservicio enlarge-service...
+start cmd /k "cd microservices\enlarge-service && call .venv\Scripts\activate.bat && uvicorn app.main:app --host 0.0.0.0 --port 8003"
+
+echo Iniciando Microservicio enlarge-service...
+start cmd /k "cd microservices\style-transfer-service && call .venv\Scripts\activate.bat && uvicorn app.main:app --host 0.0.0.0 --port 8004"
+
 
 echo Esperando 15 segundos para que el backend arranque...
 timeout /t 15 /nobreak

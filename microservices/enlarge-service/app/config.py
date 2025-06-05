@@ -9,6 +9,8 @@ from typing import Optional
 from dotenv import load_dotenv
 from pathlib import Path
 
+
+
 # Load environment variables from .env file
 load_dotenv()
 

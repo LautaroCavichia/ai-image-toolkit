@@ -1,6 +1,6 @@
 """
-Main application module for the style transfer service.
-Implements FastAPI app, RabbitMQ consumer, and job processing logic with OmniConsistency integration.
+Main application module for the SDXL style transfer service.
+Implements FastAPI app, RabbitMQ consumer, and job processing logic with SDXL integration.
 """
 
 import json
@@ -8,10 +8,11 @@ import asyncio
 import logging
 import traceback
 from typing import Dict, Any, Optional
+import os
 
 import aio_pika
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse
 from aio_pika.abc import AbstractIncomingMessage, AbstractRobustConnection
 
@@ -24,10 +25,28 @@ from app.config import (
     validate_config,
     SERVICE_HOST,
     SERVICE_PORT,
-    AVAILABLE_STYLES
+    AVAILABLE_STYLES,
+    DEVICE,
+    SDXL_CONFIG,
+    get_device_info,
+    get_style_display_names
 )
-from app.processing import perform_style_transfer, get_system_status, force_reset_system
-from app.dto import JobMessageDTO, JobStatusUpdateRequestDTO, JobStatus, JobType
+from app.processing import (
+    perform_style_transfer, 
+    get_system_status, 
+    force_reset_system,
+    clear_cache,
+    clear_active_jobs,
+    get_active_jobs_count
+)
+from app.dto import (
+    JobMessageDTO, 
+    JobStatusUpdateRequestDTO, 
+    JobStatus, 
+    JobType,
+    StyleCatalogDTO,
+    SystemStatusDTO
+)
 from app.cloudinary_config import *  # Initialize Cloudinary configuration
 
 # Configure logging
@@ -35,9 +54,11 @@ logger = logging.getLogger(__name__)
 
 # Create the FastAPI application
 app = FastAPI(
-    title="Style Transfer Service",
-    description="Microservice for AI-powered artistic style transfer using OmniConsistency with Cloudinary integration",
-    version="1.0.0",
+    title="SDXL Style Transfer Service",
+    description="Microservice for AI-powered artistic style transfer using Stable Diffusion XL with Cloudinary integration",
+    version="2.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
 )
 
 # Global variables for connections
@@ -54,23 +75,27 @@ async def startup_event():
         validate_config()
         
         # Create HTTP client for callbacks
-        http_client = httpx.AsyncClient(timeout=30.0)
+        http_client = httpx.AsyncClient(timeout=60.0)  # Longer timeout for style transfer
         
         # Start RabbitMQ consumer
         asyncio.create_task(start_rabbitmq_consumer())
         
-        logger.info("🎨 Style Transfer Service with OmniConsistency started successfully")
-        logger.info(f"📋 Available styles: {len(AVAILABLE_STYLES)} styles")
+        # Log startup success
+        device_info = get_device_info()
+        logger.info("🎨 SDXL Style Transfer Service started successfully")
+        logger.info(f"🎮 Running on: {device_info['device']}")
+        logger.info(f"🎭 Available styles: {len(AVAILABLE_STYLES)}")
         
     except Exception as e:
         logger.error(f"❌ Failed to start the service: {e}")
+        raise e
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Close connections on application shutdown."""
     global rabbitmq_connection, http_client
     
-    logger.info("🔄 Shutting down style transfer service...")
+    logger.info("🔄 Shutting down SDXL style transfer service...")
     
     # Close HTTP client
     if http_client:
@@ -85,58 +110,189 @@ async def shutdown_event():
     # Force reset system to clear cache
     force_reset_system()
     
-    logger.info("✅ Style transfer service shutdown completed")
+    logger.info("✅ SDXL style transfer service shutdown completed")
 
-@app.get("/health")
+@app.get("/", response_model=Dict[str, Any])
+async def root():
+    """Root endpoint with service information."""
+    return {
+        "service": "SDXL Style Transfer Service",
+        "version": "2.0.0",
+        "status": "running",
+        "device": DEVICE,
+        "model": SDXL_CONFIG["base_model"],
+        "available_styles": len(AVAILABLE_STYLES),
+        "endpoints": {
+            "health": "/health",
+            "styles": "/styles",
+            "catalog": "/catalog",
+            "system": "/system",
+            "docs": "/docs"
+        }
+    }
+
+@app.get("/health", response_model=Dict[str, Any])
 async def health_check():
-    """Health check endpoint with system status."""
+    """Comprehensive health check endpoint with system status."""
     try:
         # Check RabbitMQ connection status
         rabbitmq_status = "connected" if rabbitmq_connection and not rabbitmq_connection.is_closed else "disconnected"
         
         # Get system status
         system_status = get_system_status()
+        device_info = get_device_info()
+        
+        # Determine overall health
+        is_healthy = (
+            rabbitmq_status == "connected" and
+            system_status.get("pipeline_loaded", False)
+        )
         
         return JSONResponse(
             content={
-                "status": "healthy" if rabbitmq_status == "connected" else "degraded",
+                "status": "healthy" if is_healthy else "degraded",
+                "timestamp": system_status["timestamp"],
                 "services": {
                     "rabbitmq": rabbitmq_status,
                     "cloudinary": "configured",
-                    "pipeline": "loaded" if system_status["pipeline_loaded"] else "not_loaded"
+                    "sdxl_pipeline": "loaded" if system_status["pipeline_loaded"] else "not_loaded"
                 },
-                "system": system_status
+                "system": {
+                    **system_status,
+                    "device_info": device_info
+                },
+                "performance": {
+                    "active_jobs": system_status["active_jobs_count"],
+                    "memory_optimizations": {
+                        "attention_slicing": True,
+                        "vae_slicing": True,
+                        "torch_compile": True
+                    }
+                }
             },
-            status_code=200 if rabbitmq_status == "connected" else 503
+            status_code=200 if is_healthy else 503
         )
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         return JSONResponse(
-            content={"status": "unhealthy", "error": str(e)},
+            content={
+                "status": "unhealthy", 
+                "error": str(e),
+                "timestamp": time.time()
+            },
             status_code=503
         )
 
-@app.get("/styles")
+@app.get("/styles", response_model=Dict[str, Any])
 async def get_available_styles():
-    """Get list of available art styles."""
+    """Get list of available art styles with display names."""
+    style_display_names = get_style_display_names()
+    
+    # Group styles by category
+    categories = {
+        "Cartoon & Animation": ["3D_Chibi", "American_Cartoon", "Ghibli", "Anime", "Disney", "Pixar"],
+        "Traditional Art": ["Chinese_Ink", "Oil_Painting", "Watercolor", "Acrylic_Painting", "Charcoal_Drawing"],
+        "Famous Artists": ["Van_Gogh", "Picasso", "Monet", "Da_Vinci", "Warhol", "Banksy"],
+        "Modern Styles": ["Pop_Art", "Street_Art", "Graffiti", "Comic_Book", "Manga", "Concept_Art"],
+        "Digital Art": ["Pixel", "Vector", "Low_Poly", "Cyberpunk", "Synthwave", "Neon"],
+        "Textures & Materials": ["Clay_Toy", "Fabric", "Paper_Cutting", "Origami", "LEGO", "Glass_Art"],
+        "Artistic Movements": ["Impressionist", "Cubist", "Surreal", "Abstract", "Minimalist", "Art_Nouveau"]
+    }
+    
     return {
+        "total_styles": len(AVAILABLE_STYLES),
         "styles": AVAILABLE_STYLES,
-        "count": len(AVAILABLE_STYLES),
-        "examples": {
-            style: f"Example prompt for {style.replace('_', ' ')} style"
-            for style in AVAILABLE_STYLES
-        }
+        "display_names": style_display_names,
+        "categories": categories,
+        "popular_styles": ["Ghibli", "Van_Gogh", "Oil_Painting", "American_Cartoon", "Pixel"],
+        "quality_levels": ["FREE", "PREMIUM"],
+        "strength_range": [0.1, 1.0],
+        "max_prompt_length": 500
     }
 
+@app.get("/catalog", response_model=StyleCatalogDTO)
+async def get_style_catalog():
+    """Get complete style catalog with detailed metadata."""
+    return StyleCatalogDTO.create_catalog()
+
+@app.get("/system", response_model=SystemStatusDTO)
+async def get_system_info():
+    """Get detailed system information and status."""
+    status = get_system_status()
+    device_info = get_device_info()
+    
+    return SystemStatusDTO(
+        activeJobsCount=status["active_jobs_count"],
+        activeJobs=status["active_jobs"],
+        pipelineLoaded=status["pipeline_loaded"],
+        availableStyles=status["available_styles"],
+        device=status["device"],
+        modelConfig=status["model_config"],
+        modelsDirectory=status["models_directory"],
+        memoryInfo=device_info,
+        timestamp=status["timestamp"]
+    )
+
 @app.post("/admin/reset")
-async def admin_reset():
+async def admin_reset(background_tasks: BackgroundTasks):
     """Emergency reset endpoint for system recovery."""
     try:
-        force_reset_system()
-        return {"message": "System reset completed successfully"}
+        def reset_system():
+            force_reset_system()
+            logger.info("🔄 System reset completed via admin endpoint")
+        
+        background_tasks.add_task(reset_system)
+        
+        return {
+            "message": "System reset initiated successfully",
+            "timestamp": time.time(),
+            "note": "Reset is running in background"
+        }
     except Exception as e:
         logger.error(f"Reset failed: {e}")
         raise HTTPException(status_code=500, detail=f"Reset failed: {e}")
+
+@app.post("/admin/clear-cache")
+async def admin_clear_cache(background_tasks: BackgroundTasks):
+    """Clear model cache to free memory."""
+    try:
+        def clear_model_cache():
+            clear_cache()
+            logger.info("🧹 Model cache cleared via admin endpoint")
+        
+        background_tasks.add_task(clear_model_cache)
+        
+        return {
+            "message": "Cache clearing initiated successfully",
+            "timestamp": time.time()
+        }
+    except Exception as e:
+        logger.error(f"Cache clearing failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Cache clearing failed: {e}")
+
+@app.get("/admin/jobs")
+async def admin_get_active_jobs():
+    """Get information about currently active jobs."""
+    status = get_system_status()
+    return {
+        "active_jobs_count": status["active_jobs_count"],
+        "active_jobs": status["active_jobs"],
+        "timestamp": status["timestamp"]
+    }
+
+@app.post("/admin/jobs/clear")
+async def admin_clear_jobs():
+    """Clear active jobs list (emergency use only)."""
+    try:
+        clear_active_jobs()
+        return {
+            "message": "Active jobs list cleared successfully",
+            "timestamp": time.time(),
+            "warning": "This is an emergency operation. Use with caution."
+        }
+    except Exception as e:
+        logger.error(f"Job clearing failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Job clearing failed: {e}")
 
 async def send_status_update(job_id: str, status_update: JobStatusUpdateRequestDTO) -> bool:
     """
@@ -162,10 +318,9 @@ async def send_status_update(job_id: str, status_update: JobStatusUpdateRequestD
         
         response = await http_client.post(
             callback_url,
-            json=status_update.dict(exclude_none=True)
+            json=status_update.dict(exclude_none=True),
+            timeout=30.0
         )
-        
-        logger.info(f"📦 Callback payload: {status_update.dict(exclude_none=True)}")
         
         if 200 <= response.status_code < 300:
             logger.info(f"✅ Callback successful for job {job_id}: {response.status_code}")
@@ -200,7 +355,7 @@ async def process_message(message: AbstractIncomingMessage) -> None:
             job_dto = JobMessageDTO(**message_data)
             job_id = job_dto.jobId
 
-            logger.info(f"🎨 Received style transfer job {job_id} (attempt {retry_count + 1})")
+            logger.info(f"🎨 Received SDXL style transfer job {job_id} (attempt {retry_count + 1})")
             logger.info(f"🖼️ Image URL: {job_dto.imageStoragePath}")
             logger.info(f"⚙️ Job config: {job_dto.jobConfig}")
 
@@ -210,17 +365,31 @@ async def process_message(message: AbstractIncomingMessage) -> None:
                 await message.ack()
                 return
 
+            # Check if we're at max concurrent jobs
+            active_jobs = get_active_jobs_count()
+            from app.config import PERFORMANCE_CONFIG
+            max_concurrent = PERFORMANCE_CONFIG["max_concurrent_jobs"]
+            
+            if active_jobs >= max_concurrent:
+                logger.warning(f"⏳ Max concurrent jobs ({max_concurrent}) reached, requeueing job {job_id}")
+                await message.nack(requeue=True)
+                return
+
             # Send processing status on first attempt, retrying on subsequent
             if retry_count == 0:
                 status_update = JobStatusUpdateRequestDTO(status=JobStatus.PROCESSING)
             else:
                 status_update = JobStatusUpdateRequestDTO(
                     status=JobStatus.RETRYING,
-                    processingParams={"retryCount": retry_count}
+                    processingParams={
+                        "retryCount": retry_count,
+                        "maxRetries": MAX_RETRIES,
+                        "device": DEVICE
+                    }
                 )
             await send_status_update(job_id, status_update)
             
-            # Perform style transfer
+            # Perform SDXL style transfer
             processed_image_url, processing_params = await perform_style_transfer(
                 job_id,
                 job_dto.imageStoragePath,
@@ -237,7 +406,7 @@ async def process_message(message: AbstractIncomingMessage) -> None:
 
             # Acknowledge the message on successful processing
             await message.ack()
-            logger.info(f"✅ Style transfer job {job_id} completed successfully on attempt {retry_count + 1}")
+            logger.info(f"✅ SDXL style transfer job {job_id} completed successfully on attempt {retry_count + 1}")
             return  # Exit after success
 
         except json.JSONDecodeError as e:
@@ -247,14 +416,19 @@ async def process_message(message: AbstractIncomingMessage) -> None:
         
         except Exception as e:
             retry_count += 1
-            logger.error(f"❌ Error processing style transfer job {job_id} on attempt {retry_count}: {e}")
+            logger.error(f"❌ Error processing SDXL style transfer job {job_id} on attempt {retry_count}: {e}")
             logger.error(traceback.format_exc())
 
             if retry_count > MAX_RETRIES:
                 # Send FAILED status and don't retry anymore
                 failed_status = JobStatusUpdateRequestDTO(
                     status=JobStatus.FAILED,
-                    errorMessage=f"Style transfer failed after {MAX_RETRIES} attempts: {str(e)}"
+                    errorMessage=f"SDXL style transfer failed after {MAX_RETRIES} attempts: {str(e)}",
+                    processingParams={
+                        "finalAttempt": retry_count,
+                        "device": DEVICE,
+                        "error_type": type(e).__name__
+                    }
                 )
                 await send_status_update(job_id, failed_status)
                 await message.nack(requeue=False)
@@ -263,11 +437,16 @@ async def process_message(message: AbstractIncomingMessage) -> None:
                 # Send RETRYING status and wait before retrying
                 retry_status = JobStatusUpdateRequestDTO(
                     status=JobStatus.RETRYING,
-                    processingParams={"retryCount": retry_count},
+                    processingParams={
+                        "retryCount": retry_count,
+                        "maxRetries": MAX_RETRIES,
+                        "device": DEVICE,
+                        "nextRetryIn": "10 seconds"
+                    },
                     errorMessage=str(e)
                 )
                 await send_status_update(job_id, retry_status)
-                await asyncio.sleep(5)  # Wait longer between retries for style transfer
+                await asyncio.sleep(10)  # Wait longer between retries for style transfer
 
     # Fallback nack without requeue in case of unexpected flow
     await message.nack(requeue=False)
@@ -293,8 +472,10 @@ async def start_rabbitmq_consumer() -> None:
             # Create a channel
             channel = await rabbitmq_connection.channel()
             
-            # Set QoS to process one message at a time for style transfer
-            await channel.set_qos(prefetch_count=1)
+            # Set QoS to process limited messages at a time for style transfer
+            from app.config import PERFORMANCE_CONFIG
+            prefetch_count = PERFORMANCE_CONFIG["max_concurrent_jobs"]
+            await channel.set_qos(prefetch_count=prefetch_count)
             
             # Declare the exchange
             exchange = await channel.declare_exchange(
@@ -316,7 +497,8 @@ async def start_rabbitmq_consumer() -> None:
             )
             
             logger.info(f"🎨 Connected to RabbitMQ, consuming from queue: {CONSUME_QUEUE_NAME}")
-            logger.info("🚀 OmniConsistency style transfer service ready")
+            logger.info(f"🚀 SDXL style transfer service ready on {DEVICE}")
+            logger.info(f"⚙️ Max concurrent jobs: {prefetch_count}")
             
             # Start consuming messages
             await queue.consume(process_message)
@@ -345,3 +527,22 @@ async def start_rabbitmq_consumer() -> None:
             logger.error(f"💥 Unexpected error in RabbitMQ consumer: {e}")
             logger.error(traceback.format_exc())
             break
+
+# Add time import at the top
+import time
+
+if __name__ == "__main__":
+    import uvicorn
+    
+    # Log startup information
+    logger.info("🚀 Starting SDXL Style Transfer Service")
+    logger.info(f"🎮 Device: {DEVICE}")
+    logger.info(f"🏠 Host: {SERVICE_HOST}:{SERVICE_PORT}")
+    
+    uvicorn.run(
+        app, 
+        host=SERVICE_HOST, 
+        port=SERVICE_PORT,
+        log_level=os.getenv("LOG_LEVEL", "info").lower(),
+        access_log=True
+    )
