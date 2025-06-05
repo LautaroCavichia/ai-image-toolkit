@@ -183,14 +183,6 @@ const styleOptions: StyleOption[] = [
         prompt: 'Paper cutting art style, layered design'
     },
     {
-        id: 'Macaron',
-        name: 'Macaron',
-        description: 'Pastel colors with sweet aesthetic',
-        category: 'Sweet',
-        previewImage: '/assets/styles/macaron.jpg',
-        prompt: 'Macaron style, pastel colors, sweet aesthetic'
-    },
-    {
         id: 'Jojo',
         name: 'JoJo\'s Bizarre',
         description: 'Dramatic poses with bold lines',

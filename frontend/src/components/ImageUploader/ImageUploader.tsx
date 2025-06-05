@@ -4,8 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import EnlargeConfigComponent, { EnlargeConfig } from '../EnlargeConfig/EnlargeConfig';
-
-
+import StyleSelector, { StyleConfig } from '../StyleSelector/StyleSelector';
 
 import {
   faUpload,
@@ -14,7 +13,8 @@ import {
   faExpand,
   faArrowsUpDown,
   faCrown,
-  faCoins
+  faCoins,
+  faPalette
 } from '@fortawesome/free-solid-svg-icons';
 import { uploadImageAndCreateJob } from '../../services/apiService';
 import { JobResponseDTO, JobTypeEnum } from '../../types';
@@ -43,28 +43,37 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [showUpscaleOptions, setShowUpscaleOptions] = useState<boolean>(false);
+  const [showEnlargeOptions, setShowEnlargeOptions] = useState<boolean>(false);
+  const [showStyleOptions, setShowStyleOptions] = useState<boolean>(false);
   const [tokenReady, setTokenReady] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [enlargeConfig, setEnlargeConfig] = useState<EnlargeConfig>({
     aspectRatio: 'square',
     position: 'center',
     quality: 'FREE'
   });
-  const [showEnlargeOptions, setShowEnlargeOptions] = useState<boolean>(false);
 
+  // Style Transfer configuration
+  const [styleConfig, setStyleConfig] = useState<StyleConfig>({
+    style: 'Ghibli',
+    prompt: 'Studio Ghibli style, anime, detailed backgrounds, warm colors',
+    strength: 1.0,
+    quality: 'FREE'
+  });
 
   const getJwtToken = () => localStorage.getItem("token");
+  
   useEffect(() => {
     const validateToken = async () => {
       try {
-        const token = getJwtToken;
+        const token = getJwtToken();
 
         if (!token) {
           // No hay token, redirigir
           window.location.href = '/login';
           return;
         }
-
 
         // Token válido
         setTokenReady(true);
@@ -76,10 +85,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
     };
 
     validateToken();
-
   }, []);
-
-
 
   const upscaleQualityOptions: UpscaleQuality[] = [
     {
@@ -146,6 +152,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
     setJobType(type);
     setShowUpscaleOptions(type === JobTypeEnum.UPSCALE);
     setShowEnlargeOptions(type === JobTypeEnum.ENLARGE);
+    setShowStyleOptions(type === JobTypeEnum.STYLE_TRANSFER);
   };
 
   const handleSubmit = async () => {
@@ -167,6 +174,11 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
         jobConfig.aspectRatio = enlargeConfig.aspectRatio;
         jobConfig.position = enlargeConfig.position;
         jobConfig.quality = enlargeConfig.quality;
+      } else if (jobType === JobTypeEnum.STYLE_TRANSFER) {
+        jobConfig.style = styleConfig.style;
+        jobConfig.prompt = styleConfig.prompt;
+        jobConfig.strength = styleConfig.strength;
+        jobConfig.quality = styleConfig.quality;
       }
 
       const job = await uploadImageAndCreateJob(selectedFile, jobType, jobConfig);
@@ -185,6 +197,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
     setPreview(null);
     setError(null);
     setShowUpscaleOptions(false);
+    setShowEnlargeOptions(false);
+    setShowStyleOptions(false);
   };
 
   const openFileSelector = () => {
@@ -201,6 +215,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
         return <FontAwesomeIcon icon={faArrowsUpDown} />;
       case JobTypeEnum.ENLARGE:
         return <FontAwesomeIcon icon={faExpand} />;
+      case JobTypeEnum.STYLE_TRANSFER:
+        return <FontAwesomeIcon icon={faPalette} />;
       default:
         return <FontAwesomeIcon icon={faImage} />;
     }
@@ -214,6 +230,23 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
         return 'AI Upscaling';
       case JobTypeEnum.ENLARGE:
         return 'Image Enlargement';
+      case JobTypeEnum.STYLE_TRANSFER:
+        return 'Style Transfer';
+    }
+  };
+
+  const getTokenCostForCurrentJob = () => {
+    switch (jobType) {
+      case JobTypeEnum.BG_REMOVAL:
+        return 1;
+      case JobTypeEnum.UPSCALE:
+        return upscaleQuality === 'PREMIUM' ? 1 : 0;
+      case JobTypeEnum.ENLARGE:
+        return enlargeConfig.quality === 'PREMIUM' ? 1 : 0;
+      case JobTypeEnum.STYLE_TRANSFER:
+        return styleConfig.quality === 'PREMIUM' ? 2 : 0;
+      default:
+        return 0;
     }
   };
 
@@ -357,6 +390,23 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
               )}
             </AnimatePresence>
 
+            <AnimatePresence>
+              {showStyleOptions && (
+                <motion.div
+                  className="style-options-selector"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <StyleSelector
+                    config={styleConfig}
+                    onChange={setStyleConfig}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <motion.button
               className="process-button"
               onClick={handleSubmit}
@@ -373,13 +423,12 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
                 <>
                   {getJobTypeIcon(jobType)}
                   <span>Process Image</span>
-                  {((jobType === JobTypeEnum.UPSCALE && upscaleQuality === 'PREMIUM') ||
-                    (jobType === JobTypeEnum.ENLARGE && enlargeConfig.quality === 'PREMIUM')) && (
-                      <div className="button-token-cost">
-                        <FontAwesomeIcon icon={faCoins} />
-                        <span>1</span>
-                      </div>
-                    )}
+                  {getTokenCostForCurrentJob() > 0 && (
+                    <div className="button-token-cost">
+                      <FontAwesomeIcon icon={faCoins} />
+                      <span>{getTokenCostForCurrentJob()}</span>
+                    </div>
+                  )}
                 </>
               )}
             </motion.button>
