@@ -36,3 +36,5 @@ build/
 
 /backend/storage/
 /storage
+
+*.bat

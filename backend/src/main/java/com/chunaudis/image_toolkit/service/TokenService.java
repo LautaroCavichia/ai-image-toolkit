@@ -29,6 +29,8 @@ public class TokenService {
                 return 1;
             case ENLARGE:
                 return 1;
+            case STYLE_TRANSFER:
+                return 2; // Style transfer is more expensive due to AI model complexity
             default:
                 return 1;
         }

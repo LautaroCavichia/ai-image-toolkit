@@ -37,6 +37,12 @@ public class RabbitMQConfig {
     @Value("${app.rabbitmq.queues.enlarge.routing-key}")
     private String enlargeRoutingKey;
 
+    @Value("${app.rabbitmq.queues.style-transfer.name}")
+    private String styleTransferQueueName;
+
+    @Value("${app.rabbitmq.queues.style-transfer.routing-key}")
+    private String styleTransferRoutingKey;
+
     // --- Queue, Exchange, Binding ---
 
     @Bean
@@ -55,6 +61,16 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    Queue enlargeQueue() {
+        return QueueBuilder.durable(enlargeQueueName).build();
+    }
+
+    @Bean
+    Queue styleTransferQueue() {
+        return QueueBuilder.durable(styleTransferQueueName).build();
+    }
+
+    @Bean
     Binding backgroundRemovalBinding(Queue backgroundRemovalQueue, TopicExchange imageProcessingExchange) {
         return BindingBuilder.bind(backgroundRemovalQueue)
                 .to(imageProcessingExchange)
@@ -69,15 +85,17 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    Queue enlargeQueue() {
-        return QueueBuilder.durable(enlargeQueueName).build();
-    }
-
-    @Bean
     Binding enlargeBinding(Queue enlargeQueue, TopicExchange imageProcessingExchange) {
         return BindingBuilder.bind(enlargeQueue)
                 .to(imageProcessingExchange)
                 .with(enlargeRoutingKey);
+    }
+
+    @Bean
+    Binding styleTransferBinding(Queue styleTransferQueue, TopicExchange imageProcessingExchange) {
+        return BindingBuilder.bind(styleTransferQueue)
+                .to(imageProcessingExchange)
+                .with(styleTransferRoutingKey);
     }
 
     // --- Message converter (JSON) ---
