@@ -21,15 +21,24 @@ RUN apt-get update && apt-get install -y \
     git \
     wget \
     curl \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # Create models directory
 RUN mkdir -p /app/models
 
-# Install Python dependencies
-COPY requirements.txt .
+# Upgrade pip first
 RUN pip install --no-cache-dir --upgrade pip
+
+# Install PyTorch first (required for xformers)
+RUN pip install --no-cache-dir torch>=2.0.0 torchvision>=0.15.0
+
+# Install core dependencies without xformers first
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Now try to install xformers (optional - if it fails, continue)
+RUN pip install --no-cache-dir xformers>=0.0.22 || echo "xformers installation failed, continuing without it"
 
 # Copy application code
 COPY app/ ./app/

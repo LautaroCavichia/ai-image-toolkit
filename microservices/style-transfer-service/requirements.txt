@@ -6,12 +6,9 @@ python-dotenv==1.0.0
 pydantic==2.4.2
 cloudinary==1.36.0
 requests==2.31.0
-torch>=2.0.0
-torchvision>=0.15.0
 diffusers>=0.24.0
 transformers>=4.35.0
 accelerate>=0.25.0
-xformers>=0.0.22
 opencv-python==4.8.1.78
 Pillow==10.0.1
 numpy>=1.24.0

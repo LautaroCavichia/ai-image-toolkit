@@ -1,9 +1,10 @@
-// src/types/index.ts
+// src/types/index.ts - Updated with Style Transfer
 
 export enum JobTypeEnum {
   BG_REMOVAL = 'BG_REMOVAL',
   UPSCALE = 'UPSCALE',
   ENLARGE = 'ENLARGE',
+  STYLE_TRANSFER = 'STYLE_TRANSFER',
 }
 
 export enum JobStatusEnum {
@@ -13,6 +14,7 @@ export enum JobStatusEnum {
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',
   CANCELLED = 'CANCELLED',
+  RETRYING = 'RETRYING',
 }
 
 export interface JobResponseDTO {
@@ -51,3 +53,31 @@ export interface TokenBalance {
 export interface TokenPurchase {
   amount: number;
 }
+
+// Style Transfer specific types
+export interface StyleTransferConfig {
+  style: string;
+  prompt?: string;
+  strength: number;
+  quality: 'FREE' | 'PREMIUM';
+}
+
+export interface StyleOption {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  previewImage: string;
+  prompt: string;
+  popular?: boolean;
+}
+
+// Available art styles for style transfer
+export const AVAILABLE_STYLES = [
+  '3D_Chibi', 'American_Cartoon', 'Chinese_Ink', 'Clay_Toy', 'Fabric',
+  'Ghibli', 'Irasutoya', 'Jojo', 'LEGO', 'Line', 'Macaron', 'Oil_Painting',
+  'Origami', 'Paper_Cutting', 'Picasso', 'Pixel', 'Poly', 'Pop_Art',
+  'Rick_Morty', 'Snoopy', 'Van_Gogh', 'Vector'
+] as const;
+
+export type StyleType = typeof AVAILABLE_STYLES[number];
