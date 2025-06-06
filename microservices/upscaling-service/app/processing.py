@@ -11,11 +11,16 @@ import urllib.request
 from pathlib import Path
 from realesrgan import RealESRGANer
 from basicsr.archs.rrdbnet_arch import RRDBNet
-
+import torch
 from app.cloudinary_service import CloudinaryService
 from app.config import MODELS_DIR
 
 logger = logging.getLogger(__name__)
+
+
+print("CUDA available:", torch.cuda.is_available())
+if torch.cuda.is_available():
+    print("GPU:", torch.cuda.get_device_name(0))
 
 class UpscalingProcessor:
     def __init__(self):
@@ -118,7 +123,7 @@ class UpscalingProcessor:
                 tile_pad=10,
                 pre_pad=0,
                 half=False,  # Use FP32 for better compatibility
-                gpu_id=None  # Auto-detect GPU
+                gpu_id=False # Auto-detect GPU
             )
             
             logger.info(f"Successfully loaded model: {model_name} from {model_path}")

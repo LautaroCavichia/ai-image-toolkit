@@ -34,7 +34,7 @@ public class Image {
     @Column(nullable = false, length = 1024) 
     private String originalStoragePath; // Cloudinary URL
 
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false, length = 255)
     private String originalFilename;
 
     @Column(nullable = false)
