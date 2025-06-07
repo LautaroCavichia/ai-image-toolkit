@@ -63,16 +63,100 @@ class LightweightImageEnlarger:
         except Exception as e:
             logger.warning(f"Failed to initialize ONNX model: {e}. Using fallback methods.")
             self.model_initialized = False
-    
     def _download_model(self, model_path: str):
-        """Download a lightweight inpainting model."""
+        """Download LaMa inpainting model from official sources."""
         try:
-            # This is a placeholder URL - in production, host your own lightweight model
-            # For now, we'll skip the download and use traditional methods
-            logger.info("Model download skipped - using traditional inpainting methods")
-            pass
+            # Create models directory if it doesn't exist
+            os.makedirs(os.path.dirname(model_path), exist_ok=True)
+            
+            # LaMa model URLs (updated with working sources)
+            model_urls = [
+                # Primary URL - Hugging Face Carve/LaMa-ONNX (recommended version)
+                "https://huggingface.co/Carve/LaMa-ONNX/resolve/main/lama_fp32.onnx",
+                # Backup URL - Alternative version from same repo
+                "https://huggingface.co/Carve/LaMa-ONNX/resolve/main/lama.onnx",
+                # Alternative backup - smartywu/big-lama
+                "https://huggingface.co/smartywu/big-lama/resolve/main/pytorch_model.bin",
+                # Google Drive backup (if available)
+                "https://drive.google.com/uc?id=1zWoUvTaJGdd0_PP1dUWHBGjNGr8XuCjQ&export=download"
+            ]
+            
+            for i, url in enumerate(model_urls):
+                try:
+                    logger.info(f"Attempting to download LaMa model from URL {i+1}/{len(model_urls)}")
+                    logger.info(f"Source: {url}")
+                    
+                    # Create a temporary file first
+                    temp_path = model_path + ".tmp"
+                    
+                    # Set appropriate headers for different sources
+                    headers = {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    }
+                    
+                    # Download with progress tracking
+                    response = requests.get(url, stream=True, timeout=300, headers=headers)
+                    response.raise_for_status()
+                    
+                    total_size = int(response.headers.get('content-length', 0))
+                    downloaded_size = 0
+                    
+                    logger.info(f"Starting download... Expected size: {total_size / (1024*1024):.1f} MB" if total_size > 0 else "Starting download...")
+                    
+                    with open(temp_path, 'wb') as f:
+                        for chunk in response.iter_content(chunk_size=8192):
+                            if chunk:
+                                f.write(chunk)
+                                downloaded_size += len(chunk)
+                                
+                                # Log progress every 10MB
+                                if downloaded_size % (10 * 1024 * 1024) == 0 and total_size > 0:
+                                    progress = (downloaded_size / total_size) * 100
+                                    logger.info(f"Download progress: {progress:.1f}%")
+                    
+                    # Verify the downloaded file
+                    if os.path.exists(temp_path) and os.path.getsize(temp_path) > 1024 * 1024:  # At least 1MB
+                        # Try to load the model to verify it's valid (only for ONNX files)
+                        if temp_path.endswith('.onnx') or model_path.endswith('.onnx'):
+                            try:
+                                test_session = ort.InferenceSession(
+                                    temp_path,
+                                    providers=['CPUExecutionProvider']
+                                )
+                                
+                                # If we can create a session, move temp file to final location
+                                os.rename(temp_path, model_path)
+                                logger.info(f"Successfully downloaded and verified LaMa ONNX model ({os.path.getsize(model_path) / (1024*1024):.1f} MB)")
+                                return
+                                
+                            except Exception as e:
+                                logger.warning(f"Downloaded ONNX model failed verification: {e}")
+                                if os.path.exists(temp_path):
+                                    os.remove(temp_path)
+                                continue
+                        else:
+                            # For non-ONNX files (like .bin), just check if file exists and has reasonable size
+                            os.rename(temp_path, model_path)
+                            logger.info(f"Successfully downloaded LaMa model ({os.path.getsize(model_path) / (1024*1024):.1f} MB)")
+                            return
+                    else:
+                        logger.warning(f"Downloaded file is too small or doesn't exist")
+                        if os.path.exists(temp_path):
+                            os.remove(temp_path)
+                        continue
+                        
+                except requests.exceptions.RequestException as e:
+                    logger.warning(f"Failed to download from {url}: {e}")
+                    continue
+                except Exception as e:
+                    logger.warning(f"Error downloading model from {url}: {e}")
+                    continue
+            
+            # If all URLs failed, log warning but don't raise exception
+            logger.warning("Failed to download LaMa model from all sources. Using traditional inpainting methods.")
+            
         except Exception as e:
-            logger.warning(f"Model download failed: {e}")
+            logger.error(f"Model download process failed: {e}")
     
     def calculate_target_dimensions(self, 
                                   original_width: int, 
@@ -557,7 +641,7 @@ async def perform_image_enlargement(
         quality = config.get('quality', 'FREE').upper()
         is_premium = quality == 'PREMIUM'
         
-        # Download and process image
+        # Download and process imageS
         logger.info(f"Downloading image from: {image_url}")
         input_image_bytes = CloudinaryService.download_image_from_url(image_url)
         
