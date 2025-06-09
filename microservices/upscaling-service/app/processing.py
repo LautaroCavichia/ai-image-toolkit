@@ -18,6 +18,8 @@ from app.config import MODELS_DIR
 logger = logging.getLogger(__name__)
 
 
+
+#Checking dedicated graphics availability
 print("CUDA available:", torch.cuda.is_available())
 if torch.cuda.is_available():
     print("GPU:", torch.cuda.get_device_name(0))
@@ -189,6 +191,8 @@ async def perform_upscaling(
             logger.error(f"Upscaling enhancement failed: {e}")
             raise RuntimeError(f"Upscaling process failed: {e}")
         
+        output_image_bgr = cv2.cvtColor(output_image, cv2.COLOR_RGB2BGR)
+        is_success, buffer = cv2.imencode('.png', output_image_bgr, [cv2.IMWRITE_PNG_COMPRESSION, 6])
         # Convert result back to bytes
         is_success, buffer = cv2.imencode('.png', output_image)
         if not is_success:

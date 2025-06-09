@@ -1,20 +1,12 @@
-"""
-Enhanced image processing module for image enlargement with generative fill.
-Uses lightweight ONNX models for better quality content-aware fill.
-"""
-
 import logging
 import os
 import cv2
 import numpy as np
 from typing import Dict, Tuple, Any, Literal
-import urllib.request
-from pathlib import Path
-from PIL import Image, ImageFilter, ImageOps, ImageEnhance
-import requests
-import onnxruntime as ort
-from skimage import measure, morphology
-from scipy import ndimage
+from PIL import Image
+import torch
+from diffusers import StableDiffusionInpaintPipeline
+import gc
 
 from app.cloudinary_service import CloudinaryService
 from app.config import MODELS_DIR
@@ -25,699 +17,544 @@ class ImageProcessingError(Exception):
     """Custom exception for image processing errors."""
     pass
 
-# Type definitions
 AspectRatio = Literal["portrait", "landscape", "square"]
 
-class LightweightImageEnlarger:
-    """
-    Lightweight image enlargement processor using efficient algorithms
-    and optional ONNX models for content generation.
-    """
-    
+class MVPGenerativeFillProcessor:
+    """MVP Ultra ligero - Solo Stable Diffusion con configuración mejorada para outpainting horizontal y vertical"""
+
     def __init__(self):
-        """Initialize the image enlarger."""
-        self.session = None
-        self.model_initialized = False
-        self._try_initialize_model()
+        self.pipeline = None
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.max_resolution = 640  # Resolución conservadora (ya es múltiplo de 8)
+        self.model_loaded = False
+
+        # PROMPTS MEJORADOS para agrandamiento en todas las direcciones
+        self.base_prompts = {
+    "landscape": (
+        "natural outdoor environment, seamless landscape extension, organic terrain continuation, "
+        "realistic ground textures, natural vegetation, appropriate sky conditions, "
+        "environmental consistency, photorealistic details, natural lighting and shadows, "
+        "harmonious color palette, depth and perspective, atmospheric effects, "
+        "contextually appropriate elements, smooth transitions, high quality photography, "
+        "professional composition, natural materials and surfaces, realistic proportions"
+    ),
     
-    def _try_initialize_model(self):
-        """Try to initialize ONNX model if available, fallback to traditional methods."""
+    "portrait": (
+        "natural environmental backdrop, vertical scene extension, contextually appropriate surroundings, "
+        "realistic background elements, natural lighting conditions, environmental depth, "
+        "organic textures and materials, seamless vertical continuation, atmospheric perspective, "
+        "appropriate scale and proportions, natural color harmony, professional photography quality, "
+        "environmental storytelling, realistic surface details, natural ambient lighting, "
+        "contextual consistency, smooth environmental transitions, high detail rendering"
+    ),
+    
+    "square": (
+        "balanced natural environment, seamless scene extension, contextually appropriate elements, "
+        "realistic environmental details, natural lighting and atmosphere, organic textures, "
+        "harmonious composition, environmental consistency, photorealistic quality, "
+        "appropriate scale and depth, natural color relationships, professional photography, "
+        "smooth transitions, realistic materials, environmental storytelling, "
+        "natural ambient conditions, high quality details, contextual harmony"
+    )
+}
+
+# NEGATIVE PROMPT mejorado y más específico para outpainting
+        self.negative_prompt = (
+    # Problemas de repetición y duplicación
+    "duplicate objects, repeated elements, mirrored content, symmetrical repetition, "
+    "visual echoes, cloned objects, copy-paste artifacts, pattern repetition, "
+    "identical structures, replicated items, tiled appearance, obvious duplication, "
+    
+    # Problemas de orientación y perspectiva  
+    "inverted elements, upside-down objects, incorrect orientation, flipped scenery, "
+    "wrong perspective, distorted geometry, impossible angles, warped proportions, "
+    "sky in ground, clouds below horizon, floating objects, gravity defying elements, "
+    
+    # Problemas de iluminación y sombras
+    "inconsistent lighting, conflicting shadows, multiple light sources, wrong shadow direction, "
+    "harsh lighting transitions, unnatural illumination, incorrect shadow casting, "
+    "lighting inconsistencies, artificial lighting effects, dramatic lighting mismatches, "
+    
+    # Problemas de calidad y renderizado
+    "low resolution, poor quality, blurry details, pixelated areas, compression artifacts, "
+    "noise, grain, digital artifacts, rendering errors, poor textures, muddy colors, "
+    "oversaturated colors, color banding, jpeg artifacts, low detail areas, "
+    
+    # Problemas de continuidad y transiciones
+    "visible seams, hard edges, abrupt transitions, obvious boundaries, cut-off elements, "
+    "discontinuous elements, jarring transitions, mismatched elements, broken continuity, "
+    "unnatural joins, artificial boundaries, obvious editing marks, "
+    
+    # Elementos no deseados
+    "text, watermarks, logos, signatures, overlays, UI elements, interface elements, "
+    "frames, borders, captions, labels, artificial overlays, embedded text, "
+    "copyright marks, social media elements, app interfaces, "
+    
+    # Problemas estéticos generales
+    "ugly, deformed, malformed, distorted, unnatural appearance, artificial look, "
+    "cartoon style, anime style, illustrated look, non-photorealistic, "
+    "overstyled, overly processed, fake appearance, synthetic look"
+)
+
+
+        logger.info(f"Device: {self.device}")
+        if torch.cuda.is_available():
+            vram_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
+            logger.info(f"VRAM: {vram_gb:.1f} GB")
+
+    def _clear_memory(self):
+        """Limpieza agresiva de memoria CUDA"""
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            torch.cuda.synchronize()
+        gc.collect()
+
+    def _load_model(self) -> bool:
+        """Cargar solo un modelo ultra liviano"""
+        if self.model_loaded:
+            return True
+
         try:
-            model_path = os.path.join(MODELS_DIR, "lama_inpainting.onnx")
-            
-            # Try to download lightweight inpainting model if not exists
-            if not os.path.exists(model_path):
-                logger.info("Downloading lightweight inpainting model...")
-                self._download_model(model_path)
-            
-            if os.path.exists(model_path):
-                self.session = ort.InferenceSession(
-                    model_path,
-                    providers=['CPUExecutionProvider']  # CPU only for lightweight deployment
-                )
-                self.model_initialized = True
-                logger.info("Successfully loaded ONNX inpainting model")
-            else:
-                logger.info("ONNX model not available, using traditional methods")
-                
-        except Exception as e:
-            logger.warning(f"Failed to initialize ONNX model: {e}. Using fallback methods.")
-            self.model_initialized = False
-    def _download_model(self, model_path: str):
-        """Download LaMa inpainting model from official sources."""
-        try:
-            # Create models directory if it doesn't exist
-            os.makedirs(os.path.dirname(model_path), exist_ok=True)
-            
-            # LaMa model URLs (updated with working sources)
-            model_urls = [
-                # Primary URL - Hugging Face Carve/LaMa-ONNX (recommended version)
-                "https://huggingface.co/Carve/LaMa-ONNX/resolve/main/lama_fp32.onnx",
-                # Backup URL - Alternative version from same repo
-                "https://huggingface.co/Carve/LaMa-ONNX/resolve/main/lama.onnx",
-                # Alternative backup - smartywu/big-lama
-                "https://huggingface.co/smartywu/big-lama/resolve/main/pytorch_model.bin",
-                # Google Drive backup (if available)
-                "https://drive.google.com/uc?id=1zWoUvTaJGdd0_PP1dUWHBGjNGr8XuCjQ&export=download"
-            ]
-            
-            for i, url in enumerate(model_urls):
-                try:
-                    logger.info(f"Attempting to download LaMa model from URL {i+1}/{len(model_urls)}")
-                    logger.info(f"Source: {url}")
-                    
-                    # Create a temporary file first
-                    temp_path = model_path + ".tmp"
-                    
-                    # Set appropriate headers for different sources
-                    headers = {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                    }
-                    
-                    # Download with progress tracking
-                    response = requests.get(url, stream=True, timeout=300, headers=headers)
-                    response.raise_for_status()
-                    
-                    total_size = int(response.headers.get('content-length', 0))
-                    downloaded_size = 0
-                    
-                    logger.info(f"Starting download... Expected size: {total_size / (1024*1024):.1f} MB" if total_size > 0 else "Starting download...")
-                    
-                    with open(temp_path, 'wb') as f:
-                        for chunk in response.iter_content(chunk_size=8192):
-                            if chunk:
-                                f.write(chunk)
-                                downloaded_size += len(chunk)
-                                
-                                # Log progress every 10MB
-                                if downloaded_size % (10 * 1024 * 1024) == 0 and total_size > 0:
-                                    progress = (downloaded_size / total_size) * 100
-                                    logger.info(f"Download progress: {progress:.1f}%")
-                    
-                    # Verify the downloaded file
-                    if os.path.exists(temp_path) and os.path.getsize(temp_path) > 1024 * 1024:  # At least 1MB
-                        # Try to load the model to verify it's valid (only for ONNX files)
-                        if temp_path.endswith('.onnx') or model_path.endswith('.onnx'):
-                            try:
-                                test_session = ort.InferenceSession(
-                                    temp_path,
-                                    providers=['CPUExecutionProvider']
-                                )
-                                
-                                # If we can create a session, move temp file to final location
-                                os.rename(temp_path, model_path)
-                                logger.info(f"Successfully downloaded and verified LaMa ONNX model ({os.path.getsize(model_path) / (1024*1024):.1f} MB)")
-                                return
-                                
-                            except Exception as e:
-                                logger.warning(f"Downloaded ONNX model failed verification: {e}")
-                                if os.path.exists(temp_path):
-                                    os.remove(temp_path)
-                                continue
-                        else:
-                            # For non-ONNX files (like .bin), just check if file exists and has reasonable size
-                            os.rename(temp_path, model_path)
-                            logger.info(f"Successfully downloaded LaMa model ({os.path.getsize(model_path) / (1024*1024):.1f} MB)")
-                            return
-                    else:
-                        logger.warning(f"Downloaded file is too small or doesn't exist")
-                        if os.path.exists(temp_path):
-                            os.remove(temp_path)
-                        continue
-                        
-                except requests.exceptions.RequestException as e:
-                    logger.warning(f"Failed to download from {url}: {e}")
-                    continue
-                except Exception as e:
-                    logger.warning(f"Error downloading model from {url}: {e}")
-                    continue
-            
-            # If all URLs failed, log warning but don't raise exception
-            logger.warning("Failed to download LaMa model from all sources. Using traditional inpainting methods.")
-            
-        except Exception as e:
-            logger.error(f"Model download process failed: {e}")
-    
-    def calculate_target_dimensions(self, 
-                                  original_width: int, 
-                                  original_height: int, 
-                                  target_aspect: AspectRatio) -> Tuple[int, int]:
-        """Calculate target dimensions maintaining reasonable output size."""
-        original_area = original_width * original_height
-        
-        # Limit maximum output size to prevent memory issues
-        max_area = 2048 * 2048  # 4MP max
-        if original_area > max_area:
-            scale_factor = np.sqrt(max_area / original_area)
-            original_width = int(original_width * scale_factor)
-            original_height = int(original_height * scale_factor)
-            original_area = original_width * original_height
-        
-        if target_aspect == "square":
-            # Use geometric mean for better proportion
-            target_size = int(np.sqrt(original_area * 1.4))  # 40% area increase
-            return target_size, target_size
-        elif target_aspect == "portrait":
-            # 3:4 aspect ratio
-            ratio = 3 / 4
-            target_width = int(np.sqrt(original_area * ratio * 1.3))
-            target_height = int(target_width / ratio)
-            return target_width, target_height
-        elif target_aspect == "landscape":
-            # 4:3 aspect ratio
-            ratio = 4 / 3
-            target_width = int(np.sqrt(original_area * ratio * 1.3))
-            target_height = int(target_width / ratio)
-            return target_width, target_height
-        else:
-            raise ValueError(f"Unsupported aspect ratio: {target_aspect}")
-    
-    def calculate_positioning(self, 
-                            original_width: int, 
-                            original_height: int,
-                            target_width: int, 
-                            target_height: int,
-                            aspect_ratio: AspectRatio,
-                            position: str) -> Tuple[int, int]:
-        """Calculate optimal positioning with boundary checks."""
-        
-        # Ensure original image fits in target canvas
-        if original_width > target_width or original_height > target_height:
-            scale = min(target_width / original_width, target_height / original_height) * 0.8
-            original_width = int(original_width * scale)
-            original_height = int(original_height * scale)
-        
-        if aspect_ratio == "portrait":
-            if position == "center":
-                x_offset = (target_width - original_width) // 2
-                y_offset = (target_height - original_height) // 2
-            elif position == "up":
-                x_offset = (target_width - original_width) // 2
-                y_offset = max(0, target_height // 6)  # Not exactly top
-            elif position == "down":
-                x_offset = (target_width - original_width) // 2
-                y_offset = target_height - original_height - max(0, target_height // 6)
-            else:
-                x_offset = (target_width - original_width) // 2
-                y_offset = (target_height - original_height) // 2
-                
-        elif aspect_ratio == "landscape":
-            if position == "center":
-                x_offset = (target_width - original_width) // 2
-                y_offset = (target_height - original_height) // 2
-            elif position == "left":
-                x_offset = max(0, target_width // 6)
-                y_offset = (target_height - original_height) // 2
-            elif position == "right":
-                x_offset = target_width - original_width - max(0, target_width // 6)
-                y_offset = (target_height - original_height) // 2
-            else:
-                x_offset = (target_width - original_width) // 2
-                y_offset = (target_height - original_height) // 2
-                
-        elif aspect_ratio == "square":
-            if position == "center":
-                x_offset = (target_width - original_width) // 2
-                y_offset = (target_height - original_height) // 2
-            elif position == "top-left":
-                x_offset = max(0, target_width // 8)
-                y_offset = max(0, target_height // 8)
-            elif position == "top-right":
-                x_offset = target_width - original_width - max(0, target_width // 8)
-                y_offset = max(0, target_height // 8)
-            elif position == "bottom-left":
-                x_offset = max(0, target_width // 8)
-                y_offset = target_height - original_height - max(0, target_height // 8)
-            elif position == "bottom-right":
-                x_offset = target_width - original_width - max(0, target_width // 8)
-                y_offset = target_height - original_height - max(0, target_height // 8)
-            else:
-                x_offset = (target_width - original_width) // 2
-                y_offset = (target_height - original_height) // 2
-        
-        return (max(0, min(x_offset, target_width - original_width)), 
-                max(0, min(y_offset, target_height - original_height)))
-    
-    def create_smart_mask(self, image: np.ndarray, original_rect: Tuple[int, int, int, int]) -> np.ndarray:
-        """Create an intelligent mask for better inpainting."""
-        height, width = image.shape[:2]
-        mask = np.zeros((height, width), dtype=np.uint8)
-        
-        x, y, w, h = original_rect
-        
-        # Basic mask: areas to inpaint
-        mask[:, :] = 255
-        mask[y:y+h, x:x+w] = 0
-        
-        # Create feathered edges for smoother blending
-        feather_size = max(5, min(w, h) // 20)
-        
-        # Create distance transform for smooth falloff
-        inner_mask = np.zeros_like(mask)
-        inner_mask[y+feather_size:y+h-feather_size, x+feather_size:x+w-feather_size] = 255
-        
-        # Distance transform creates gradient
-        dist_transform = cv2.distanceTransform(255 - inner_mask, cv2.DIST_L2, 5)
-        
-        # Normalize and create gradient mask
-        if dist_transform.max() > 0:
-            dist_transform = dist_transform / dist_transform.max()
-            gradient_mask = (dist_transform * 255).astype(np.uint8)
-            
-            # Apply gradient only near the edges
-            edge_region = cv2.dilate(inner_mask, np.ones((feather_size*2, feather_size*2), np.uint8))
-            mask = np.where(edge_region > 0, np.minimum(mask, gradient_mask), mask)
-        
-        return mask
-    
-    def enhanced_content_aware_fill(self, image: np.ndarray, mask: np.ndarray, is_premium: bool = False) -> np.ndarray:
-        """Enhanced content-aware fill with multiple techniques."""
-        try:
-            if self.model_initialized and is_premium:
-                return self._onnx_inpaint(image, mask)
-            else:
-                return self._traditional_enhanced_inpaint(image, mask)
-        except Exception as e:
-            logger.error(f"Enhanced inpainting failed: {e}")
-            return self._fallback_intelligent_fill(image, mask)
-    
-    def _onnx_inpaint(self, image: np.ndarray, mask: np.ndarray) -> np.ndarray:
-        """Use ONNX model for high-quality inpainting."""
-        try:
-            # Prepare input for ONNX model
-            input_image = cv2.resize(image, (512, 512))
-            input_mask = cv2.resize(mask, (512, 512))
-            
-            # Normalize inputs
-            input_image = input_image.astype(np.float32) / 255.0
-            input_mask = (input_mask > 128).astype(np.float32)
-            
-            # Add batch dimension and transpose for ONNX
-            input_image = np.transpose(input_image[None, ...], (0, 3, 1, 2))
-            input_mask = input_mask[None, None, ...]
-            
-            # Run inference
-            outputs = self.session.run(None, {
-                'image': input_image,
-                'mask': input_mask
-            })
-            
-            # Process output
-            result = outputs[0][0]
-            result = np.transpose(result, (1, 2, 0))
-            result = (result * 255).astype(np.uint8)
-            
-            # Resize back to original size
-            original_h, original_w = image.shape[:2]
-            result = cv2.resize(result, (original_w, original_h))
-            
-            return result
-            
-        except Exception as e:
-            logger.error(f"ONNX inpainting failed: {e}")
-            return self._traditional_enhanced_inpaint(image, mask)
-    
-    def _traditional_enhanced_inpaint(self, image: np.ndarray, mask: np.ndarray) -> np.ndarray:
-        """Enhanced traditional inpainting with multiple algorithms."""
-        
-        # Try Navier-Stokes method first (better for smooth regions)
-        result1 = cv2.inpaint(image, mask, 5, cv2.INPAINT_NS)
-        
-        # Try Fast Marching Method (better for textured regions)
-        result2 = cv2.inpaint(image, mask, 5, cv2.INPAINT_TELEA)
-        
-        # Combine results using mask weights
-        mask_normalized = mask.astype(np.float32) / 255.0
-        
-        # Create edge map to decide which method to use where
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        edges = cv2.Canny(gray, 50, 150)
-        edge_dilated = cv2.dilate(edges, np.ones((5, 5), np.uint8))
-        
-        # Use TELEA near edges, NS in smooth areas
-        edge_weight = edge_dilated.astype(np.float32) / 255.0
-        edge_weight = edge_weight[:, :, np.newaxis] if len(image.shape) == 3 else edge_weight
-        
-        # Combine methods
-        combined = (result2 * edge_weight + result1 * (1 - edge_weight)).astype(np.uint8)
-        
-        # Apply some post-processing
-        combined = self._post_process_inpaint(combined, image, mask)
-        
-        return combined
-    
-    def _post_process_inpaint(self, inpainted: np.ndarray, original: np.ndarray, mask: np.ndarray) -> np.ndarray:
-        """Post-process inpainted image for better quality."""
-        
-        # Slight gaussian blur to smooth artifacts
-        blurred = cv2.GaussianBlur(inpainted, (3, 3), 0.8)
-        
-        # Apply sharpening selectively
-        kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
-        sharpened = cv2.filter2D(blurred, -1, kernel)
-        
-        # Blend sharpened with blurred based on local contrast
-        gray = cv2.cvtColor(inpainted, cv2.COLOR_BGR2GRAY)
-        local_std = cv2.Laplacian(gray, cv2.CV_64F)
-        local_std = np.abs(local_std)
-        local_std = cv2.GaussianBlur(local_std, (5, 5), 0)
-        
-        # Normalize contrast measure
-        if local_std.max() > 0:
-            local_std = local_std / local_std.max()
-        
-        local_std = local_std[:, :, np.newaxis] if len(inpainted.shape) == 3 else local_std
-        
-        # Apply more sharpening to high-contrast areas
-        result = (sharpened * local_std + blurred * (1 - local_std)).astype(np.uint8)
-        
-        # Slight color enhancement
-        if len(result.shape) == 3:
-            # Convert to LAB color space for better color enhancement
-            lab = cv2.cvtColor(result, cv2.COLOR_BGR2LAB)
-            l, a, b = cv2.split(lab)
-            
-            # Enhance lightness slightly
-            l = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(l)
-            
-            enhanced = cv2.merge([l, a, b])
-            result = cv2.cvtColor(enhanced, cv2.COLOR_LAB2BGR)
-        
-        return result
-    
-    def _fallback_intelligent_fill(self, image: np.ndarray, mask: np.ndarray) -> np.ndarray:
-        """Intelligent fallback method using patch-based filling."""
-        result = image.copy()
-        height, width = image.shape[:2]
-        
-        # Find regions to fill
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        
-        for contour in contours:
-            # Get bounding box of region to fill
-            x, y, w, h = cv2.boundingRect(contour)
-            
-            # Extract region
-            region_mask = mask[y:y+h, x:x+w]
-            region_image = result[y:y+h, x:x+w]
-            
-            # Find best patches from nearby areas
-            filled_region = self._patch_based_fill(region_image, region_mask, image, (x, y))
-            
-            # Blend back
-            mask_3d = (region_mask[:, :, np.newaxis] / 255.0) if len(image.shape) == 3 else (region_mask / 255.0)
-            result[y:y+h, x:x+w] = (filled_region * mask_3d + region_image * (1 - mask_3d)).astype(np.uint8)
-        
-        return result
-    
-    def _patch_based_fill(self, region: np.ndarray, region_mask: np.ndarray, 
-                         full_image: np.ndarray, offset: Tuple[int, int]) -> np.ndarray:
-        """Fill region using patches from the full image."""
-        
-        patch_size = 16
-        result = region.copy()
-        
-        # Get coordinates of pixels to fill
-        fill_coords = np.where(region_mask > 128)
-        
-        if len(fill_coords[0]) == 0:
-            return result
-        
-        # Sample patches from the original image
-        for i in range(0, len(fill_coords[0]), patch_size // 2):
+            logger.info("Loading ultra-light SD 1.5 inpainting model...")
+            self._clear_memory()
+
+            # Usar el modelo más liviano posible
+            self.pipeline = StableDiffusionInpaintPipeline.from_pretrained(
+                "runwayml/stable-diffusion-inpainting",
+                torch_dtype=torch.float16,  # Half precision para ahorrar VRAM
+                safety_checker=None,
+                requires_safety_checker=False,
+                cache_dir=MODELS_DIR,
+                low_cpu_mem_usage=True,
+                variant="fp16"
+            ).to(self.device)
+
+            # Optimizaciones extremas para RTX 2050
+            self.pipeline.enable_attention_slicing("max")
+            self.pipeline.enable_sequential_cpu_offload()
+            self.pipeline.enable_model_cpu_offload()
+            self.pipeline.enable_vae_slicing()
+
+            # Intentar usar xformers si está disponible
             try:
-                y_fill = fill_coords[0][i]
-                x_fill = fill_coords[1][i]
-                
-                # Find best matching patch from nearby area
-                best_patch = self._find_best_patch(full_image, (x_fill + offset[0], y_fill + offset[1]), patch_size)
-                
-                if best_patch is not None:
-                    # Apply patch with blending
-                    end_y = min(y_fill + patch_size, region.shape[0])
-                    end_x = min(x_fill + patch_size, region.shape[1])
-                    patch_h = end_y - y_fill
-                    patch_w = end_x - x_fill
-                    
-                    if patch_h > 0 and patch_w > 0:
-                        patch_resized = cv2.resize(best_patch, (patch_w, patch_h))
-                        
-                        # Create blending mask
-                        blend_mask = np.ones((patch_h, patch_w), dtype=np.float32) * 0.7
-                        blend_mask = cv2.GaussianBlur(blend_mask, (5, 5), 2.0)
-                        
-                        if len(region.shape) == 3:
-                            blend_mask = blend_mask[:, :, np.newaxis]
-                        
-                        # Blend patch
-                        region_patch = result[y_fill:end_y, x_fill:end_x]
-                        blended = (patch_resized * blend_mask + region_patch * (1 - blend_mask)).astype(np.uint8)
-                        result[y_fill:end_y, x_fill:end_x] = blended
-                        
-            except Exception as e:
-                logger.debug(f"Patch filling failed for one patch: {e}")
-                continue
-        
-        return result
-    
-    def _find_best_patch(self, image: np.ndarray, center: Tuple[int, int], patch_size: int) -> np.ndarray:
-        """Find the best matching patch from the image."""
-        try:
-            x_center, y_center = center
-            half_patch = patch_size // 2
-            
-            # Define search area (avoid the center area)
-            search_radius = min(100, min(image.shape[0], image.shape[1]) // 4)
-            
-            best_patch = None
-            min_distance = float('inf')
-            
-            # Sample a few candidate patches
-            for _ in range(10):
-                # Random offset within search radius
-                dx = np.random.randint(-search_radius, search_radius)
-                dy = np.random.randint(-search_radius, search_radius)
-                
-                # Avoid center area
-                if abs(dx) < patch_size and abs(dy) < patch_size:
-                    continue
-                
-                patch_x = max(half_patch, min(image.shape[1] - half_patch, x_center + dx))
-                patch_y = max(half_patch, min(image.shape[0] - half_patch, y_center + dy))
-                
-                # Extract patch
-                patch = image[patch_y - half_patch:patch_y + half_patch,
-                             patch_x - half_patch:patch_x + half_patch]
-                
-                if patch.shape[0] == patch_size and patch.shape[1] == patch_size:
-                    # Simple patch quality score (prefer patches with some texture)
-                    gray_patch = cv2.cvtColor(patch, cv2.COLOR_BGR2GRAY) if len(patch.shape) == 3 else patch
-                    texture_score = cv2.Laplacian(gray_patch, cv2.CV_64F).var()
-                    
-                    if texture_score < min_distance and texture_score > 10:  # Some minimum texture
-                        min_distance = texture_score
-                        best_patch = patch.copy()
-            
-            return best_patch
-            
+                self.pipeline.enable_xformers_memory_efficient_attention()
+                logger.info("XFormers enabled for memory efficiency")
+            except Exception:
+                logger.info("XFormers not available, using default attention")
+
+            self.model_loaded = True
+            logger.info("Model loaded successfully!")
+            return True
+
         except Exception as e:
-            logger.debug(f"Best patch search failed: {e}")
-            return None
-    
-    def process_enlargement(self, 
-                          input_image: np.ndarray, 
-                          target_aspect: AspectRatio,
-                          position: str,
-                          is_premium: bool = False) -> np.ndarray:
-        """Main processing function for image enlargement."""
-        original_height, original_width = input_image.shape[:2]
+            logger.error(f"Model loading failed: {e}")
+            self._clear_memory()
+            return False
+
+    def _round_to_multiple_of_8(self, value: int) -> int:
+        """Redondear a múltiplo de 8 (requerido por Stable Diffusion)"""
+        return ((value + 7) // 8) * 8
+
+    def _calculate_target_dimensions(self, width: int, height: int, aspect: AspectRatio) -> Tuple[int, int]:
+        """Calcular dimensiones objetivo para agrandar la imagen según el aspect ratio deseado"""
+        max_size = self.max_resolution
         
-        # Calculate target dimensions
-        target_width, target_height = self.calculate_target_dimensions(
-            original_width, original_height, target_aspect
-        )
+        # Factor de agrandamiento - siempre expandir al menos un 30-50%
+        expansion_factor = 1.4  # Agranda la imagen un 40%
         
-        logger.info(f"Enlarging from {original_width}x{original_height} to {target_width}x{target_height}")
-        
-        # Calculate positioning
-        x_offset, y_offset = self.calculate_positioning(
-            original_width, original_height,
-            target_width, target_height,
-            target_aspect, position
-        )
-        
-        # Scale original image if needed to fit better
-        if original_width > target_width * 0.9 or original_height > target_height * 0.9:
-            scale = min(target_width / original_width, target_height / original_height) * 0.8
-            new_width = int(original_width * scale)
-            new_height = int(original_height * scale)
-            input_image = cv2.resize(input_image, (new_width, new_height), interpolation=cv2.INTER_LANCZOS4)
-            original_width, original_height = new_width, new_height
+        if aspect == "square":
+            # Para square, crear un cuadrado más grande que la imagen original
+            base_size = max(width, height) * expansion_factor
+            target_w = target_h = int(base_size)
             
-            # Recalculate positioning
-            x_offset, y_offset = self.calculate_positioning(
-                original_width, original_height,
-                target_width, target_height,
-                target_aspect, position
-            )
-        
-        # Create new canvas with intelligent background
-        new_canvas = self._create_smart_background(input_image, target_width, target_height)
-        
-        # Place original image
-        end_y = min(y_offset + original_height, target_height)
-        end_x = min(x_offset + original_width, target_width)
-        actual_h = end_y - y_offset
-        actual_w = end_x - x_offset
-        
-        new_canvas[y_offset:end_y, x_offset:end_x] = input_image[:actual_h, :actual_w]
-        
-        # Create smart mask
-        mask = self.create_smart_mask(new_canvas, (x_offset, y_offset, actual_w, actual_h))
-        
-        # Apply enhanced content-aware fill
-        result = self.enhanced_content_aware_fill(new_canvas, mask, is_premium)
-        
-        logger.info(f"Successfully enlarged image with {target_aspect} aspect ratio")
-        
-        return result
-    
-    def _create_smart_background(self, sample_image: np.ndarray, width: int, height: int) -> np.ndarray:
-        """Create an intelligent background based on the sample image."""
-        
-        # Analyze dominant colors in the image
-        if len(sample_image.shape) == 3:
-            # Get average color from edges
-            edge_pixels = np.concatenate([
-                sample_image[0, :],      # top edge
-                sample_image[-1, :],     # bottom edge
-                sample_image[:, 0],      # left edge
-                sample_image[:, -1]      # right edge
-            ])
-            avg_color = np.mean(edge_pixels, axis=0)
+            # Si excede el límite, escalar manteniendo proporción cuadrada
+            if target_w > max_size:
+                target_w = target_h = max_size
+                
+        elif aspect == "portrait":
+            # Portrait (3:4 ratio) - crear imagen más grande en formato portrait
+            desired_ratio = 3/4  # width/height
             
-            # Create gradient background
-            canvas = np.zeros((height, width, 3), dtype=np.uint8)
+            # Expandir basándose en la dimensión mayor actual
+            base_dimension = max(width, height) * expansion_factor
             
-            # Create subtle gradient
-            for y in range(height):
-                for x in range(width):
-                    # Distance from center
-                    center_x, center_y = width // 2, height // 2
-                    dist = np.sqrt((x - center_x)**2 + (y - center_y)**2)
-                    max_dist = np.sqrt(center_x**2 + center_y**2)
-                    
-                    # Gradient factor
-                    gradient_factor = 1.0 - (dist / max_dist) * 0.1  # Very subtle
-                    
-                    canvas[y, x] = (avg_color * gradient_factor).astype(np.uint8)
+            # Calcular dimensiones para portrait manteniendo el ratio
+            target_h = int(base_dimension)
+            target_w = int(target_h * desired_ratio)
+            
+            # Asegurar que sea más grande que la imagen original
+            if target_w < width * 1.2:
+                target_w = int(width * 1.3)
+                target_h = int(target_w / desired_ratio)
+            if target_h < height * 1.2:
+                target_h = int(height * 1.3)
+                target_w = int(target_h * desired_ratio)
+            
+            # Aplicar límite de resolución
+            if target_h > max_size:
+                scale = max_size / target_h
+                target_w = int(target_w * scale)
+                target_h = int(target_h * scale)
+                
+        elif aspect == "landscape":
+            # Landscape (4:3 ratio) - crear imagen más grande en formato landscape
+            desired_ratio = 4/3  # width/height
+            
+            # Expandir basándose en la dimensión mayor actual
+            base_dimension = max(width, height) * expansion_factor
+            
+            # Calcular dimensiones para landscape manteniendo el ratio
+            target_w = int(base_dimension)
+            target_h = int(target_w / desired_ratio)
+            
+            # Asegurar que sea más grande que la imagen original
+            if target_w < width * 1.2:
+                target_w = int(width * 1.3)
+                target_h = int(target_w / desired_ratio)
+            if target_h < height * 1.2:
+                target_h = int(height * 1.3)
+                target_w = int(target_h * desired_ratio)
+            
+            # Aplicar límite de resolución
+            if target_w > max_size:
+                scale = max_size / target_w
+                target_w = int(target_w * scale)
+                target_h = int(target_h * scale)
         else:
-            # Grayscale
-            avg_intensity = np.mean([
-                np.mean(sample_image[0, :]),
-                np.mean(sample_image[-1, :]),
-                np.mean(sample_image[:, 0]),
-                np.mean(sample_image[:, -1])
-            ])
-            canvas = np.full((height, width), avg_intensity, dtype=np.uint8)
+            # Fallback: simplemente agranda manteniendo proporción original
+            scale_factor = expansion_factor
+            target_w = int(width * scale_factor)
+            target_h = int(height * scale_factor)
+            
+            if target_w > max_size or target_h > max_size:
+                scale = min(max_size / target_w, max_size / target_h)
+                target_w = int(target_w * scale)
+                target_h = int(target_h * scale)
+            
+        # CRÍTICO: Asegurar que sean múltiplos de 8
+        target_w = self._round_to_multiple_of_8(target_w)
+        target_h = self._round_to_multiple_of_8(target_h)
         
-        return canvas
+        return target_w, target_h
+
+    def _create_canvas_and_mask(self, image: np.ndarray, target_w: int, target_h: int) -> Tuple[Image.Image, Image.Image]:
+        """Crear canvas y máscara optimizada para expansión horizontal y vertical"""
+        original_h, original_w = image.shape[:2]
+        
+        # VERIFICAR que las dimensiones objetivo sean múltiplos de 8
+        assert target_w % 8 == 0 and target_h % 8 == 0, f"Target dimensions must be divisible by 8, got {target_w}x{target_h}"
+        
+        # Convertir imagen original a PIL RGB
+        if len(image.shape) == 3:
+            original_pil = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        else:
+            original_pil = Image.fromarray(image)
+
+        # Si la imagen original es más grande que el target, escalamos
+        if original_w > target_w or original_h > target_h:
+            scale = min(target_w / original_w, target_h / original_h)
+            new_w = int(original_w * scale)
+            new_h = int(original_h * scale)
+            original_pil = original_pil.resize((new_w, new_h), Image.Resampling.LANCZOS)
+        else:
+            new_w, new_h = original_w, original_h
+
+        # CLAVE: Crear canvas con gradiente inteligente
+        canvas = Image.new('RGB', (target_w, target_h))
+        canvas_array = np.array(canvas)
+        
+        # Crear gradiente base vertical: cielo arriba, suelo abajo
+        for y in range(target_h):
+            ratio = y / target_h
+            
+            if ratio < 0.4:  # Parte superior = cielo
+                blue_intensity = int(235 - (ratio * 100))
+                base_color = (135, 206, max(180, blue_intensity))
+            else:  # Parte inferior = suelo
+                green_component = int(150 - ((ratio - 0.4) * 80))
+                brown_component = int(100 + ((ratio - 0.4) * 50))
+                base_color = (brown_component, max(80, green_component), 70)
+            
+            # Añadir variación horizontal sutil para evitar uniformidad
+            for x in range(target_w):
+                x_ratio = x / target_w
+                # Variación muy sutil en el color base
+                color_variation = int(10 * np.sin(x_ratio * np.pi * 2))
+                varied_color = (
+                    max(0, min(255, base_color[0] + color_variation)),
+                    max(0, min(255, base_color[1] + color_variation)),
+                    max(0, min(255, base_color[2] + color_variation))
+                )
+                canvas_array[y, x] = varied_color
+        
+        canvas = Image.fromarray(canvas_array)
+
+        # Centrar la imagen original
+        x_offset = (target_w - new_w) // 2
+        y_offset = (target_h - new_h) // 2
+
+        # Pegar la imagen original
+        canvas.paste(original_pil, (x_offset, y_offset))
+
+        # MÁSCARA MEJORADA para expansión en todas las direcciones
+        mask_array = np.zeros((target_h, target_w), dtype=np.uint8)
+
+        # Marcar áreas de generación (fuera de la imagen original)
+        # Expansión vertical (arriba y abajo)
+        if y_offset > 0:
+            mask_array[0:y_offset, :] = 255  # Área superior
+        
+        if y_offset + new_h < target_h:
+            mask_array[y_offset + new_h:target_h, :] = 255  # Área inferior
+        
+        # Expansión horizontal (izquierda y derecha)
+        if x_offset > 0:
+            mask_array[:, 0:x_offset] = 255  # Área izquierda
+        
+        if x_offset + new_w < target_w:
+            mask_array[:, x_offset + new_w:target_w] = 255  # Área derecha
+
+        # CLAVE: Zona de transición más amplia para mejor blending en todas las direcciones
+        transition_size = min(20, min(new_w, new_h) // 8)  # Transición más amplia
+        
+        if transition_size > 2:
+            # Crear gradiente de transición más suave
+            for i in range(transition_size):
+                progress = (i + 1) / transition_size
+                alpha = int(255 * (progress ** 0.5))  # Gradiente más suave
+                
+                border_idx = transition_size - 1 - i
+                
+                # Transición superior
+                if y_offset > 0 and (y_offset + new_h - 1 - border_idx) >= y_offset:
+                    row = y_offset + new_h - 1 - border_idx
+                    mask_array[row, x_offset:x_offset + new_w] = np.maximum(mask_array[row, x_offset:x_offset + new_w], alpha)
+                
+                # Transición inferior  
+                if y_offset + new_h < target_h and (y_offset + border_idx) < (y_offset + new_h):
+                    row = y_offset + border_idx
+                    mask_array[row, x_offset:x_offset + new_w] = np.maximum(mask_array[row, x_offset:x_offset + new_w], alpha)
+                
+                # Transición izquierda
+                if x_offset > 0 and (x_offset + new_w - 1 - border_idx) >= x_offset:
+                    col = x_offset + new_w - 1 - border_idx
+                    mask_array[y_offset:y_offset + new_h, col] = np.maximum(mask_array[y_offset:y_offset + new_h, col], alpha)
+                
+                # Transición derecha
+                if x_offset + new_w < target_w and (x_offset + border_idx) < (x_offset + new_w):
+                    col = x_offset + border_idx
+                    mask_array[y_offset:y_offset + new_h, col] = np.maximum(mask_array[y_offset:y_offset + new_h, col], alpha)
+
+        mask = Image.fromarray(mask_array)
+
+        logger.info(f"Canvas created: {canvas.width}x{canvas.height}")
+        logger.info(f"Original placed at ({x_offset},{y_offset}) with size {new_w}x{new_h}")
+        
+        # Análisis de la máscara
+        mask_array_check = np.array(mask)
+        white_pixels = np.sum(mask_array_check == 255)
+        black_pixels = np.sum(mask_array_check == 0)
+        gray_pixels = np.sum((mask_array_check > 0) & (mask_array_check < 255))
+        
+        # Análisis de expansión
+        expand_top = y_offset > 0
+        expand_bottom = y_offset + new_h < target_h
+        expand_left = x_offset > 0  
+        expand_right = x_offset + new_w < target_w
+        
+        expansion_info = []
+        if expand_top: expansion_info.append("top")
+        if expand_bottom: expansion_info.append("bottom") 
+        if expand_left: expansion_info.append("left")
+        if expand_right: expansion_info.append("right")
+        
+        logger.info(f"Expansion directions: {', '.join(expansion_info) if expansion_info else 'none'}")
+        logger.info(f"Mask - Generate: {white_pixels}, Keep: {black_pixels}, Transition: {gray_pixels}")
+        
+        return canvas, mask
+
+    def _generate_fill(self, canvas: Image.Image, mask: Image.Image, aspect: AspectRatio) -> Image.Image:
+        """Generar el fill usando prompt específico para el aspecto"""
+        try:
+            self._clear_memory()
+
+            canvas_w, canvas_h = canvas.width, canvas.height
+            
+            # Seleccionar prompt según el aspecto ratio
+            prompt = self.base_prompts.get(aspect, self.base_prompts["square"])
+            
+            logger.info(f"Generating with aspect-specific prompt for {aspect}")
+            logger.info(f"Canvas dimensions: {canvas_w}x{canvas_h}")
+
+            # CONFIGURACIÓN OPTIMIZADA para outpainting natural en todas las direcciones
+            result = self.pipeline(
+                prompt=prompt,
+                negative_prompt=self.negative_prompt,
+                image=canvas,
+                mask_image=mask,
+                num_inference_steps=50,      # Más pasos para mejor calidad con expansión horizontal
+                guidance_scale=8.0,         # Ajustado para expansión multidireccional
+                strength=0.99,
+                eta = 0.0,# Ligeramente reducido para mejor blending
+                height=canvas_h,
+                width=canvas_w,
+                # CLAVE: Usar diferentes seeds para evitar patrones repetitivos
+                generator=torch.Generator(device=self.device).manual_seed(
+                    hash(f"{prompt}_{aspect}_{canvas_w}x{canvas_h}") % 2147483647
+                )
+            ).images[0]
+
+            logger.info("Fill generation completed")
+            return result
+
+        except Exception as e:
+            logger.error(f"Fill generation failed: {e}")
+            raise
+        finally:
+            self._clear_memory()
+
+    def process(self, input_image: np.ndarray, target_aspect: AspectRatio) -> np.ndarray:
+        """Función principal de procesamiento - siempre agranda la imagen"""
+        try:
+            # Cargar modelo
+            if not self._load_model():
+                raise RuntimeError("Failed to load the inpainting model")
+
+            h, w = input_image.shape[:2]
+            logger.info(f"Processing image: {w}x{h} -> {target_aspect} (enlarging)")
+
+            # Calcular dimensiones objetivo (siempre más grandes)
+            target_w, target_h = self._calculate_target_dimensions(w, h, target_aspect)
+            logger.info(f"Target dimensions: {target_w}x{target_h} (expansion factor: {target_w/w:.1f}x{target_h/h:.1f})")
+
+            # Verificar que efectivamente sea un agrandamiento
+            if target_w <= w and target_h <= h:
+                # Si por alguna razón no se agrandó, forzar agrandamiento mínimo
+                logger.warning("Target dimensions not larger than original, forcing enlargement")
+                scale_factor = 1.3
+                target_w = self._round_to_multiple_of_8(int(w * scale_factor))
+                target_h = self._round_to_multiple_of_8(int(h * scale_factor))
+                logger.info(f"Forced target dimensions: {target_w}x{target_h}")
+
+            # Crear canvas y máscara para agrandamiento
+            canvas, mask = self._create_canvas_and_mask(input_image, target_w, target_h)
+
+            # Generar el fill con prompt específico
+            result_pil = self._generate_fill(canvas, mask, target_aspect)
+
+            # Convertir de vuelta a numpy array (BGR para OpenCV)
+            result_array = np.array(result_pil)
+            result_bgr = cv2.cvtColor(result_array, cv2.COLOR_RGB2BGR)
+
+            logger.info(f"Processing completed successfully - enlarged from {w}x{h} to {target_w}x{target_h}")
+            return result_bgr
+
+        except Exception as e:
+            logger.error(f"Processing failed: {e}")
+            raise
+        finally:
+            self._clear_memory()
 
 
+# Función principal mejorada
 async def perform_image_enlargement(
     job_id: str,
     image_url: str,
     config: Dict[str, Any]
 ) -> Tuple[str, Dict[str, Any]]:
-    """
-    Perform enhanced image enlargement with generative fill.
-    """
-    logger.info(f"Processing enhanced enlargement job {job_id}")
-    
+    """Función principal del MVP con mejoras de expansión horizontal y vertical"""
+
+    processor = None
     try:
-        # Extract configuration
-        aspect_ratio = config.get('aspectRatio', 'square')
-        position = config.get('position', 'center')
-        quality = config.get('quality', 'FREE').upper()
-        is_premium = quality == 'PREMIUM'
-        
-        # Download and process imageS
-        logger.info(f"Downloading image from: {image_url}")
-        input_image_bytes = CloudinaryService.download_image_from_url(image_url)
-        
-        nparr = np.frombuffer(input_image_bytes, np.uint8)
+        # Crear directorio de modelos
+        os.makedirs(MODELS_DIR, exist_ok=True)
+
+        # Descargar imagen
+        logger.info(f"Downloading image for job {job_id}")
+        image_bytes = CloudinaryService.download_image_from_url(image_url)
+
+        # Decodificar imagen
+        nparr = np.frombuffer(image_bytes, np.uint8)
         input_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-        
+
         if input_image is None:
-            raise ValueError("Failed to decode input image")
-        
-        # Initialize enhanced processor
-        enlarger = LightweightImageEnlarger()
-        
-        logger.info(f"Processing {quality.lower()} quality enlargement")
-        
-        # Perform enlargement
-        output_image = enlarger.process_enlargement(
-            input_image, aspect_ratio, position, is_premium
-        )
-        
-        # Encode results
-        is_success, buffer = cv2.imencode('.png', output_image, [cv2.IMWRITE_PNG_COMPRESSION, 6])
+            raise ValueError("Failed to decode image")
+
+        # Configuración
+        aspect_ratio = config.get('aspectRatio', 'square')
+        if aspect_ratio not in ("portrait", "landscape", "square"):
+            logger.warning(f"Invalid aspectRatio '{aspect_ratio}' received; defaulting to 'square'")
+            aspect_ratio = "square"
+
+        # Crear procesador mejorado
+        logger.info("Initializing enhanced MVP Generative Fill processor with horizontal expansion")
+        processor = MVPGenerativeFillProcessor()
+
+        # Procesar imagen
+        output_image = processor.process(input_image, aspect_ratio)
+
+        # Codificar resultado
+        encode_params = [cv2.IMWRITE_PNG_COMPRESSION, 6]
+        is_success, buffer = cv2.imencode('.png', output_image, encode_params)
+
         if not is_success:
             raise RuntimeError("Failed to encode output image")
-        
+
         output_bytes = buffer.tobytes()
-        
-        # Create thumbnail
-        height, width = output_image.shape[:2]
-        thumb_scale = min(600/width, 450/height, 1.0)
-        
+
+        # Crear thumbnail
+        h, w = output_image.shape[:2]
+        thumb_scale = min(300 / w, 300 / h, 1.0)
+
         if thumb_scale < 1.0:
-            new_width = int(width * thumb_scale)
-            new_height = int(height * thumb_scale)
-            thumbnail_image = cv2.resize(output_image, (new_width, new_height), interpolation=cv2.INTER_AREA)
+            new_w = int(w * thumb_scale)
+            new_h = int(h * thumb_scale)
+            thumbnail = cv2.resize(output_image, (new_w, new_h), interpolation=cv2.INTER_AREA)
         else:
-            thumbnail_image = output_image.copy()
-        
-        is_success, thumb_buffer = cv2.imencode('.png', thumbnail_image, [cv2.IMWRITE_PNG_COMPRESSION, 8])
+            thumbnail = output_image.copy()
+
+        is_success, thumb_buffer = cv2.imencode('.png', thumbnail)
         if not is_success:
             raise RuntimeError("Failed to encode thumbnail")
-        
+
         thumbnail_bytes = thumb_buffer.tobytes()
-        
-        # Upload to Cloudinary
+
+        # Subir a Cloudinary
         processed_url, processed_public_id = CloudinaryService.upload_processed_image(
-            output_bytes, job_id, "enlarged"
+            output_bytes, job_id, "generative_fill"
         )
-        
+
         thumbnail_url, thumbnail_public_id = CloudinaryService.upload_thumbnail(
             thumbnail_bytes, job_id
         )
-        
-        logger.info(f"Enhanced enlargement completed for job {job_id}")
-        
-        # Processing info
-        original_height, original_width = input_image.shape[:2]
-        output_height, output_width = output_image.shape[:2]
-        
+
+        # Información del procesamiento
+        original_h, original_w = input_image.shape[:2]
+        output_h, output_w = output_image.shape[:2]
+
         processing_info = {
-            "processing_type": "enhanced_image_enlargement",
-            "algorithm": "lightweight_generative_fill",
-            "model_type": "onnx_inpainting" if enlarger.model_initialized and is_premium else "enhanced_traditional",
+            "processing_type": "image_enlargement_with_aspect_change",
+            "model": "stable-diffusion-inpainting",
+            "prompt_used": processor.base_prompts.get(aspect_ratio, "natural landscape"),
             "aspect_ratio": aspect_ratio,
-            "position": position,
-            "quality_level": quality.lower(),
-            "original_size": f"{original_width}x{original_height}",
-            "output_size": f"{output_width}x{output_height}",
-            "area_increase_factor": round((output_width * output_height) / (original_width * original_height), 2),
+            "original_size": f"{original_w}x{original_h}",
+            "output_size": f"{output_w}x{output_h}",
+            "expansion_factor": f"{output_w/original_w:.1f}x{output_h/original_h:.1f}",
             "full_quality_public_id": processed_public_id,
             "thumbnail_public_id": thumbnail_public_id,
             "thumbnail_url": thumbnail_url,
-            "is_premium": is_premium
+            "device_used": processor.device,
+            "improvements": "always_enlarges_with_aspect_ratio_transformation"
         }
-        
+
+        logger.info(f"Job {job_id} completed successfully with enhanced multidirectional outpainting")
         return processed_url, processing_info
-        
+
     except Exception as e:
-        logger.error(f"Enhanced enlargement failed for job {job_id}: {e}")
-        raise ImageProcessingError(f"Enhanced enlargement failed: {e}")
+        logger.error(f"Job {job_id} failed: {e}")
+        raise ImageProcessingError(f"Enhanced generative fill processing failed: {e}")
+
+    finally:
+        # Limpieza global
+        if processor is not None:
+            processor._clear_memory()

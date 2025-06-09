@@ -43,13 +43,13 @@ _pipeline_lock = threading.Lock()
 _active_jobs: Set[str] = set()
 _jobs_lock = threading.Lock()
 
-# MODELOS ULTRA-LIGEROS para CPU
+
 LIGHTWEIGHT_CPU_MODELS = [
     {
         "name": "runwayml/stable-diffusion-v1-5", 
         "size_gb": 1.2,
         "use_img2img": True,
-        "torch_dtype": torch.float32,  # CPU usa float32
+        "torch_dtype": torch.float32,  
         "cpu_optimized": True
     },
     {
@@ -115,7 +115,7 @@ def get_pipeline() -> StableDiffusionImg2ImgPipeline:
 def create_simple_style_prompt(style: str, custom_prompt: Optional[str] = None) -> Tuple[str, str]:
     """Create ultra-simple prompts for CPU processing."""
     
-    # Prompts muy simples para reducir carga computacional
+   
     simple_style_prompts = {
         "3D_Chibi": ("3D chibi", "realistic"),
         "American_Cartoon": ("cartoon", "photo"),
@@ -137,8 +137,8 @@ def create_simple_style_prompt(style: str, custom_prompt: Optional[str] = None) 
         positive_base = style.replace('_', ' ')
         negative_base = "bad"
     
-    # Prompts ultra-cortos para CPU
-    if custom_prompt and len(custom_prompt) < 50:  # Limitar longitud
+ 
+    if custom_prompt and len(custom_prompt) < 50:  
         positive_prompt = f"{positive_base}, {custom_prompt[:30]}"
     else:
         positive_prompt = positive_base
@@ -148,16 +148,16 @@ def create_simple_style_prompt(style: str, custom_prompt: Optional[str] = None) 
     return positive_prompt, negative_prompt
 
 def ultra_lightweight_preprocess(image: Image.Image, max_size: int = 256) -> Image.Image:
-    """Preprocesamiento ultra-ligero para CPU."""
+   
     
     # Convert to RGB
     if image.mode != 'RGB':
         image = image.convert('RGB')
     
-    # Tamaño muy pequeño para CPU
+
     width, height = image.size
     
-    # Calcular nuevo tamaño manteniendo aspecto
+
     if width > height:
         new_width = max_size
         new_height = int((height * max_size) / width)
@@ -165,11 +165,11 @@ def ultra_lightweight_preprocess(image: Image.Image, max_size: int = 256) -> Ima
         new_height = max_size
         new_width = int((width * max_size) / height)
     
-    # Asegurar múltiplos de 8 y mínimo 128 para CPU
+   
     new_width = max(((new_width // 8) * 8), 128)
     new_height = max(((new_height // 8) * 8), 128)
     
-    # Usar resize más rápido
+ 
     processed_image = image.resize((new_width, new_height), Image.Resampling.NEAREST)
     
     return processed_image
@@ -209,13 +209,13 @@ async def perform_style_transfer(
         original_size = source_image.size
         logger.info(f"📐 Original: {original_size}")
         
-        # TAMAÑO ULTRA PEQUEÑO para CPU
+   
         max_size = 256 if style_config.quality == StyleQuality.PREMIUM else 128
         processed_image = ultra_lightweight_preprocess(source_image, max_size)
         final_size = processed_image.size
         logger.info(f"📐 Processed: {final_size}")
         
-        # Limpiar memoria antes de inferencia
+      
         aggressive_cpu_memory_cleanup()
         
         # Get pipeline
@@ -397,16 +397,16 @@ def get_active_jobs_count() -> int:
     with _jobs_lock:
         return len(_active_jobs)
 
-# Configuración específica para CPU al importar el módulo
+
 def setup_cpu_environment():
     """Configurar entorno para CPU."""
-    # Configurar PyTorch para CPU
+    
     torch.set_num_threads(max(1, os.cpu_count() // 2))
     
-    # Deshabilitar CUDA completamente
+   
     os.environ['CUDA_VISIBLE_DEVICES'] = ''
     
     logger.info(f"🖥️ CPU Environment configured - Threads: {torch.get_num_threads()}")
 
-# Ejecutar configuración al importar
+
 setup_cpu_environment()
