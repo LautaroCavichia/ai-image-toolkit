@@ -54,3 +54,5 @@ htmlcov/
 # Processed images (if any temp files)
 /processed
 /temp
+
+/models
