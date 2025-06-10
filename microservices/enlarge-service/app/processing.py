@@ -25,7 +25,7 @@ class MVPGenerativeFillProcessor:
     def __init__(self):
         self.pipeline = None
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.max_resolution = 640  # Resolución conservadora (ya es múltiplo de 8)
+        self.max_resolution = 640  #  Resolución conservadora (ya es múltiplo de 8)
         self.model_loaded = False
 
         # PROMPTS MEJORADOS Y MÁS ESPECÍFICOS para generative fill
