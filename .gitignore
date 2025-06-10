@@ -40,3 +40,5 @@ replace.txt
 /storage
 
 *.bat
+
+microservices/enlarge-service/models/
