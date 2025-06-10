@@ -18,9 +18,10 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import './EnlargeConfig.css';
 
+// Updated interface to match backend expectations
 export interface EnlargeConfig {
   aspectRatio: 'portrait' | 'landscape' | 'square';
-  position: string;
+  // Removed position as backend doesn't use it - always centers and expands
   quality: 'FREE' | 'PREMIUM';
 }
 
@@ -31,44 +32,29 @@ interface EnlargeConfigProps {
 
 const EnlargeConfigComponent: React.FC<EnlargeConfigProps> = ({ config, onChange }) => {
   const [selectedAspect, setSelectedAspect] = useState<'portrait' | 'landscape' | 'square'>(config.aspectRatio);
-  const [selectedPosition, setSelectedPosition] = useState<string>(config.position);
   const [selectedQuality, setSelectedQuality] = useState<'FREE' | 'PREMIUM'>(config.quality);
 
   const aspectRatios = [
     {
       type: 'square' as const,
       label: 'Square',
-      description: '1:1 aspect ratio, perfect for social media',
+      description: 'Expands image to 1:1 ratio with balanced natural environment',
       icon: faSquare,
-      positions: [
-        { value: 'center', label: 'Center', icon: faCrosshairs },
-        { value: 'top-left', label: 'Top Left', icon: faArrowUp },
-        { value: 'top-right', label: 'Top Right', icon: faArrowUp },
-        { value: 'bottom-left', label: 'Bottom Left', icon: faArrowDown },
-        { value: 'bottom-right', label: 'Bottom Right', icon: faArrowDown }
-      ]
+      expansionInfo: 'Expands equally in all directions'
     },
     {
       type: 'portrait' as const,
       label: 'Portrait',
-      description: '3:4 aspect ratio, ideal for mobile and prints',
+      description: 'Expands to 3:4 ratio with vertical scene extension',
       icon: faImagePortrait,
-      positions: [
-        { value: 'center', label: 'Center', icon: faCrosshairs },
-        { value: 'up', label: 'Top', icon: faArrowUp },
-        { value: 'down', label: 'Bottom', icon: faArrowDown }
-      ]
+      expansionInfo: 'Focuses on vertical expansion with environmental depth'
     },
     {
       type: 'landscape' as const,
       label: 'Landscape',
-      description: '4:3 aspect ratio, great for displays and presentations',
+      description: 'Expands to 4:3 ratio with natural outdoor environment',
       icon: faPanorama,
-      positions: [
-        { value: 'center', label: 'Center', icon: faCrosshairs },
-        { value: 'left', label: 'Left', icon: faArrowLeft },
-        { value: 'right', label: 'Right', icon: faArrowRight }
-      ]
+      expansionInfo: 'Emphasizes horizontal expansion with terrain continuation'
     }
   ];
 
@@ -76,40 +62,34 @@ const EnlargeConfigComponent: React.FC<EnlargeConfigProps> = ({ config, onChange
     {
       type: 'FREE' as const,
       label: 'Standard Quality',
-      description: 'Basic content-aware fill',
+      description: 'Basic content-aware expansion',
       icon: faExpand,
       tokenCost: 0,
-      features: ['Edge extension', 'Basic blending', 'Standard processing']
+      features: ['Edge extension', 'Basic blending', 'Standard processing'],
+      details: 'Simple enlargement with basic fill'
     },
     {
       type: 'PREMIUM' as const,
       label: 'Premium Quality',
-      description: 'Advanced generative fill with AI',
+      description: 'AI-powered generative fill with Stable Diffusion',
       icon: faExpand,
       tokenCost: 1,
-      features: ['AI-powered content generation', 'Seamless blending', 'Context-aware fill']
+      features: [
+        'Stable Diffusion inpainting model',
+        'Context-aware natural environments',
+        'Seamless multi-directional expansion',
+        'Advanced prompting for realistic results',
+        'Optimized for landscape/portrait/square formats'
+      ],
+      details: 'Uses runwayml/stable-diffusion-inpainting with aspect-specific prompts'
     }
   ];
 
   const handleAspectChange = (aspect: 'portrait' | 'landscape' | 'square') => {
     setSelectedAspect(aspect);
-    // Reset position to center when aspect changes
-    setSelectedPosition('center');
     
     const newConfig = {
       aspectRatio: aspect,
-      position: 'center',
-      quality: selectedQuality
-    };
-    onChange(newConfig);
-  };
-
-  const handlePositionChange = (position: string) => {
-    setSelectedPosition(position);
-    
-    const newConfig = {
-      aspectRatio: selectedAspect,
-      position: position,
       quality: selectedQuality
     };
     onChange(newConfig);
@@ -120,7 +100,6 @@ const EnlargeConfigComponent: React.FC<EnlargeConfigProps> = ({ config, onChange
     
     const newConfig = {
       aspectRatio: selectedAspect,
-      position: selectedPosition,
       quality: quality
     };
     onChange(newConfig);
@@ -138,6 +117,9 @@ const EnlargeConfigComponent: React.FC<EnlargeConfigProps> = ({ config, onChange
     >
       <div className="config-section">
         <h4 className="config-title">Choose Target Aspect Ratio</h4>
+        <p className="config-subtitle">
+          Your image will be intelligently expanded to the selected aspect ratio with AI-generated content.
+        </p>
         <div className="aspect-ratio-grid">
           {aspectRatios.map((aspect) => (
             <div
@@ -151,42 +133,14 @@ const EnlargeConfigComponent: React.FC<EnlargeConfigProps> = ({ config, onChange
               <div className="aspect-info">
                 <h5 className="aspect-label">{aspect.label}</h5>
                 <p className="aspect-description">{aspect.description}</p>
+                <div className="expansion-info">
+                  <small>{aspect.expansionInfo}</small>
+                </div>
               </div>
             </div>
           ))}
         </div>
       </div>
-
-      <AnimatePresence>
-        {currentAspect && (
-          <motion.div 
-            className="config-section"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            <h4 className="config-title">Position Original Image</h4>
-            <p className="config-subtitle">
-              Choose where to place your original image. New content will be generated to fill the remaining space.
-            </p>
-            <div className="position-grid">
-              {currentAspect.positions.map((position) => (
-                <div
-                  key={position.value}
-                  className={`position-option ${selectedPosition === position.value ? 'active' : ''}`}
-                  onClick={() => handlePositionChange(position.value)}
-                >
-                  <div className="position-icon">
-                    <FontAwesomeIcon icon={position.icon} />
-                  </div>
-                  <span className="position-label">{position.label}</span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <div className="config-section">
         <h4 className="config-title">Quality Level</h4>
@@ -204,6 +158,7 @@ const EnlargeConfigComponent: React.FC<EnlargeConfigProps> = ({ config, onChange
                 <div className="quality-info">
                   <h5 className="quality-label">{quality.label}</h5>
                   <p className="quality-description">{quality.description}</p>
+                  <small className="quality-details">{quality.details}</small>
                 </div>
                 {quality.tokenCost > 0 && (
                   <div className="quality-cost">
@@ -228,20 +183,66 @@ const EnlargeConfigComponent: React.FC<EnlargeConfigProps> = ({ config, onChange
       <div className="config-preview">
         <div className="preview-container">
           <div className={`preview-canvas ${selectedAspect}`}>
-            <div className={`original-position ${selectedPosition}`}>
-              Original
+            <div className="original-centered">
+              Original Image
+              <small>(Centered)</small>
             </div>
             <div className="fill-areas">
-              <span>AI Fill</span>
+              {selectedAspect === 'landscape' && (
+                <>
+                  <div className="fill-left">AI Fill</div>
+                  <div className="fill-right">AI Fill</div>
+                </>
+              )}
+              {selectedAspect === 'portrait' && (
+                <>
+                  <div className="fill-top">AI Fill</div>
+                  <div className="fill-bottom">AI Fill</div>
+                </>
+              )}
+              {selectedAspect === 'square' && (
+                <>
+                  <div className="fill-top">AI Fill</div>
+                  <div className="fill-bottom">AI Fill</div>
+                  <div className="fill-left">AI Fill</div>
+                  <div className="fill-right">AI Fill</div>
+                </>
+              )}
             </div>
           </div>
           <div className="preview-info">
-            <h5>Preview</h5>
-            <p>Your original image will be positioned at <strong>{selectedPosition}</strong> in a <strong>{selectedAspect}</strong> format.</p>
-            <p>AI will generate content to fill the remaining space seamlessly.</p>
+            <h5>How It Works</h5>
+            <p>Your original image will be <strong>centered</strong> in a larger <strong>{selectedAspect}</strong> canvas.</p>
+            <p>AI will intelligently generate natural content to fill the surrounding areas based on your image's context.</p>
+            {selectedQuality === 'PREMIUM' && (
+              <div className="premium-info">
+                <p><strong>Premium Features:</strong></p>
+                <ul>
+                  <li>Uses Stable Diffusion inpainting model</li>
+                  <li>Context-aware environment generation</li>
+                  <li>Aspect-specific optimized prompts</li>
+                  <li>Advanced blending and transitions</li>
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Technical Details for Development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="config-section debug-info">
+          <h4>Debug Info</h4>
+          <pre>
+            {JSON.stringify({
+              aspectRatio: selectedAspect,
+              quality: selectedQuality,
+              backendFunction: 'perform_image_enlargement',
+              modelUsed: selectedQuality === 'PREMIUM' ? 'stable-diffusion-inpainting' : 'basic-fill'
+            }, null, 2)}
+          </pre>
+        </div>
+      )}
     </motion.div>
   );
 };

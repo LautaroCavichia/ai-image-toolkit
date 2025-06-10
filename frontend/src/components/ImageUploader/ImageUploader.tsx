@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 
-
 import { 
   faUpload, 
   faImage, 
@@ -16,6 +15,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { uploadImageAndCreateJob } from '../../services/apiService';
 import { JobResponseDTO, JobTypeEnum } from '../../types';
+import EnlargeConfigComponent, { EnlargeConfig } from '../EnlargeConfig/EnlargeConfig';
 import './ImageUploader.css';
 
 interface ImageUploaderProps {
@@ -37,41 +37,42 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
   const [preview, setPreview] = useState<string | null>(null);
   const [jobType, setJobType] = useState<JobTypeEnum>(JobTypeEnum.BG_REMOVAL);
   const [upscaleQuality, setUpscaleQuality] = useState<'FREE' | 'PREMIUM'>('FREE');
+  const [enlargeConfig, setEnlargeConfig] = useState<EnlargeConfig>({
+    aspectRatio: 'square',
+    quality: 'FREE'
+  });
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [showUpscaleOptions, setShowUpscaleOptions] = useState<boolean>(false);
+  const [showEnlargeOptions, setShowEnlargeOptions] = useState<boolean>(false);
   const [tokenReady, setTokenReady] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  
-const getJwtToken = () => localStorage.getItem("token");
-useEffect(() => {
-  const validateToken = async () => {
-    try {
-      const token = getJwtToken; 
-      
-      if (!token) {
-        // No hay token, redirigir
+  const getJwtToken = () => localStorage.getItem("token");
+  useEffect(() => {
+    const validateToken = async () => {
+      try {
+        const token = getJwtToken; 
+        
+        if (!token) {
+          // No hay token, redirigir
+          window.location.href = '/login';
+          return;
+        }
+        
+        // Token válido
+        setTokenReady(true);
+        
+      } catch (error) {
+        console.error('Error validating token:', error);
         window.location.href = '/login';
-        return;
       }
+    };
 
+    validateToken();
     
-      // Token válido
-      setTokenReady(true);
-      
-    } catch (error) {
-      console.error('Error validating token:', error);
-      window.location.href = '/login';
-    }
-  };
-
-  validateToken();
-  
-}, []); 
-
-
+  }, []); 
 
   const upscaleQualityOptions: UpscaleQuality[] = [
     {
@@ -137,45 +138,51 @@ useEffect(() => {
   const handleJobTypeChange = (type: JobTypeEnum) => {
     setJobType(type);
     setShowUpscaleOptions(type === JobTypeEnum.UPSCALE);
+    setShowEnlargeOptions(type === JobTypeEnum.ENLARGE);
+  };
+
+  const handleEnlargeConfigChange = (config: EnlargeConfig) => {
+    setEnlargeConfig(config);
   };
 
   const handleSubmit = async () => {
-  if (!selectedFile) {
-    setError('Please select an image file');
-    return;
-  }
-
-  setIsLoading(true);
-  setError(null);
-
-  try {
-    const jobConfig: any = {};
-
-    if (jobType === JobTypeEnum.UPSCALE) {
-      jobConfig.quality = upscaleQuality;
-      jobConfig.scale = upscaleQuality === 'PREMIUM' ? 4 : 2;
-    } else if (jobType === JobTypeEnum.ENLARGE) {
-      jobConfig.scaleFactor = 2;
+    if (!selectedFile) {
+      setError('Please select an image file');
+      return;
     }
 
-    const job = await uploadImageAndCreateJob(selectedFile, jobType, jobConfig);
-    onJobCreated(job);
-    
-  } catch (err: any) {
-    const backendErrorMsg = err.response?.data?.errorMessage || err.response?.data?.message;
-    setError(backendErrorMsg || err.message || 'Failed to upload image and create job');
-  } finally {
-    // ✅ SIEMPRE se ejecuta, sin importar si hubo éxito o error
-    setIsLoading(false);
-  }
-};
+    setIsLoading(true);
+    setError(null);
 
+    try {
+      const jobConfig: any = {};
+
+      if (jobType === JobTypeEnum.UPSCALE) {
+        jobConfig.quality = upscaleQuality;
+        jobConfig.scale = upscaleQuality === 'PREMIUM' ? 4 : 2;
+      } else if (jobType === JobTypeEnum.ENLARGE) {
+        jobConfig.aspectRatio = enlargeConfig.aspectRatio;
+        jobConfig.quality = enlargeConfig.quality;
+      }
+
+      const job = await uploadImageAndCreateJob(selectedFile, jobType, jobConfig);
+      onJobCreated(job);
+      
+    } catch (err: any) {
+      const backendErrorMsg = err.response?.data?.errorMessage || err.response?.data?.message;
+      setError(backendErrorMsg || err.message || 'Failed to upload image and create job');
+    } finally {
+     
+      setIsLoading(false);
+    }
+  };
 
   const resetUploader = () => {
     setSelectedFile(null);
     setPreview(null);
     setError(null);
     setShowUpscaleOptions(false);
+    setShowEnlargeOptions(false);
   };
 
   const openFileSelector = () => {
@@ -206,6 +213,17 @@ useEffect(() => {
       case JobTypeEnum.ENLARGE:
         return 'Image Enlargement';
     }
+  };
+
+  // Function for calculating job cost
+  const getTokenCost = () => {
+    if (jobType === JobTypeEnum.UPSCALE && upscaleQuality === 'PREMIUM') {
+      return 1;
+    }
+    if (jobType === JobTypeEnum.ENLARGE && enlargeConfig.quality === 'PREMIUM') {
+      return 1;
+    }
+    return 0;
   };
 
   if (!tokenReady) {
@@ -282,6 +300,7 @@ useEffect(() => {
               </div>
             </div>
 
+            {/* Upscaling options */}
             <AnimatePresence>
               {showUpscaleOptions && (
                 <motion.div 
@@ -330,6 +349,16 @@ useEffect(() => {
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Enlargemment Options */}
+            <AnimatePresence>
+              {showEnlargeOptions && (
+                <EnlargeConfigComponent
+                  config={enlargeConfig}
+                  onChange={handleEnlargeConfigChange}
+                />
+              )}
+            </AnimatePresence>
             
             <motion.button 
               className="process-button"
@@ -347,10 +376,10 @@ useEffect(() => {
                 <>
                   {getJobTypeIcon(jobType)}
                   <span>Process Image</span>
-                  {jobType === JobTypeEnum.UPSCALE && upscaleQuality === 'PREMIUM' && (
+                  {getTokenCost() > 0 && (
                     <div className="button-token-cost">
                       <FontAwesomeIcon icon={faCoins} />
-                      <span>1</span>
+                      <span>{getTokenCost()}</span>
                     </div>
                   )}
                 </>
