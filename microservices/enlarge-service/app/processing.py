@@ -29,26 +29,27 @@ class MVPGenerativeFillProcessor:
         self.model_loaded = False
 
         # PROMPTS MEJORADOS Y MÁS ESPECÍFICOS para generative fill
+        # PROMPTS MEJORADOS Y MÁS ESPECÍFICOS para generative fill
         self.base_prompts = {
-     "landscape": (
-        "natural terrain extension, grass field, dirt path, "
-        "outdoor ground, landscape view, horizon line, "
-        "nature scene, open field, natural colors"
+    "landscape": (
+        "natural terrain extension around the main subject, grass field, dirt path, "
+        "open landscape, horizon line, natural colors, seamless ground, "
+        "realistic textures, natural lighting, grounded perspective"
     ),
-    
-    
+
     "portrait": (
-        "natural vertical extension, detailed foreground ground, "
-        "realistic soil textures, sharp ground detail, "
-        "natural surface wear, proper ground anchoring, "
-        "contextual floor materials, seamless terrain blend"
+        "vertical extension, realistic ground in front of main subject, "
+        "natural terrain or surface continuation, "
+        "foreground surface detail, aligned perspective, "
+        "soft lighting on ground, shadow consistency, "
+        "seamless texture transition, grounded object feel"
     ),
-    
+
     "square": (
-        "balanced ground expansion, aligned terrain flow, "
-        "realistic soil consistency, straight ground plane, "
-        "seamless dirt textures, proper ground alignment, "
-        "unified terrain lighting, foreground ground continuity"
+        "balanced ground expansion beneath and around main subject, "
+        "aligned terrain flow, realistic soil consistency, "
+        "seamless dirt textures, unified lighting, "
+        "ground continuity, proper object anchoring"
     )
 }
 
@@ -56,9 +57,12 @@ class MVPGenerativeFillProcessor:
     "text, letters, words, signs, writing, symbols, "
     "duplicated objects, cloned elements, copy paste, "
     "floating patches, artificial tiling, plastic soil, "
-    "repetitive ground, broken terrain, misaligned ground, "
+    "repetitive patterns, broken terrain, misaligned ground, "
     "harsh seams, pixelation, oversaturation, cartoon style"
 )
+
+
+
 
 
 
@@ -237,8 +241,14 @@ class MVPGenerativeFillProcessor:
         
         return ", ".join(content_hints) if content_hints else "natural environment"
 
-    def _create_canvas_and_mask(self, image: np.ndarray, target_w: int, target_h: int, aspect: AspectRatio) -> Tuple[Image.Image, Image.Image]:
-        """Crear canvas y máscara optimizada para expansión según aspect ratio"""
+    def _create_canvas_and_mask(self, image: np.ndarray, target_w: int, target_h: int, aspect: AspectRatio) -> Tuple[Image.Image, Image.Image, Tuple[int, int, int, int]]:
+        """Crear canvas y máscara optimizada para expansión según aspect ratio
+        
+        Returns:
+            canvas: Canvas con imagen y fondo
+            mask: Máscara para inpainting
+            original_bounds: (x_offset, y_offset, width, height) de la imagen original en el canvas
+        """
         original_h, original_w = image.shape[:2]
     
         # VERIFICAR que las dimensiones objetivo sean múltiplos de 8
@@ -368,6 +378,9 @@ class MVPGenerativeFillProcessor:
         # APLICAR BLUR A LA MÁSCARA para transiciones más suaves
         mask = mask.filter(ImageFilter.GaussianBlur(radius=1.5))
 
+        # Guardar los bounds de la imagen original para la superposición posterior
+        original_bounds = (x_offset, y_offset, new_w, new_h)
+
         logger.info(f"Canvas created: {canvas.width}x{canvas.height}")
         logger.info(f"Original placed at ({x_offset},{y_offset}) with size {new_w}x{new_h}")
         
@@ -376,7 +389,7 @@ class MVPGenerativeFillProcessor:
         generate_pixels = np.sum(mask_array_final > 128)
         logger.info(f"Pixels to generate: {generate_pixels} ({generate_pixels/(target_w*target_h)*100:.1f}%)")
         
-        return canvas, mask
+        return canvas, mask, original_bounds
 
     def _generate_fill(self, canvas: Image.Image, mask: Image.Image, aspect: AspectRatio, original_image: np.ndarray) -> Image.Image:
         """Generar el fill usando prompt específico para el aspecto y contenido de la imagen"""
@@ -402,7 +415,7 @@ class MVPGenerativeFillProcessor:
                 negative_prompt=self.negative_prompt,
                 image=canvas,
                 mask_image=mask,
-                num_inference_steps=50,      # Reducido para mayor velocidad
+                num_inference_steps=25,      # Reducido para mayor velocidad
                 guidance_scale=8.5,         # Valor estándar para mejor adherencia al prompt
                 strength=0.99,
                 eta = 0.0,
@@ -421,8 +434,96 @@ class MVPGenerativeFillProcessor:
         finally:
             self._clear_memory()
 
-    def process(self, input_image: np.ndarray, target_aspect: AspectRatio) -> np.ndarray:
-        """Función principal de procesamiento - siempre agranda la imagen"""
+    def _create_blended_overlay(self, original_image: np.ndarray, ai_generated: Image.Image, 
+                              original_bounds: Tuple[int, int, int, int], 
+                              blend_margin: int = 10) -> np.ndarray:
+        """
+        Superpone la imagen original sobre el resultado de IA con blending suave en los bordes
+        
+        Args:
+            original_image: Imagen original en formato numpy (BGR)
+            ai_generated: Imagen generada por IA en formato PIL (RGB)
+            original_bounds: (x_offset, y_offset, width, height) de donde estaba la imagen original
+            blend_margin: Margen en píxeles para el blending suave
+        
+        Returns:
+            Imagen final con la original superpuesta sobre el fondo generado
+        """
+        x_offset, y_offset, orig_w, orig_h = original_bounds
+        
+        # Convertir AI generated a numpy BGR
+        ai_array = np.array(ai_generated)
+        ai_bgr = cv2.cvtColor(ai_array, cv2.COLOR_RGB2BGR)
+        
+        # Escalar la imagen original al tamaño que tenía en el canvas
+        original_h, original_w = original_image.shape[:2]
+        if (orig_w, orig_h) != (original_w, original_h):
+            original_resized = cv2.resize(original_image, (orig_w, orig_h), interpolation=cv2.INTER_LANCZOS4)
+        else:
+            original_resized = original_image.copy()
+        
+        # Crear resultado base con la imagen de IA
+        result = ai_bgr.copy()
+        
+        # Si no hay margen de blending, simplemente pegar la imagen original encima
+        if blend_margin <= 0:
+            result[y_offset:y_offset+orig_h, x_offset:x_offset+orig_w] = original_resized
+            logger.info("Original image overlaid without blending")
+            return result
+        
+        # Crear máscara de blending suave
+        mask = np.ones((orig_h, orig_w), dtype=np.float32)
+        
+        # Aplicar gradiente suave en los bordes
+        for i in range(blend_margin):
+            alpha = i / blend_margin
+            
+            # Borde superior
+            if i < orig_h:
+                mask[i, :] = alpha
+            
+            # Borde inferior
+            if orig_h - 1 - i >= 0:
+                mask[orig_h - 1 - i, :] = np.minimum(mask[orig_h - 1 - i, :], alpha)
+            
+            # Borde izquierdo
+            if i < orig_w:
+                mask[:, i] = np.minimum(mask[:, i], alpha)
+            
+            # Borde derecho
+            if orig_w - 1 - i >= 0:
+                mask[:, orig_w - 1 - i] = np.minimum(mask[:, orig_w - 1 - i], alpha)
+        
+        # Aplicar blur suave a la máscara para transiciones más naturales
+        mask = cv2.GaussianBlur(mask, (5, 5), 0)
+        
+        # Expandir la máscara a 3 canales
+        mask_3ch = np.stack([mask, mask, mask], axis=2)
+        
+        # Extraer la región de la imagen de IA donde va la original
+        ai_region = result[y_offset:y_offset+orig_h, x_offset:x_offset+orig_w].astype(np.float32)
+        original_float = original_resized.astype(np.float32)
+        
+        # Realizar el blending: resultado = original * mask + ai * (1 - mask)
+        blended_region = (original_float * mask_3ch + ai_region * (1 - mask_3ch)).astype(np.uint8)
+        
+        # Colocar la región blended en el resultado final
+        result[y_offset:y_offset+orig_h, x_offset:x_offset+orig_w] = blended_region
+        
+        logger.info(f"Original image overlaid with {blend_margin}px soft blending")
+        return result
+
+    def process(self, input_image: np.ndarray, target_aspect: AspectRatio, 
+                preserve_original: bool = True, blend_margin: int = 10) -> np.ndarray:
+        """
+        Función principal de procesamiento - siempre agranda la imagen
+        
+        Args:
+            input_image: Imagen de entrada
+            target_aspect: Aspecto deseado (portrait, landscape, square)
+            preserve_original: Si True, superpone la imagen original sobre el resultado
+            blend_margin: Margen en píxeles para el blending suave (0 = sin blending)
+        """
         try:
             # Cargar modelo
             if not self._load_model():
@@ -445,16 +546,26 @@ class MVPGenerativeFillProcessor:
                 logger.info(f"Forced target dimensions: {target_w}x{target_h}")
 
             # Crear canvas y máscara para agrandamiento
-            canvas, mask = self._create_canvas_and_mask(input_image, target_w, target_h, target_aspect)
+            canvas, mask, original_bounds = self._create_canvas_and_mask(input_image, target_w, target_h, target_aspect)
 
             # Generar el fill con prompt específico
             result_pil = self._generate_fill(canvas, mask, target_aspect, input_image)
 
-            # Convertir de vuelta a numpy array (BGR para OpenCV)
-            result_array = np.array(result_pil)
-            result_bgr = cv2.cvtColor(result_array, cv2.COLOR_RGB2BGR)
+            # Si preserve_original está habilitado, superponer la imagen original
+            if preserve_original:
+                logger.info("Overlaying original image to preserve quality")
+                result_bgr = self._create_blended_overlay(
+                    input_image, result_pil, original_bounds, blend_margin
+                )
+            else:
+                # Convertir de vuelta a numpy array (BGR para OpenCV) sin superposición
+                result_array = np.array(result_pil)
+                result_bgr = cv2.cvtColor(result_array, cv2.COLOR_RGB2BGR)
 
             logger.info(f"Processing completed successfully - enlarged from {w}x{h} to {target_w}x{target_h}")
+            if preserve_original:
+                logger.info("Original image preserved with quality overlay")
+            
             return result_bgr
 
         except Exception as e:
@@ -494,12 +605,21 @@ async def perform_image_enlargement(
             logger.warning(f"Invalid aspectRatio '{aspect_ratio}' received; defaulting to 'square'")
             aspect_ratio = "square"
 
+        # NUEVAS OPCIONES DE CONFIGURACIÓN
+        preserve_original = config.get('preserveOriginal', True)  # Por defecto True
+        blend_margin = config.get('blendMargin', 12)  # Margen de blending por defecto
+
         # Crear procesador mejorado
         logger.info("Initializing enhanced MVP Generative Fill processor")
         processor = MVPGenerativeFillProcessor()
 
-        # Procesar imagen
-        output_image = processor.process(input_image, aspect_ratio)
+        # Procesar imagen con nuevas opciones
+        output_image = processor.process(
+            input_image, 
+            aspect_ratio, 
+            preserve_original=preserve_original,
+            blend_margin=blend_margin
+        )
 
         # Codificar resultado
         encode_params = [cv2.IMWRITE_PNG_COMPRESSION, 6]
@@ -548,14 +668,16 @@ async def perform_image_enlargement(
             "original_size": f"{original_w}x{original_h}",
             "output_size": f"{output_w}x{output_h}",
             "expansion_factor": f"{output_w/original_w:.1f}x{output_h/original_h:.1f}",
+            "preserve_original": preserve_original,
+            "blend_margin": blend_margin if preserve_original else None,
             "full_quality_public_id": processed_public_id,
             "thumbnail_public_id": thumbnail_public_id,
             "thumbnail_url": thumbnail_url,
             "device_used": processor.device,
-            "improvements": "intelligent_content_analysis_and_enhanced_masking"
+            "improvements": "intelligent_content_analysis_enhanced_masking_and_original_overlay"
         }
 
-        logger.info(f"Job {job_id} completed successfully with enhanced generative fill")
+        logger.info(f"Job {job_id} completed successfully with enhanced generative fill and original overlay")
         return processed_url, processing_info
 
     except Exception as e:
