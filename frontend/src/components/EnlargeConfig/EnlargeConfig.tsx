@@ -33,6 +33,7 @@ interface EnlargeConfigProps {
 const EnlargeConfigComponent: React.FC<EnlargeConfigProps> = ({ config, onChange }) => {
   const [selectedAspect, setSelectedAspect] = useState<'portrait' | 'landscape' | 'square'>(config.aspectRatio);
   const [selectedQuality, setSelectedQuality] = useState<'FREE' | 'PREMIUM'>(config.quality);
+  
 
   const aspectRatios = [
     {
@@ -180,36 +181,7 @@ const EnlargeConfigComponent: React.FC<EnlargeConfigProps> = ({ config, onChange
         </div>
       </div>
 
-      <div className="config-preview">
-        <div className="preview-container">
-          <div className={`preview-canvas ${selectedAspect}`}>
-            <div className="original-centered">
-              Original Image
-              <small>(Centered)</small>
-            </div>
-            <div className="fill-areas">
-              {selectedAspect === 'landscape' && (
-                <>
-                  <div className="fill-left">AI Fill</div>
-                  <div className="fill-right">AI Fill</div>
-                </>
-              )}
-              {selectedAspect === 'portrait' && (
-                <>
-                  <div className="fill-top">AI Fill</div>
-                  <div className="fill-bottom">AI Fill</div>
-                </>
-              )}
-              {selectedAspect === 'square' && (
-                <>
-                  <div className="fill-top">AI Fill</div>
-                  <div className="fill-bottom">AI Fill</div>
-                  <div className="fill-left">AI Fill</div>
-                  <div className="fill-right">AI Fill</div>
-                </>
-              )}
-            </div>
-          </div>
+      
           <div className="preview-info">
             <h5>How It Works</h5>
             <p>Your original image will be <strong>centered</strong> in a larger <strong>{selectedAspect}</strong> canvas.</p>
@@ -226,23 +198,10 @@ const EnlargeConfigComponent: React.FC<EnlargeConfigProps> = ({ config, onChange
               </div>
             )}
           </div>
-        </div>
-      </div>
+        
+    
 
-      {/* Technical Details for Development */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="config-section debug-info">
-          <h4>Debug Info</h4>
-          <pre>
-            {JSON.stringify({
-              aspectRatio: selectedAspect,
-              quality: selectedQuality,
-              backendFunction: 'perform_image_enlargement',
-              modelUsed: selectedQuality === 'PREMIUM' ? 'stable-diffusion-inpainting' : 'basic-fill'
-            }, null, 2)}
-          </pre>
-        </div>
-      )}
+
     </motion.div>
   );
 };

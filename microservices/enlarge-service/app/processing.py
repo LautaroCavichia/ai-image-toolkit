@@ -2,10 +2,11 @@ import logging
 import os
 import cv2
 import numpy as np
+
 from typing import Dict, Tuple, Any, Literal
 from PIL import Image, ImageFilter
 import torch
-from diffusers import StableDiffusionInpaintPipeline
+from diffusers import StableDiffusionInpaintPipeline, DPMSolverMultistepScheduler
 import gc
 
 from app.cloudinary_service import CloudinaryService
@@ -23,48 +24,57 @@ class MVPGenerativeFillProcessor:
     """MVP Ultra ligero - Solo Stable Diffusion con configuración mejorada para outpainting horizontal y vertical"""
 
     def __init__(self):
-        self.pipeline = None
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.max_resolution = 640  #  Resolución conservadora (ya es múltiplo de 8)
+        self.device = "cpu"
+        self.max_resolution = 640  # Resolución conservadora (ya es múltiplo de 8)
         self.model_loaded = False
-
-        # PROMPTS MEJORADOS Y MÁS ESPECÍFICOS para generative fill
-        # PROMPTS MEJORADOS Y MÁS ESPECÍFICOS para generative fill
+        
+        # Initialize pipeline first
+        try:
+            # Replace "your-model-name" with the actual model you want to use
+            self.pipeline = StableDiffusionInpaintPipeline.from_pretrained(
+                "runwayml/stable-diffusion-inpainting",  # or your preferred model
+                torch_dtype=torch.float32,  # Use float32 for CPU
+                device_map="cpu"
+            )
+            
+            # Now you can safely configure the scheduler
+            self.pipeline.scheduler = DPMSolverMultistepScheduler.from_config(
+                self.pipeline.scheduler.config
+            )
+            
+            self.model_loaded = True
+            
+        except Exception as e:
+            print(f"Error loading pipeline: {e}")
+            self.pipeline = None
+            self.model_loaded = False
+       
         self.base_prompts = {
     "landscape": (
-        "natural terrain extension around the main subject, grass field, dirt path, "
-        "open landscape, horizon line, natural colors, seamless ground, "
-        "realistic textures, natural lighting, grounded perspective"
+        "only grass field, only green lawn, only outdoor ground, "
+        "no people, no objects, no buildings, just grass surface, "
+        "simple natural ground, empty field, minimal scene"
     ),
-
+    
     "portrait": (
-        "vertical extension, realistic ground in front of main subject, "
-        "natural terrain or surface continuation, "
-        "foreground surface detail, aligned perspective, "
-        "soft lighting on ground, shadow consistency, "
-        "seamless texture transition, grounded object feel"
+        "only background extension, only ground surface, only grass, "
+        "no people, no additional objects, no crowd, "
+        "simple outdoor background, clean environment"
     ),
-
+    
     "square": (
-        "balanced ground expansion beneath and around main subject, "
-        "aligned terrain flow, realistic soil consistency, "
-        "seamless dirt textures, unified lighting, "
-        "ground continuity, proper object anchoring"
+        "only background extension, only grass surface, only outdoor field, "
+        "no people, no objects, no spectators, no crowd, "
+        "simple clean background, minimal natural scene"
+        
     )
 }
 
         self.negative_prompt = (
-    "text, letters, words, signs, writing, symbols, "
-    "duplicated objects, cloned elements, copy paste, "
-    "floating patches, artificial tiling, plastic soil, "
-    "repetitive patterns, broken terrain, misaligned ground, "
-    "harsh seams, pixelation, oversaturation, cartoon style"
+    "people, humans, persons, men, women, children, crowd, spectators, "
+    "audience, photographers, multiple objects, cars, vehicles, "
+    "buildings, complex scene, busy environment, detailed background"
 )
-
-
-
-
-
 
 
 
@@ -411,19 +421,18 @@ class MVPGenerativeFillProcessor:
 
             # CONFIGURACIÓN OPTIMIZADA para generative fill efectivo
             result = self.pipeline(
-                prompt=enhanced_prompt,
-                negative_prompt=self.negative_prompt,
-                image=canvas,
-                mask_image=mask,
-                num_inference_steps=25,      # Reducido para mayor velocidad
-                guidance_scale=8.5,         # Valor estándar para mejor adherencia al prompt
-                strength=0.99,
-                eta = 0.0,
-                # Más conservador para mejor integración
-                height=canvas_h,
-                width=canvas_w,
-                generator=torch.Generator(device=self.device).manual_seed(42)  # Seed fijo para consistencia
-            ).images[0]
+            prompt=enhanced_prompt,
+            negative_prompt=self.negative_prompt,
+            image=canvas,
+            mask_image=mask,
+            num_inference_steps=40,        # Más pasos
+            guidance_scale=12,              # Intermedio - ni muy alto ni muy bajo
+            strength=0.99,                  # Intermedio - suficiente para generar
+            eta=0.0,
+            height=canvas_h,
+            width=canvas_w,
+            
+        ).images[0]
 
             logger.info("Fill generation completed")
             return result
@@ -607,7 +616,7 @@ async def perform_image_enlargement(
 
         # NUEVAS OPCIONES DE CONFIGURACIÓN
         preserve_original = config.get('preserveOriginal', True)  # Por defecto True
-        blend_margin = config.get('blendMargin', 12)  # Margen de blending por defecto
+        blend_margin = config.get('blendMargin', 8)  # Margen de blending por defecto
 
         # Crear procesador mejorado
         logger.info("Initializing enhanced MVP Generative Fill processor")
