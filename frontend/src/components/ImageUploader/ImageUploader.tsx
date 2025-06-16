@@ -11,11 +11,13 @@ import {
   faExpand,
   faArrowsUpDown,
   faCrown,
-  faCoins
+  faCoins,
+  faWandMagicSparkles
 } from '@fortawesome/free-solid-svg-icons';
 import { uploadImageAndCreateJob } from '../../services/apiService';
 import { JobResponseDTO, JobTypeEnum } from '../../types';
 import EnlargeConfigComponent, { EnlargeConfig } from '../EnlargeConfig/EnlargeConfig';
+import ObjectRemovalConfigComponent, { ObjectRemovalConfig } from '../ObjectRemover/ObjectRemover';
 import './ImageUploader.css';
 
 interface ImageUploaderProps {
@@ -41,11 +43,16 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
     aspectRatio: 'square',
     quality: 'FREE'
   });
+  const [objectRemovalConfig, setObjectRemovalConfig] = useState<ObjectRemovalConfig>({
+    method: 'BOUNDING_BOX',
+    quality: 'FREE'
+  });
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [showUpscaleOptions, setShowUpscaleOptions] = useState<boolean>(false);
   const [showEnlargeOptions, setShowEnlargeOptions] = useState<boolean>(false);
+  const [showObjectRemovalOptions, setShowObjectRemovalOptions] = useState<boolean>(false);
   const [tokenReady, setTokenReady] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -139,10 +146,15 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
     setJobType(type);
     setShowUpscaleOptions(type === JobTypeEnum.UPSCALE);
     setShowEnlargeOptions(type === JobTypeEnum.ENLARGE);
+    setShowObjectRemovalOptions(type === 'OBJECT_REMOVAL' as JobTypeEnum);
   };
 
   const handleEnlargeConfigChange = (config: EnlargeConfig) => {
     setEnlargeConfig(config);
+  };
+
+  const handleObjectRemovalConfigChange = (config: ObjectRemovalConfig) => {
+    setObjectRemovalConfig(config);
   };
 
   const handleSubmit = async () => {
@@ -163,6 +175,16 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
       } else if (jobType === JobTypeEnum.ENLARGE) {
         jobConfig.aspectRatio = enlargeConfig.aspectRatio;
         jobConfig.quality = enlargeConfig.quality;
+      } else if (jobType === 'OBJECT_REMOVAL' as JobTypeEnum) {
+        jobConfig.method = objectRemovalConfig.method;
+        jobConfig.quality = objectRemovalConfig.quality;
+     
+        
+        if (objectRemovalConfig.coordinates) {
+          jobConfig.coordinates = objectRemovalConfig.coordinates;
+        }
+        
+        
       }
 
       const job = await uploadImageAndCreateJob(selectedFile, jobType, jobConfig);
@@ -183,6 +205,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
     setError(null);
     setShowUpscaleOptions(false);
     setShowEnlargeOptions(false);
+    setShowObjectRemovalOptions(false);
   };
 
   const openFileSelector = () => {
@@ -199,6 +222,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
         return <FontAwesomeIcon icon={faArrowsUpDown} />;
       case JobTypeEnum.ENLARGE:
         return <FontAwesomeIcon icon={faExpand} />;
+      case 'OBJECT_REMOVAL' as JobTypeEnum:
+        return <FontAwesomeIcon icon={faWandMagicSparkles} />;
       default:
         return <FontAwesomeIcon icon={faImage} />;
     }
@@ -212,6 +237,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
         return 'AI Upscaling';
       case JobTypeEnum.ENLARGE:
         return 'Image Enlargement';
+      case 'OBJECT_REMOVAL' as JobTypeEnum:
+        return 'Object Removal';
     }
   };
 
@@ -222,6 +249,18 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
     }
     if (jobType === JobTypeEnum.ENLARGE && enlargeConfig.quality === 'PREMIUM') {
       return 1;
+    }
+    if (jobType === 'OBJECT_REMOVAL' as JobTypeEnum) {
+      let cost = 0;
+      
+      // Method cost
+     
+      // Quality cost
+      if (objectRemovalConfig.quality === 'PREMIUM') {
+        cost += 1;
+      }
+      
+      return cost;
     }
     return 0;
   };
@@ -287,7 +326,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
             <div className="job-type-selector">
               <p className="selector-label">Select Processing Type:</p>
               <div className="job-type-options">
-                {Object.values(JobTypeEnum).map((type) => (
+                {[...Object.values(JobTypeEnum), 'OBJECT_REMOVAL' as JobTypeEnum].map((type) => (
                   <button
                     key={type}
                     className={`job-type-btn ${jobType === type ? 'active' : ''}`}
@@ -350,12 +389,23 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
               )}
             </AnimatePresence>
 
-            {/* Enlargemment Options */}
+            {/* Enlargement Options */}
             <AnimatePresence>
               {showEnlargeOptions && (
                 <EnlargeConfigComponent
                   config={enlargeConfig}
                   onChange={handleEnlargeConfigChange}
+                />
+              )}
+            </AnimatePresence>
+
+            {/* Object Removal Options */}
+            <AnimatePresence>
+              {showObjectRemovalOptions && (
+                <ObjectRemovalConfigComponent
+                  config={objectRemovalConfig}
+                  onChange={handleObjectRemovalConfigChange}
+                  imagePreview={preview}
                 />
               )}
             </AnimatePresence>

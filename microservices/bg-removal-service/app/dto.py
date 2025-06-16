@@ -4,12 +4,13 @@ Defines Pydantic models for incoming and outgoing data validation.
 """
 
 from enum import Enum
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, Union
 from pydantic import BaseModel, Field
 
 class JobType(str, Enum):
     """Job types supported by the image processing system."""
     BG_REMOVAL = "BG_REMOVAL"
+    OBJECT_REMOVAL = "OBJECT_REMOVAL"
     UPSCALE = "UPSCALE"
     ENLARGE = "ENLARGE"
 
@@ -27,10 +28,12 @@ class JobMessageDTO(BaseModel):
     Represents the structure of messages sent by the Spring Boot backend.
     """
     jobId: str
-    originalImageId: str
-    imageStoragePath: str
-    jobType: JobType
+    originalImageId: Optional[str] = None
+    imageStoragePath: Optional[str] = None
+    jobType: Optional[JobType] = None
     jobConfig: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    maskCoordinates: Optional[Dict[str, Union[int, float]]] = None
+    quality: Optional[str] = None  # Agregado porque aparece en el mensaje de error
 
 class JobStatusUpdateRequestDTO(BaseModel):
     """

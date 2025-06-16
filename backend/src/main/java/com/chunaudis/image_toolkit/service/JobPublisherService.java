@@ -32,6 +32,10 @@ public class JobPublisherService {
     @Value("${app.rabbitmq.queues.style-transfer.routing-key}")
     private String styleTransferRoutingKey;
 
+    @Value("${app.rabbitmq.queues.object-removal.routing-key}")
+private String objectRemovalRoutingKey;
+
+
     public JobPublisherService(RabbitTemplate rabbitTemplate) {
         this.rabbitTemplate = rabbitTemplate;
     }
@@ -57,6 +61,10 @@ public class JobPublisherService {
             case STYLE_TRANSFER:
                 routingKey = styleTransferRoutingKey;
                 break;
+
+            case OBJECT_REMOVAL:
+                routingKey = objectRemovalRoutingKey;
+        break;
             default:
                 log.error("Unsupported job type for routing: {}", jobMessage.getJobType());
                 throw new IllegalArgumentException("Unsupported job type: " + jobMessage.getJobType());
