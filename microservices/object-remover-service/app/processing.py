@@ -286,7 +286,7 @@ class LaMaLiteModel:
 
 
 class CPUObjectRemover:
-    """LaMa-inspired CPU Object Remover with fallback methods"""
+    """LaMa-inspired CPU Object Remover with enhanced large object handling"""
 
     def __init__(self, use_lama: bool = True, model_path: str = None):
         """Initialize with LaMa model option
@@ -312,12 +312,68 @@ class CPUObjectRemover:
                 self.lama_model = None
         
         logger.info(f"CPU Object Remover initialized - LaMa: {self.use_lama}")
+        
+        
+
+    def _analyze_mask_complexity(self, mask: np.ndarray, image_shape: Tuple[int, int]) -> Dict[str, Any]:
+        """Analyze mask to determine best processing strategy"""
+        h, w = image_shape[:2]
+        total_pixels = h * w
+        mask_pixels = np.sum(mask > 0)
+        coverage_ratio = mask_pixels / total_pixels
+        
+        # Find connected components
+        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(mask, connectivity=8)
+        components = []
+        
+        for i in range(1, num_labels):  # Skip background (label 0)
+            area = stats[i, cv2.CC_STAT_AREA]
+            x, y, width, height = stats[i, cv2.CC_STAT_LEFT], stats[i, cv2.CC_STAT_TOP], stats[i, cv2.CC_STAT_WIDTH], stats[i, cv2.CC_STAT_HEIGHT]
+            aspect_ratio = width / height if height > 0 else 1.0
+            
+            components.append({
+                'area': area,
+                'bbox': (x, y, width, height),
+                'aspect_ratio': aspect_ratio,
+                'relative_area': area / total_pixels
+            })
+        
+        # Sort by area (largest first)
+        components.sort(key=lambda x: x['area'], reverse=True)
+        
+        # Determine complexity
+        is_large_object = coverage_ratio > 0.15  # More than 15% of image
+        is_complex_scene = len(components) > 3 or (len(components) > 1 and coverage_ratio > 0.25)
+        largest_component_ratio = components[0]['relative_area'] if components else 0
+        
+        return {
+            'coverage_ratio': coverage_ratio,
+            'num_components': len(components),
+            'components': components,
+            'is_large_object': is_large_object,
+            'is_complex_scene': is_complex_scene,
+            'largest_component_ratio': largest_component_ratio,
+            'strategy': self._determine_strategy(coverage_ratio, len(components), largest_component_ratio)
+        }
+
+    def _determine_strategy(self, coverage_ratio: float, num_components: int, largest_ratio: float) -> str:
+        """Determine the best processing strategy based on mask analysis"""
+        if coverage_ratio > 0.4:
+            return "extreme_large"  # Very large areas
+        elif coverage_ratio > 0.2 or largest_ratio > 0.15:
+            return "large_object"   # Large single objects
+        elif num_components > 4:
+            return "multiple_small" # Many small objects
+        elif num_components > 1 and coverage_ratio > 0.1:
+            return "complex_scene"  # Multiple medium objects
+        else:
+            return "simple"         # Simple, small objects
 
     def _create_mask_from_coordinates(self, 
                                     coordinates: List[Dict[str, Union[int, float]]], 
                                     image_width: int, 
                                     image_height: int) -> np.ndarray:
-        """Create mask from frontend coordinates - FIXED VERSION"""
+        """Create mask from frontend coordinates with improved large object handling"""
         mask = np.zeros((image_height, image_width), dtype=np.uint8)
         
         logger.info(f"Creating mask from {len(coordinates)} coordinate sets")
@@ -348,112 +404,380 @@ class CPUObjectRemover:
                     radius = max(15, min(image_width, image_height) // 50)
                     cv2.circle(mask, (x, y), radius, 255, -1)
 
-        # *** FIX IMPORTANTE: Mejor procesamiento de máscara ***
-        # Dilate mask ligeramente para mejor cobertura
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-        mask = cv2.dilate(mask, kernel, iterations=2)
-        
-        # *** NUEVO: Suavizar bordes de la máscara ***
-        # Esto es crucial para evitar artefactos en los bordes
-        mask = cv2.GaussianBlur(mask, (7, 7), 2.0)
-        
-        # Volver a binarizar después del blur
-        _, mask = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY)
-        
-        logger.info(f"Mask created with {np.sum(mask > 0)} pixels to inpaint")
         return mask
 
-    def _lama_inpainting(self, image: np.ndarray, mask: np.ndarray) -> np.ndarray:
-        """LaMa-based inpainting"""
-        logger.info("Using LaMa model for inpainting")
-        try:
-            result = self.lama_model.inpaint(image, mask)
-            return result
-        except Exception as e:
-            logger.error(f"LaMa inpainting failed: {e}")
-            # Fallback to OpenCV
-            return self._opencv_inpainting(image, mask)
+    def _process_mask_for_strategy(self, mask: np.ndarray, strategy: str) -> np.ndarray:
+        """Process mask according to the determined strategy"""
+        
+        if strategy == "extreme_large":
+            # For very large objects, be more conservative
+            # Erode significantly to avoid removing too much
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
+            mask = cv2.erode(mask, kernel, iterations=3)
+            
+            # Add gradual dilation to create soft edges
+            for i in range(3):
+                kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5 + i*2, 5 + i*2))
+                mask = cv2.dilate(mask, kernel, iterations=1)
+            
+        elif strategy == "large_object":
+            # For large objects, moderate processing
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+            mask = cv2.erode(mask, kernel, iterations=1)
+            mask = cv2.dilate(mask, kernel, iterations=2)
+            
+        elif strategy == "complex_scene":
+            # For complex scenes, be more precise
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+            mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+            mask = cv2.dilate(mask, kernel, iterations=1)
+            
+        else:  # simple or multiple_small
+            # Original processing for simple cases
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+            mask = cv2.dilate(mask, kernel, iterations=2)
+        
+        # Apply Gaussian blur with strategy-specific parameters
+        blur_params = {
+            "extreme_large": (15, 5.0),
+            "large_object": (11, 3.0),
+            "complex_scene": (7, 2.0),
+            "simple": (7, 2.0),
+            "multiple_small": (5, 1.5)
+        }
+        
+        kernel_size, sigma = blur_params.get(strategy, (7, 2.0))
+        mask = cv2.GaussianBlur(mask, (kernel_size, kernel_size), sigma)
+        
+        # Re-binarize
+        _, mask = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY)
+        
+        return mask
 
-    def _opencv_inpainting(self, image: np.ndarray, mask: np.ndarray) -> np.ndarray:
-        """Enhanced OpenCV inpainting as fallback - MEJORADO"""
-        logger.info("Using enhanced OpenCV inpainting")
+    def _segment_large_mask(self, mask: np.ndarray, max_segment_size: int = 256) -> List[Tuple[np.ndarray, Tuple[int, int, int, int]]]:
+        """Segment large mask into smaller, overlapping patches for better processing"""
+        h, w = mask.shape
+        segments = []
         
-        # *** MEJORA 1: Usar múltiples métodos y combinar ***
-        # TELEA para texturas finas
-        result_telea = cv2.inpaint(image, mask, 7, cv2.INPAINT_TELEA)
+        # Calculate optimal segment size and overlap
+        overlap = max_segment_size // 4
+        step_size = max_segment_size - overlap
         
-        # NS (Navier-Stokes) para regiones grandes
-        result_ns = cv2.inpaint(image, mask, 7, cv2.INPAINT_NS)
+        for y in range(0, h, step_size):
+            for x in range(0, w, step_size):
+                # Define segment boundaries
+                x1, y1 = x, y
+                x2, y2 = min(x + max_segment_size, w), min(y + max_segment_size, h)
+                
+                # Extract segment
+                segment_mask = mask[y1:y2, x1:x2]
+                
+                # Only process segments that contain mask pixels
+                if np.sum(segment_mask > 0) > 0:
+                    segments.append((segment_mask, (x1, y1, x2, y2)))
         
-        # *** MEJORA 2: Combinar ambos métodos ***
-        # Usar máscara suavizada para combinar
-        mask_float = mask.astype(np.float32) / 255.0
-        mask_smooth = cv2.GaussianBlur(mask_float, (21, 21), 7)
-        mask_smooth = np.expand_dims(mask_smooth, axis=2)
+        return segments
+
+    def _lama_inpainting_large_object(self, image: np.ndarray, mask: np.ndarray, strategy: str) -> np.ndarray:
+        """Enhanced LaMa inpainting for large objects"""
+        logger.info(f"Using LaMa model for large object inpainting - Strategy: {strategy}")
         
-        # Combinar: TELEA para detalles, NS para regiones grandes
-        combined = (result_telea.astype(np.float32) * (1 - mask_smooth) + 
-                   result_ns.astype(np.float32) * mask_smooth)
+        try:
+            h, w = image.shape[:2]
+            
+            if strategy == "extreme_large" and (h > 1024 or w > 1024 or np.sum(mask > 0) / (h * w) > 0.3):
+                # Use segmented approach for very large objects
+                logger.info("Using segmented approach for extreme large object")
+                return self._lama_segmented_inpainting(image, mask)
+            else:
+                # Direct approach for manageable large objects
+                result = self.lama_model.inpaint(image, mask)
+                return result
+                
+        except Exception as e:
+            logger.error(f"LaMa large object inpainting failed: {e}")
+            return self._opencv_inpainting_large_object(image, mask, strategy)
+
+    def _lama_segmented_inpainting(self, image: np.ndarray, mask: np.ndarray) -> np.ndarray:
+        """Process very large masks using segmented approach"""
+        h, w = image.shape[:2]
+        result = image.copy()
         
-        result = np.clip(combined, 0, 255).astype(np.uint8)
+        # Create segments
+        segments = self._segment_large_mask(mask, max_segment_size=512)
         
-        # *** MEJORA 3: Post-procesamiento ***
-        # Aplicar filtro bilateral para suavizar pero mantener bordes
-        result = cv2.bilateralFilter(result, 9, 75, 75)
+        logger.info(f"Processing {len(segments)} segments for large object removal")
+        
+        for i, (segment_mask, (x1, y1, x2, y2)) in enumerate(segments):
+            # Extract image segment
+            segment_image = image[y1:y2, x1:x2]
+            
+            try:
+                # Process segment
+                segment_result = self.lama_model.inpaint(segment_image, segment_mask)
+                
+                # Blend back into result with feathering
+                self._blend_segment_back(result, segment_result, segment_mask, (x1, y1, x2, y2))
+                
+            except Exception as e:
+                logger.warning(f"Segment {i} failed with LaMa, using OpenCV: {e}")
+                # Fallback to OpenCV for this segment
+                segment_result = cv2.inpaint(segment_image, segment_mask, 7, cv2.INPAINT_TELEA)
+                self._blend_segment_back(result, segment_result, segment_mask, (x1, y1, x2, y2))
         
         return result
 
-    def _blend_with_original(self, original: np.ndarray, inpainted: np.ndarray, 
-                           mask: np.ndarray) -> np.ndarray:
-        """Seamlessly blend inpainted result with original - MEJORADO"""
-        # *** MEJORA: Mejor blending para evitar artefactos ***
+    def _blend_segment_back(self, result: np.ndarray, segment_result: np.ndarray, 
+                           segment_mask: np.ndarray, bbox: Tuple[int, int, int, int]):
+        """Blend a processed segment back into the main result"""
+        x1, y1, x2, y2 = bbox
         
-        # Crear máscara suavizada más grande para transición gradual
+        # Create feathering mask for smooth blending
+        feather_mask = segment_mask.astype(np.float32) / 255.0
+        feather_mask = cv2.GaussianBlur(feather_mask, (21, 21), 7)
+        
+        # Handle edge feathering to avoid artifacts at segment boundaries
+        seg_h, seg_w = segment_result.shape[:2]
+        edge_fade = 20  # pixels to fade at edges
+        
+        # Top edge fade
+        if y1 > 0:
+            fade = np.linspace(0, 1, edge_fade)[:, np.newaxis]
+            feather_mask[:edge_fade] *= fade
+        
+        # Bottom edge fade  
+        if y2 < result.shape[0]:
+            fade = np.linspace(1, 0, edge_fade)[:, np.newaxis]
+            feather_mask[-edge_fade:] *= fade
+        
+        # Left edge fade
+        if x1 > 0:
+            fade = np.linspace(0, 1, edge_fade)[np.newaxis, :]
+            feather_mask[:, :edge_fade] *= fade
+        
+        # Right edge fade
+        if x2 < result.shape[1]:
+            fade = np.linspace(1, 0, edge_fade)[np.newaxis, :]
+            feather_mask[:, -edge_fade:] *= fade
+        
+        # Expand mask for RGB blending
+        if len(segment_result.shape) == 3:
+            feather_mask = np.expand_dims(feather_mask, axis=2)
+        
+        # Blend
+        original_segment = result[y1:y2, x1:x2].astype(np.float32)
+        blended = (original_segment * (1 - feather_mask) + 
+                  segment_result.astype(np.float32) * feather_mask)
+        
+        result[y1:y2, x1:x2] = np.clip(blended, 0, 255).astype(np.uint8)
+
+    def _opencv_inpainting_large_object(self, image: np.ndarray, mask: np.ndarray, strategy: str) -> np.ndarray:
+        """Enhanced OpenCV inpainting specifically for large objects"""
+        logger.info(f"Using enhanced OpenCV inpainting for large objects - Strategy: {strategy}")
+        
+        # Strategy-specific parameters
+        inpaint_params = {
+            "extreme_large": {"radius": 15, "method1": cv2.INPAINT_NS, "method2": cv2.INPAINT_TELEA},
+            "large_object": {"radius": 10, "method1": cv2.INPAINT_NS, "method2": cv2.INPAINT_TELEA},
+            "complex_scene": {"radius": 7, "method1": cv2.INPAINT_TELEA, "method2": cv2.INPAINT_NS},
+        }
+        
+        params = inpaint_params.get(strategy, {"radius": 7, "method1": cv2.INPAINT_TELEA, "method2": cv2.INPAINT_NS})
+        
+        # Multi-pass inpainting for large objects
+        if strategy in ["extreme_large", "large_object"]:
+            return self._multi_pass_inpainting(image, mask, params)
+        else:
+            # Standard dual-method approach
+            result1 = cv2.inpaint(image, mask, params["radius"], params["method1"])
+            result2 = cv2.inpaint(image, mask, params["radius"], params["method2"])
+            
+            # Combine results
+            mask_float = mask.astype(np.float32) / 255.0
+            mask_smooth = cv2.GaussianBlur(mask_float, (21, 21), 7)
+            mask_smooth = np.expand_dims(mask_smooth, axis=2)
+            
+            combined = (result1.astype(np.float32) * (1 - mask_smooth) + 
+                       result2.astype(np.float32) * mask_smooth)
+            
+            return np.clip(combined, 0, 255).astype(np.uint8)
+
+    def _multi_pass_inpainting(self, image: np.ndarray, mask: np.ndarray, params: Dict) -> np.ndarray:
+        """Multi-pass inpainting for very large objects"""
+        result = image.copy()
+        current_mask = mask.copy()
+        
+        # Multiple passes with increasing radius
+        passes = [
+            {"radius": 5, "method": cv2.INPAINT_TELEA},
+            {"radius": params["radius"] // 2, "method": cv2.INPAINT_NS},
+            {"radius": params["radius"], "method": cv2.INPAINT_NS},
+        ]
+        
+        for i, pass_params in enumerate(passes):
+            logger.info(f"Inpainting pass {i+1}/3 - radius: {pass_params['radius']}")
+            
+            # Erode mask for each pass to gradually fill from edges
+            if i > 0:
+                kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+                current_mask = cv2.erode(mask, kernel, iterations=i)
+            
+            if np.sum(current_mask > 0) > 0:
+                result = cv2.inpaint(result, current_mask, pass_params["radius"], pass_params["method"])
+        
+        return result
+
+    def _blend_with_original_large_object(self, original: np.ndarray, inpainted: np.ndarray, 
+                                        mask: np.ndarray, strategy: str) -> np.ndarray:
+        """Enhanced blending specifically for large objects with better removal"""
+        
+        # Strategy-specific blending parameters - more aggressive removal
+        blend_params = {
+            "extreme_large": {
+                "blur_radius": 35, 
+                "power": 0.3,  # Lower power = more aggressive replacement
+                "erode_iter": 1,  # Less erosion to keep more of the mask
+                "dilate_iter": 2,  # Add dilation to ensure full coverage
+                "blend_strength": 0.95  # Higher strength = more inpainted content
+            },
+            "large_object": {
+                "blur_radius": 25, 
+                "power": 0.4, 
+                "erode_iter": 1,
+                "dilate_iter": 1,
+                "blend_strength": 0.9
+            }, 
+            "complex_scene": {
+                "blur_radius": 19, 
+                "power": 0.5, 
+                "erode_iter": 0,
+                "dilate_iter": 1,
+                "blend_strength": 0.85
+            },
+        }
+        
+        params = blend_params.get(strategy, {
+            "blur_radius": 25, "power": 0.4, "erode_iter": 1, 
+            "dilate_iter": 1, "blend_strength": 0.9
+        })
+        
+        # Convert mask to float
         mask_float = mask.astype(np.float32) / 255.0
         
-        # Erosionar ligeramente la máscara para preservar más del original
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-        mask_eroded = cv2.erode(mask, kernel, iterations=1)
-        mask_eroded_float = mask_eroded.astype(np.float32) / 255.0
+        # Create processing mask - start with dilation to ensure full coverage
+        kernel_dilate = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+        mask_dilated = cv2.dilate(mask, kernel_dilate, iterations=params["dilate_iter"])
         
-        # Crear gradiente suave en los bordes
-        mask_blurred = cv2.GaussianBlur(mask_eroded_float, (21, 21), 8)
-        mask_blurred = np.expand_dims(mask_blurred, axis=2)
+        # Then apply minimal erosion only if needed
+        if params["erode_iter"] > 0:
+            kernel_erode = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+            mask_processed = cv2.erode(mask_dilated, kernel_erode, iterations=params["erode_iter"])
+        else:
+            mask_processed = mask_dilated
         
-        # Aplicar función de suavizado exponencial
-        mask_feathered = np.power(mask_blurred, 0.6)
+        mask_processed_float = mask_processed.astype(np.float32) / 255.0
         
-        # Blend con transición más suave
-        result = (original.astype(np.float32) * (1 - mask_feathered) + 
-                 inpainted.astype(np.float32) * mask_feathered)
+        # Create core mask (inner area that should be fully replaced)
+        kernel_core = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+        mask_core = cv2.erode(mask, kernel_core, iterations=3)
+        mask_core_float = mask_core.astype(np.float32) / 255.0
         
-        return np.clip(result, 0, 255).astype(np.uint8)
+        # Create edge mask for smooth blending
+        mask_edge = mask_processed_float - mask_core_float
+        mask_edge = np.clip(mask_edge, 0, 1)
+        
+        # Apply strong blur to edge mask only
+        mask_edge_blurred = cv2.GaussianBlur(mask_edge, 
+                                            (params["blur_radius"], params["blur_radius"]), 
+                                            params["blur_radius"] // 3)
+        
+        # Combine core (full replacement) + blurred edge
+        mask_final = mask_core_float + mask_edge_blurred * params["blend_strength"]
+        mask_final = np.clip(mask_final, 0, 1)
+        
+        # Apply power function for smoother transition on edges only
+        mask_edges_smooth = np.where(mask_core_float > 0.5, 1.0, 
+                                    np.power(mask_final, params["power"]))
+        
+        # Expand dimensions for broadcasting
+        mask_blend = np.expand_dims(mask_edges_smooth, axis=2)
+        
+        # Multi-stage blending for better results
+        # Stage 1: Basic blend
+        result_stage1 = (original.astype(np.float32) * (1 - mask_blend) + 
+                        inpainted.astype(np.float32) * mask_blend)
+        
+        # Stage 2: Enhance inpainted regions with slight color correction
+        inpainted_enhanced = self._enhance_inpainted_region(inpainted, original, mask_processed)
+        
+        # Final blend with enhanced inpainted content
+        mask_final_blend = np.expand_dims(mask_processed_float, axis=2)
+        result_final = (result_stage1 * (1 - mask_final_blend * 0.3) + 
+                    inpainted_enhanced.astype(np.float32) * (mask_final_blend * 0.3))
+        
+        result = np.clip(result_final, 0, 255).astype(np.uint8)
+        
+        # Post-processing to remove any remaining artifacts
+        result = self._post_process_large_object_removal(result, original, mask_processed)
+        
+        return result
 
-    def _enhance_result(self, image: np.ndarray) -> np.ndarray:
-        """Post-processing enhancement - MEJORADO"""
-        pil_image = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    def _enhance_inpainted_region(self, inpainted: np.ndarray, original: np.ndarray, mask: np.ndarray) -> np.ndarray:
+        """Enhance the inpainted region to better match surrounding colors"""
         
-        # *** MEJORA 1: Reducción de ruido más efectiva ***
-        # Usar filtro más suave pero efectivo
-        pil_image = pil_image.filter(ImageFilter.MedianFilter(size=3))
+        # Get colors from the border region around the mask
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
+        mask_dilated = cv2.dilate(mask, kernel, iterations=1)
+        border_mask = mask_dilated - mask
         
-        # *** MEJORA 2: Ajuste sutil de contraste ***
-        enhancer = ImageEnhance.Contrast(pil_image)
-        pil_image = enhancer.enhance(1.02)
+        if np.sum(border_mask) > 0:
+            # Calculate average color in border region
+            border_pixels = original[border_mask > 0]
+            if len(border_pixels) > 0:
+                avg_color = np.mean(border_pixels, axis=0)
+                
+                # Slightly adjust inpainted region towards border colors
+                mask_float = mask.astype(np.float32) / 255.0
+                mask_3d = np.expand_dims(mask_float, axis=2)
+                
+                # Subtle color correction
+                inpainted_adjusted = inpainted.astype(np.float32)
+                color_correction = (avg_color - np.mean(inpainted[mask > 0], axis=0)) * 0.15
+                
+                inpainted_adjusted = inpainted_adjusted + (color_correction * mask_3d)
+                return np.clip(inpainted_adjusted, 0, 255)
         
-        # *** MEJORA 3: Sharpening muy sutil ***
-        enhancer = ImageEnhance.Sharpness(pil_image)
-        pil_image = enhancer.enhance(1.01)
+        return inpainted
+
+    def _post_process_large_object_removal(self, result: np.ndarray, original: np.ndarray, mask: np.ndarray) -> np.ndarray:
+        """Post-processing to clean up any remaining artifacts"""
         
-        # Convert back
-        enhanced = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
-        return enhanced
+        # Apply bilateral filter to smooth any harsh transitions
+        result_smooth = cv2.bilateralFilter(result, 9, 80, 80)
+        
+        # Edge-preserving smoothing only in the removed region
+        mask_float = mask.astype(np.float32) / 255.0
+        mask_3d = np.expand_dims(mask_float, axis=2)
+        
+        # Selective smoothing - more aggressive in center, lighter on edges
+        kernel_center = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+        mask_center = cv2.erode(mask, kernel_center, iterations=2)
+        mask_center_float = np.expand_dims(mask_center.astype(np.float32) / 255.0, axis=2)
+        
+        # Apply different levels of smoothing
+        result_final = (result.astype(np.float32) * (1 - mask_center_float * 0.7) + 
+                    result_smooth.astype(np.float32) * (mask_center_float * 0.7))
+        
+        # Final noise reduction
+        result_final = cv2.medianBlur(result_final.astype(np.uint8), 3)
+        
+        return result_final
 
     def process(self, 
                input_image: np.ndarray, 
                coordinates: List[Dict[str, Union[int, float]]],
                config: Dict[str, Any] = None) -> np.ndarray:
-        """Main processing function - MEJORADO"""
+        """Enhanced main processing function with large object handling"""
         if config is None:
             config = {}
             
@@ -461,61 +785,163 @@ class CPUObjectRemover:
             original_h, original_w = input_image.shape[:2]
             logger.info(f"Processing object removal: {original_w}x{original_h}")
             
-            # Create mask
+            # Create initial mask
             mask = self._create_mask_from_coordinates(coordinates, original_w, original_h)
             
             if np.sum(mask > 0) == 0:
                 logger.warning("Empty mask - returning original image")
                 return input_image
             
-            # *** DEBUG: Verificar que la máscara no sea completamente blanca ***
-            mask_coverage = np.sum(mask > 0) / (original_w * original_h)
-            logger.info(f"Mask covers {mask_coverage:.2%} of the image")
+            # Analyze mask complexity and determine strategy
+            analysis = self._analyze_mask_complexity(mask, input_image.shape)
+            strategy = analysis['strategy']
             
-            if mask_coverage > 0.8:  # Si cubre más del 80%
-                logger.warning("Mask covers too much of the image, reducing...")
-                # Erosionar máscara muy grande
-                kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10))
-                mask = cv2.erode(mask, kernel, iterations=3)
+            logger.info(f"Mask analysis - Coverage: {analysis['coverage_ratio']:.2%}, "
+                       f"Components: {analysis['num_components']}, Strategy: {strategy}")
             
-            # Choose inpainting method
+            # Process mask according to strategy
+            mask = self._process_mask_for_strategy(mask, strategy)
+            
+            # Choose appropriate inpainting method
             if self.use_lama and self.lama_model and config.get('use_lama', True):
-                result = self._lama_inpainting(input_image, mask)
-                method_used = "lama"
+                if strategy in ["large_object", "extreme_large", "complex_scene"]:
+                    result = self._lama_inpainting_large_object(input_image, mask, strategy)
+                    method_used = f"lama_{strategy}"
+                else:
+                    result = self.lama_model.inpaint(input_image, mask)
+                    method_used = "lama"
             else:
-                result = self._opencv_inpainting(input_image, mask)
-                method_used = "opencv"
+                if strategy in ["large_object", "extreme_large", "complex_scene"]:
+                    result = self._opencv_inpainting_large_object(input_image, mask, strategy)
+                    method_used = f"opencv_{strategy}"
+                else:
+                    result = self._opencv_inpainting(input_image, mask)
+                    method_used = "opencv"
             
-            # *** MEJORA CRÍTICA: Verificar que el resultado no sea blanco ***
+            # Verify result quality
             result_mean = np.mean(result)
-            if result_mean > 240:  # Imagen muy blanca
-                logger.warning("Result too bright, adjusting...")
-                # Usar solo blending sin el resultado de inpainting
-                result = self._opencv_inpainting(input_image, mask)
-                method_used = f"{method_used}_fallback"
+            if result_mean > 240 or result_mean < 15:  # Too bright or too dark
+                logger.warning(f"Result quality issue (mean: {result_mean:.1f}), applying correction...")
+                # Apply histogram matching to original image
+                result = self._match_histogram(result, input_image, mask)
             
-            # Blend with original for seamless result
+            # Enhanced blending for large objects
             if config.get('seamless_blend', True):
-                result = self._blend_with_original(input_image, result, mask)
+                if strategy in ["large_object", "extreme_large", "complex_scene"]:
+                    result = self._blend_with_original_large_object(input_image, result, mask, strategy)
+                else:
+                    result = self._blend_with_original(input_image, result, mask)
             
             # Post-processing enhancement
             if config.get('enhance', True):
                 result = self._enhance_result(result)
             
-            logger.info(f"Object removal completed using {method_used}")
+            logger.info(f"Object removal completed using {method_used} - Strategy: {strategy}")
             return result
             
         except Exception as e:
             logger.error(f"Object removal failed: {e}")
-            # Emergency fallback - más conservador
+            # Enhanced emergency fallback
             try:
                 mask = self._create_mask_from_coordinates(coordinates, input_image.shape[1], input_image.shape[0])
-                # Reducir máscara en emergencia
-                kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-                mask = cv2.erode(mask, kernel, iterations=2)
-                return cv2.inpaint(input_image, mask, 5, cv2.INPAINT_TELEA)
+                # Much more conservative emergency processing
+                kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+                mask = cv2.erode(mask, kernel, iterations=3)
+                if np.sum(mask > 0) > 0:
+                    return cv2.inpaint(input_image, mask, 3, cv2.INPAINT_TELEA)
+                else:
+                    return input_image
             except:
                 return input_image
+
+    def _match_histogram(self, source: np.ndarray, reference: np.ndarray, mask: np.ndarray) -> np.ndarray:
+        """Match histogram of inpainted regions to reference image"""
+        result = source.copy()
+        
+        # Only apply to inpainted regions
+        mask_bool = mask > 127
+        
+        if not np.any(mask_bool):
+            return result
+        
+        for channel in range(source.shape[2]):
+            source_channel = source[:, :, channel]
+            reference_channel = reference[:, :, channel]
+            
+            # Get histograms
+            source_hist = cv2.calcHist([source_channel[mask_bool]], [0], None, [256], [0, 256])
+            reference_hist = cv2.calcHist([reference_channel], [0], None, [256], [0, 256])
+            
+            # Calculate cumulative distributions
+            source_cdf = np.cumsum(source_hist).astype(np.float64)
+            reference_cdf = np.cumsum(reference_hist).astype(np.float64)
+            
+            # Normalize
+            source_cdf /= source_cdf[-1]
+            reference_cdf /= reference_cdf[-1]
+            
+            # Create lookup table
+            lookup = np.zeros(256, dtype=np.uint8)
+            for i in range(256):
+                j = np.argmin(np.abs(reference_cdf - source_cdf[i]))
+                lookup[i] = j
+            
+            # Apply only to masked regions
+            result[mask_bool, channel] = lookup[source_channel[mask_bool]]
+        
+        return result
+
+    def _opencv_inpainting(self, image: np.ndarray, mask: np.ndarray) -> np.ndarray:
+        """Standard OpenCV inpainting for small/simple objects"""
+        result_telea = cv2.inpaint(image, mask, 7, cv2.INPAINT_TELEA)
+        result_ns = cv2.inpaint(image, mask, 7, cv2.INPAINT_NS)
+        
+        # Combine both methods
+        mask_float = mask.astype(np.float32) / 255.0
+        mask_smooth = cv2.GaussianBlur(mask_float, (21, 21), 7)
+        mask_smooth = np.expand_dims(mask_smooth, axis=2)
+        
+        combined = (result_telea.astype(np.float32) * (1 - mask_smooth) + 
+                   result_ns.astype(np.float32) * mask_smooth)
+        
+        result = np.clip(combined, 0, 255).astype(np.uint8)
+        result = cv2.bilateralFilter(result, 9, 75, 75)
+        
+        return result
+
+    def _blend_with_original(self, original: np.ndarray, inpainted: np.ndarray, 
+                           mask: np.ndarray) -> np.ndarray:
+        """Standard blending for small/simple objects"""
+        mask_float = mask.astype(np.float32) / 255.0
+        
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+        mask_eroded = cv2.erode(mask, kernel, iterations=1)
+        mask_eroded_float = mask_eroded.astype(np.float32) / 255.0
+        
+        mask_blurred = cv2.GaussianBlur(mask_eroded_float, (21, 21), 8)
+        mask_blurred = np.expand_dims(mask_blurred, axis=2)
+        
+        mask_feathered = np.power(mask_blurred, 0.6)
+        
+        result = (original.astype(np.float32) * (1 - mask_feathered) + 
+                 inpainted.astype(np.float32) * mask_feathered)
+        
+        return np.clip(result, 0, 255).astype(np.uint8)
+
+    def _enhance_result(self, image: np.ndarray) -> np.ndarray:
+        """Post-processing enhancement"""
+        pil_image = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        
+        pil_image = pil_image.filter(ImageFilter.MedianFilter(size=3))
+        
+        enhancer = ImageEnhance.Contrast(pil_image)
+        pil_image = enhancer.enhance(1.02)
+        
+        enhancer = ImageEnhance.Sharpness(pil_image)
+        pil_image = enhancer.enhance(1.01)
+        
+        enhanced = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
+        return enhanced
 
     def cleanup(self):
         """Clean up resources"""
@@ -524,10 +950,11 @@ class CPUObjectRemover:
             self.lama_model = None
         gc.collect()
         logger.info("CPU processor cleanup completed")
+        
+    # Añadir al final de tu archivo processing.py
 
+ # Add this function to the end of your processing.py file
 
-# Main function
-# Main function
 async def perform_object_removal(
     job_id: str,
     image_url: str,
