@@ -1,0 +1,11 @@
+.scroll-reveal {
+    position: relative;
+  }
+  
+  /* Fallback for browsers without Intersection Observer */
+  @supports not (backdrop-filter: blur(1px)) {
+    .scroll-reveal {
+      opacity: 1;
+      transform: none;
+    }
+  }

@@ -14,19 +14,11 @@ import { fetchTokenBalance } from './services/tokenService';
 import { JobResponseDTO } from './types';
 import './styles/App.css';
 import 'react-toastify/dist/ReactToastify.css';
-import Navbar from './components/Navbar/Navbar';
-import Login from './components/Login/Login';
-import ImageUploader from './components/ImageUploader/ImageUploader';
-import JobStatusDisplay from './components/JobStatus/JobStatusDisplay';
-import AboutSection from './components/AboutSection/AboutSection';
-import Footer from './components/Footer/Footer';
-import GuestConversion from './components/GuestConversion/GuestConversion';
-import ContactForm from './components/ContactForm/ContactForm';
-import ApiSection from './components/ApiSection/ApiSection';
-import AboutUs from './components/AboutUs/AboutUs';
-import UserProfile from './components/UserProfile/UserProfile';
-import BeforeAfterSlider from './components/ImageSlider/BeforeAfterSlider';
+import Hero from './components/sections/Hero';
+import Navbar from './components/layout/Navbar';
+import Footer from './components/layout/Footer';
 import axios from 'axios';
+import Services from './components/sections/Services/Services';
 
 
 
@@ -250,185 +242,23 @@ function App() {
             transition={{ duration: 0.5 }}
             className="dashboard-container"
           >
-            <motion.div 
-              className="hero-content"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <motion.h1 
-                className="hero-title"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ 
-                  duration: 0.8, 
-                  delay: 0.3,
-                  type: "spring",
-                  stiffness: 100
-                }}
-              >
-                Transform Images with AI Magic
-              </motion.h1>
-              <motion.p 
-                className="hero-subtitle"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.5 }}
-              >
-                Background removal, upscaling, and enhancement powered by cutting-edge AI technology
-              </motion.p>
+            <Hero onGetStarted={() => {
+              // Scroll to the ImageUploader section or trigger upload
+              const uploaderElement = document.querySelector('.image-uploader');
+              if (uploaderElement) {
+                uploaderElement.scrollIntoView({ behavior: 'smooth' });
+              }
+            }} />
+
             </motion.div>
-            
-            <ImageUploader onJobCreated={handleNewJob} />
-            
-            <AnimatePresence>
-              {showJobStatus && currentJob && (
-                <motion.div 
-                  className="job-status-modal"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={(e) => {
-                    if (e.target === e.currentTarget) {
-                      closeJobStatus();
-                    }
-                  }}
-                >
-                  <motion.div 
-                    className="job-status-content"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <button onClick={closeJobStatus} className="close-button">×</button>
-                    <JobStatusDisplay 
-                      initialJob={currentJob}
-                      onTokenBalanceChange={handleTokenBalanceChange}
-                      onShowGuestConversion={handleShowGuestConversion}
-                    />
-                  </motion.div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        </AnimatePresence>
-      </main>
-      
+          </AnimatePresence>
+        </main>
 
+        <Services />
 
-      
-      <div className="background">
-        <div className="background-shapes">
-          <div className="shape shape-1"></div>
-          <div className="shape shape-2"></div>
-          <div className="shape shape-3"></div>
-        </div>
-        <div className="pattern"></div>
-      </div>
-      
-      
-  {/* Versión simple sin fondo */}
-  
-      <AboutSection />
-      
-      <div id="features">
-        <AboutUs />
-      </div>
-
-          
-        <BeforeAfterSlider 
-        beforeSrc="/assets/before.png"
-        afterSrc="/assets/after.png"
-        title="Unmatched Quality Results"
-        subtitle="Experience the difference with our professional transformation. Slide to reveal the stunning before and after comparison."
-        
-      />
-
-
-      
-   
-
-      <div id="api">
-        <ApiSection />
-      </div>
-
-      <div id="contact">
-        <ContactForm />
-      </div>
       
       <Footer />
-      
-      {/* Auth Modal - for login/signup */}
-      <AnimatePresence>
-        {showAuth && (
-          <motion.div 
-            className="auth-modal"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                toggleAuthModal();
-              }
-            }}
-          >
-            <motion.div
-              className="auth-modal-content"
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button onClick={toggleAuthModal} className="close-button">×</button>
-              {isGuest && user ? (
-                <GuestConversion 
-                  userId={user.userId}
-                  onConversionSuccess={handleGuestConversionSuccess}
-                  onCancel={toggleAuthModal}
-                />
-              ) : (
-                <Login onLoginSuccess={handleLoginSuccess} />
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Profile Modal - for logged in users */}
-      <AnimatePresence>
-        {showProfile && isLoggedIn && (
-          <motion.div 
-            className="auth-modal"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                toggleProfileModal();
-              }
-            }}
-          >
-            <motion.div
-              className="auth-modal-content profile-modal"
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button onClick={toggleProfileModal} className="close-button">×</button>
-              <UserProfile 
-                user={user}
-                tokenBalance={tokenBalance}
-                onTokenBalanceChange={handleTokenBalanceChange}
-                onClose={toggleProfileModal}
-              />
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
+    
       <ToastContainer
         position="bottom-right"
         autoClose={3000}

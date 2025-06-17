@@ -1,0 +1,70 @@
+.animated-text {
+  display: block;
+}
+
+.animated-text-typewriter {
+  display: inline;
+}
+
+.typewriter-cursor {
+  display: inline-block;
+  background-color: currentColor;
+  margin-left: 2px;
+  width: 2px;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.text-wave {
+  display: inline-block;
+}
+
+.text-reveal {
+  overflow: hidden;
+  display: inline-block;
+}
+
+.text-reveal-inner {
+  display: inline-block;
+}
+
+/* --- NEW GRADIENT ANIMATION FOR AI --- */
+.ai-gradient-text {
+  background: linear-gradient(
+    -45deg,
+    #33bbcf, /* A bright cyan */
+    #7e42f5, /* A vibrant purple */
+    #f05a75, /* A soft magenta */
+    #f29b4a  /* A warm orange */
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradient-animation 4s ease infinite;
+  font-weight: bold; /* Make the AI text stand out more */
+}
+
+@keyframes gradient-animation {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Static gradient for the 'gradient' animation prop */
+.text-gradient {
+  background: linear-gradient(90deg, #7e42f5, #f05a75);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
