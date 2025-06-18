@@ -11,32 +11,41 @@ import {
 
 } from './services/authService';
 import { fetchTokenBalance } from './services/tokenService';
-import { JobResponseDTO } from './types';
 import './styles/App.css';
 import 'react-toastify/dist/ReactToastify.css';
 import Hero from './components/sections/Hero';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
-import axios from 'axios';
+import AuthModal from './components/shared/AuthModal';
 import Services from './components/sections/Services/Services';
+import HowItWorks from './components/sections/HowItWorks/HowItWorks';
+import ApiSection from './components/sections/ApiSection/ApiSection';
+import ContactSection from './components/sections/ContactSection/ContactSection';
+import BackgroundRemovalPage from './pages/BackgroundRemovalPage';
+import UpscalePage from './pages/UpscalePage';
+import EnlargePage from './pages/EnlargePage';
+import ObjectRemovalPage from './pages/ObjectRemovalPage';
+import './styles/ServicePage.css';
 
 
 
 
+
+type AuthMode = 'signin' | 'signup';
+type CurrentPage = 'home' | 'background-removal' | 'upscale' | 'enlarge' | 'object-removal';
 
 function App() {
-  const [currentJob, setCurrentJob] = useState<JobResponseDTO | null>(null);
   // Para la UI, consideramos "logueado" sólo si es usuario real.
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   // En el estado interno se guardará la info del usuario (puede ser invitado),
   // pero la UI siempre mostrará "Log in" si isLoggedIn es false.
   const [isGuest, setIsGuest] = useState<boolean>(false);
   const [user, setUser] = useState<{ userId: string; email?: string; displayName: string; isGuest?: boolean } | null>(null);
-  const [showJobStatus, setShowJobStatus] = useState<boolean>(false);
   const [showAuth, setShowAuth] = useState<boolean>(false);
+  const [authMode, setAuthMode] = useState<AuthMode>('signin');
   const [showProfile, setShowProfile] = useState<boolean>(false);
   const [tokenBalance, setTokenBalance] = useState<number>(0);
-  const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const [currentPage, setCurrentPage] = useState<CurrentPage>('home');
   const appRef = useRef<HTMLDivElement>(null);
    
     
@@ -117,8 +126,7 @@ function App() {
 
   // Manejo del body scroll cuando se abren modales
   useEffect(() => {
-    const isAnyModalOpen = showJobStatus || showAuth || showProfile;
-    setModalOpen(isAnyModalOpen);
+    const isAnyModalOpen = showAuth || showProfile;
 
     if (isAnyModalOpen) {
       document.body.style.overflow = 'hidden';
@@ -129,33 +137,26 @@ function App() {
     return () => {
       document.body.style.overflow = 'visible';
     };
-  }, [showJobStatus, showAuth, showProfile]);
+  }, [showAuth, showProfile]);
 
-  const handleNewJob = (job: JobResponseDTO) => {
-    setCurrentJob(job);
-    setShowJobStatus(true);
-    toast.success("Job submitted successfully!");
-  };
-
-  const handleLoginSuccess = async (type: 'login' | 'guest' = 'login') => {
-    if (type === 'login') {
-      try {
-        // Always fetch fresh balance after login
-        const updatedBalance = await fetchTokenBalance();
-        const updatedUser = getCurrentUser();
-        
-        if (updatedUser) {
-          setUser(updatedUser);
-          setTokenBalance(updatedBalance); // Use fetched balance
-          setIsLoggedIn(true);
-          setIsGuest(false);
-          setShowAuth(false);
-          toast.success("Welcome back!");
-        }
-      } catch (error) {
-        console.error('Login error:', error);
-        toast.error("Error loading user data");
-      }
+  const handleAuthSuccess = async (userData: any) => {
+    try {
+      setUser({
+        userId: userData.id,
+        email: userData.email,
+        displayName: `${userData.firstName} ${userData.lastName}`.trim(),
+        isGuest: false
+      });
+      setTokenBalance(userData.tokenBalance || 0);
+      setIsLoggedIn(true);
+      setIsGuest(false);
+      setShowAuth(false);
+      
+      const welcomeMessage = authMode === 'signup' ? 'Welcome to PixelPerfect AI!' : 'Welcome back!';
+      toast.success(welcomeMessage);
+    } catch (error) {
+      console.error('Auth success error:', error);
+      toast.error("Error loading user data");
     }
   };
 
@@ -179,41 +180,36 @@ function App() {
     setTokenBalance(newBalance);
   };
 
- const handleGuestConversionSuccess = async () => {
-  setShowAuth(false);
-  setIsGuest(false);
-  setIsLoggedIn(true);
 
-  try {
-    const balance = await fetchTokenBalance(); // llamada a la API para obtener el balance real
-    setTokenBalance(balance);
-  } catch (error) {
-    console.error("Error fetching token balance:", error);
-    // Opcional: manejar error, por ejemplo poner un balance por defecto o mostrar mensaje
-    setTokenBalance(0);
-  }
-
-  const updatedUser = getCurrentUser();
-  setUser(updatedUser);
-
-  toast.success("¡Welcome back!");
-};
-
-  const closeJobStatus = () => {
-    setShowJobStatus(false);
+  const handleShowLogin = () => {
+    setAuthMode('signin');
+    setShowAuth(true);
   };
 
-  const toggleAuthModal = () => {
-    setShowAuth(prev => !prev);
+  const handleShowSignup = () => {
+    setAuthMode('signup');
+    setShowAuth(true);
+  };
+
+  const handleCloseAuth = () => {
+    setShowAuth(false);
+  };
+
+  const handleSwitchAuthMode = (mode: AuthMode) => {
+    setAuthMode(mode);
   };
 
   const toggleProfileModal = () => {
     setShowProfile(prev => !prev);
   };
 
-  const handleShowGuestConversion = () => {
-    // Siempre mostramos el modal de autenticación ("Log in")
-    setShowAuth(true);
+
+  const navigateToService = (servicePage: CurrentPage) => {
+    setCurrentPage(servicePage);
+  };
+
+  const navigateToHome = () => {
+    setCurrentPage('home');
   };
 
   return (
@@ -227,37 +223,95 @@ function App() {
         isGuest={isGuest && isLoggedIn}
         tokenBalance={tokenBalance}
         onTokenBalanceChange={handleTokenBalanceChange}
-        onShowGuestConversion={handleShowGuestConversion}
+        onShowLogin={handleShowLogin}
+        onShowSignup={handleShowSignup}
         onShowProfile={toggleProfileModal}
         showProfile={isLoggedIn}
       />
       
       <main className="app-main" id="home">
         <AnimatePresence mode="wait">
-          <motion.div
-            key="dashboard"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
-            className="dashboard-container"
-          >
-            <Hero onGetStarted={() => {
-              // Scroll to the ImageUploader section or trigger upload
-              const uploaderElement = document.querySelector('.image-uploader');
-              if (uploaderElement) {
-                uploaderElement.scrollIntoView({ behavior: 'smooth' });
-              }
-            }} />
-
+          {currentPage === 'home' ? (
+            <motion.div
+              key="dashboard"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+              className="dashboard-container"
+            >
+              <Hero onGetStarted={() => {
+                // Scroll to the ImageUploader section or trigger upload
+                const uploaderElement = document.querySelector('.image-uploader');
+                if (uploaderElement) {
+                  uploaderElement.scrollIntoView({ behavior: 'smooth' });
+                }
+              }} />
             </motion.div>
-          </AnimatePresence>
-        </main>
+          ) : currentPage === 'background-removal' ? (
+            <motion.div
+              key="background-removal"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <BackgroundRemovalPage onBack={navigateToHome} />
+            </motion.div>
+          ) : currentPage === 'upscale' ? (
+            <motion.div
+              key="upscale"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <UpscalePage onBack={navigateToHome} />
+            </motion.div>
+          ) : currentPage === 'enlarge' ? (
+            <motion.div
+              key="enlarge"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <EnlargePage onBack={navigateToHome} />
+            </motion.div>
+          ) : currentPage === 'object-removal' ? (
+            <motion.div
+              key="object-removal"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <ObjectRemovalPage onBack={navigateToHome} />
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+      </main>
 
-        <Services />
+      {currentPage === 'home' && (
+        <>
+          <Services onServiceClick={navigateToService} />
+          <HowItWorks />
+          <ApiSection />
+          <ContactSection />
+        </>
+      )}
 
       
       <Footer />
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuth}
+        mode={authMode}
+        onClose={handleCloseAuth}
+        onSwitchMode={handleSwitchAuthMode}
+        onAuthSuccess={handleAuthSuccess}
+      />
     
       <ToastContainer
         position="bottom-right"

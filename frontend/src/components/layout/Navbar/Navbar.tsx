@@ -14,6 +14,7 @@ import Button from '../../shared/Button';
 import TokenPanel from '../../TokenPanel/TokenPanel';
 import { useScrollPosition, useScrollDirection } from '../../../hooks/useScrollPosition';
 import './Navbar.css';
+import Logo from '../../shared/Logo/Logo';
 
 interface NavbarProps {
   user: { userId: string; email?: string; displayName: string } | null;
@@ -21,7 +22,8 @@ interface NavbarProps {
   tokenBalance: number;
   onLogout: () => void;
   onTokenBalanceChange: (newBalance: number) => void;
-  onShowGuestConversion?: () => void;
+  onShowLogin?: () => void;
+  onShowSignup?: () => void;
   onShowProfile?: () => void;
   showProfile?: boolean;
 }
@@ -32,7 +34,8 @@ const Navbar: React.FC<NavbarProps> = ({
   tokenBalance, 
   onLogout,
   onTokenBalanceChange,
-  onShowGuestConversion,
+  onShowLogin,
+  onShowSignup,
   onShowProfile,
   showProfile = false
 }) => {
@@ -42,7 +45,8 @@ const Navbar: React.FC<NavbarProps> = ({
   
   // Determine navbar state based on scroll
   const isScrolled = scrollPosition.y > 50;
-  const shouldHide = scrollDirection === 'down' && scrollPosition.y > 200;
+  // Make navbar always visible (sticky)
+  const shouldHide = false;
 
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
 
@@ -81,7 +85,7 @@ const Navbar: React.FC<NavbarProps> = ({
           whileTap={{ scale: 0.95 }}
         >
           <div className="logo-icon">
-            <div className="logo-gradient" />
+            <Logo />
           </div>
           <span className="logo-text">PIXELPERFECT</span>
         </motion.div>
@@ -113,7 +117,8 @@ const Navbar: React.FC<NavbarProps> = ({
           <TokenPanel 
             tokenBalance={tokenBalance}
             onBalanceChange={onTokenBalanceChange}
-            onShowGuestConversion={onShowGuestConversion}
+            onShowLogin={onShowLogin}
+            onShowSignup={onShowSignup}
           />
           
           {/* User Section */}
@@ -165,7 +170,7 @@ const Navbar: React.FC<NavbarProps> = ({
               variant="primary"
               size="md"
               leftIcon={<FontAwesomeIcon icon={faSignInAlt} />}
-              onClick={onShowGuestConversion}
+              onClick={onShowLogin}
               glow
             >
               Sign In
@@ -220,7 +225,7 @@ const Navbar: React.FC<NavbarProps> = ({
                     leftIcon={<FontAwesomeIcon icon={faSignInAlt} />}
                     onClick={() => {
                       setMobileMenuOpen(false);
-                      onShowGuestConversion?.();
+                      onShowLogin?.();
                     }}
                   >
                     Sign In

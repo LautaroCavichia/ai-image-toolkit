@@ -1,60 +1,87 @@
 // src/components/TokenPanel/TokenPanel.tsx
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
+import { gsap } from 'gsap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faCoins, 
-  faShoppingCart, 
+import {
+  faCoins,
+  faSignInAlt,
+  faUserPlus,
   faVideo,
   faArrowDown,
   faMagicWandSparkles as faSparkles,
   faCrown,
   faGift,
-  faStar
+  faStar,
+  faExclamationTriangle
 } from '@fortawesome/free-solid-svg-icons';
 import { purchaseTokens, earnTokenFromAd } from '../../services/tokenService';
 import { isGuestUser, getCurrentUser } from '../../services/authService';
 import Card from '../shared/Card';
 import './TokenPanel.css';
 
-
 interface TokenPanelProps {
   tokenBalance: number;
   onBalanceChange: (newBalance: number) => void;
-  onShowGuestConversion?: () => void;
+  onShowLogin?: () => void;
+  onShowSignup?: () => void;
 }
 
 const TokenPanel: React.FC<TokenPanelProps> = ({ 
   tokenBalance, 
   onBalanceChange,
-  onShowGuestConversion
+  onShowLogin,
+  onShowSignup
 }) => {
-  const [showOptions, setShowOptions] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const [isPurchasing, setPurchasing] = useState(false);
   const [isWatchingAd, setWatchingAd] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   
-  const toggleOptions = () => setShowOptions(prev => !prev);
+  const isGuest = isGuestUser();
   
+  const tokenPackages = [
+    {
+      amount: 5,
+      price: '$2.99',
+      icon: faGift,
+      label: 'Starter',
+      popular: false,
+      gradient: 'linear-gradient(135deg, #10b981, #059669)'
+    },
+    {
+      amount: 20,
+      price: '$9.99',
+      icon: faStar,
+      label: 'Popular',
+      popular: true,
+      gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)'
+    },
+    {
+      amount: 50,
+      price: '$19.99',
+      icon: faCrown,
+      label: 'Pro',
+      popular: false,
+      gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)'
+    }
+  ];
+
   const handlePurchaseTokens = async (amount: number) => {
+    if (isGuest) {
+      setError('Please sign in to purchase tokens');
+      return;
+    }
+
     setError(null);
     setPurchasing(true);
     
     try {
-      const isGuest = isGuestUser();
-      
-      // If guest user, prompt to create an account first
-      if (isGuest && onShowGuestConversion) {
-        onShowGuestConversion();
-        setPurchasing(false);
-        setShowOptions(false);
-        return;
-      }
-      
       const success = await purchaseTokens(amount);
       if (success) {
         onBalanceChange(tokenBalance + amount);
-        setShowOptions(false);
+        setShowDropdown(false);
       } else {
         setError('Failed to purchase tokens. Please try again.');
       }
@@ -66,264 +93,248 @@ const TokenPanel: React.FC<TokenPanelProps> = ({
     }
   };
   
- const handleWatchAd = async () => {
-  setError(null);
-  setWatchingAd(true);
-  
-  try {
-    // Simular anuncio
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    const success = await earnTokenFromAd();
-    if (success) {
-      const userData = getCurrentUser();
-      if (userData) {
-        // Traer balance actualizado desde localStorage o response de earnTokenFromAd
-        const updatedBalance = localStorage.getItem('tokenBalance');
-        if (updatedBalance) {
-          onBalanceChange(Number(updatedBalance)); // actualizar estado padre/UI
-        }
-      }
-      setShowOptions(false);
-    } else {
-      setError('Failed to earn token. Please try again.');
+  const handleWatchAd = async () => {
+    if (isGuest) {
+      setError('Please sign in to earn tokens');
+      return;
     }
-  } catch (err) {
-    console.error('Watch ad error:', err);
-    setError('An error occurred while processing the ad reward.');
-  } finally {
-    setWatchingAd(false);
-  }
-};
 
-  
-  const tokenPackages = [
-    {
-      amount: 5,
-      price: '$2.99',
-      icon: faGift,
-      label: 'Starter Pack',
-      popular: false
-    },
-    {
-      amount: 20,
-      price: '$9.99',
-      icon: faStar,
-      label: 'Popular Pack',
-      popular: true
-    },
-    {
-      amount: 50,
-      price: '$19.99',
-      icon: faCrown,
-      label: 'Pro Pack',
-      popular: false
+    setError(null);
+    setWatchingAd(true);
+    
+    try {
+      // Simulate ad watching
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      const success = await earnTokenFromAd();
+      if (success) {
+        const userData = getCurrentUser();
+        if (userData) {
+          const updatedBalance = localStorage.getItem('tokenBalance');
+          if (updatedBalance) {
+            onBalanceChange(Number(updatedBalance));
+          }
+        }
+        setShowDropdown(false);
+      } else {
+        setError('Failed to earn token. Please try again.');
+      }
+    } catch (err) {
+      console.error('Watch ad error:', err);
+      setError('An error occurred while processing the ad reward.');
+    } finally {
+      setWatchingAd(false);
     }
-  ];
+  };
+
+  const toggleDropdown = () => {
+    setError(null);
+    setShowDropdown(!showDropdown);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDropdown]);
+
+  // Dropdown animations
+  useEffect(() => {
+    if (showDropdown && dropdownRef.current) {
+      const ctx = gsap.context(() => {
+        gsap.fromTo(dropdownRef.current, {
+          opacity: 0,
+          y: -10,
+          scale: 0.95,
+        }, {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.2,
+          ease: "power2.out",
+        });
+
+        // Animate content elements
+        gsap.fromTo(".dropdown-content > *", {
+          opacity: 0,
+          y: 10,
+        }, {
+          opacity: 1,
+          y: 0,
+          duration: 0.15,
+          stagger: 0.03,
+          delay: 0.1,
+          ease: "power2.out",
+        });
+      }, dropdownRef);
+
+      return () => ctx.revert();
+    }
+  }, [showDropdown]);
 
   return (
-    <div className="token-panel">
+    <div ref={panelRef} className="token-panel">
       {/* Token Balance Button */}
-      <motion.button 
-        className="token-balance-button"
-        onClick={toggleOptions}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
+      <button 
+        className="token-balance-btn"
+        onClick={toggleDropdown}
+        title="Manage Tokens"
       >
         <div className="token-icon-wrapper">
           <FontAwesomeIcon icon={faCoins} className="token-icon" />
-          <motion.div 
-            className="token-sparkle"
-            animate={{ 
-              opacity: [0.4, 1, 0.4],
-              scale: [0.8, 1.2, 0.8]
-            }}
-            transition={{ 
-              duration: 2, 
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-          >
+          <div className="token-sparkle">
             <FontAwesomeIcon icon={faSparkles} />
-          </motion.div>
+          </div>
         </div>
-        <div className="token-balance-content">
+        <div className="token-content">
           <span className="token-count">{tokenBalance}</span>
           <span className="token-label">Tokens</span>
         </div>
         <FontAwesomeIcon 
           icon={faArrowDown} 
-          className={`dropdown-icon ${showOptions ? 'open' : ''}`} 
+          className={`dropdown-icon ${showDropdown ? 'open' : ''}`} 
         />
-      </motion.button>
+      </button>
       
-      {/* Token Options Dropdown */}
-      <AnimatePresence>
-        {showOptions && (
-          <>
-            {/* Backdrop */}
-            <motion.div 
-              className="token-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowOptions(false)}
-            />
-            
-            {/* Options Panel */}
-            <motion.div 
-              className="token-options"
-              initial={{ opacity: 0, y: -20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -20, scale: 0.95 }}
-              transition={{ 
-                type: "spring", 
-                stiffness: 300, 
-                damping: 25 
-              }}
-            >
-              <Card variant="glass" padding="lg" className="token-options-card">
-                {/* Header */}
-                <div className="token-options-header">
-                  <h3 className="options-title">
+      {/* Dropdown */}
+      {showDropdown && (
+        <div ref={dropdownRef} className="token-dropdown">
+          <Card variant="glass" className="dropdown-card">
+            <div className="dropdown-content">
+              {/* Header */}
+              <div className="dropdown-header">
+                <div className="balance-info">
+                  <div className="balance-icon">
                     <FontAwesomeIcon icon={faCoins} />
-                    Get More Tokens
-                  </h3>
-                  <p className="options-subtitle">
-                    Unlock premium features and high-quality downloads
-                  </p>
-                </div>
-                
-                {/* Error Message */}
-                {error && (
-                  <motion.div 
-                    className="token-error-message"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                  >
-                    <Card variant="glass" padding="sm" className="error-card">
-                      {error}
-                    </Card>
-                  </motion.div>
-                )}
-                
-                {/* Watch Ad Option */}
-                <motion.div 
-                  className="watch-ad-section"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                >
-                  <Card variant="glass" padding="md" className="watch-ad-card">
-                    <button 
-                      className="watch-ad-button"
-                      onClick={handleWatchAd}
-                      disabled={isPurchasing || isWatchingAd}
-                    >
-                      <div className="watch-ad-icon">
-                        <FontAwesomeIcon icon={faVideo} />
-                      </div>
-                      <div className="watch-ad-content">
-                        <h4>Earn 1 Free Token</h4>
-                        <p>{isWatchingAd ? 'Watching Ad...' : 'Watch a short video'}</p>
-                      </div>
-                      {isWatchingAd && (
-                        <motion.div 
-                          className="loading-spinner"
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                        />
-                      )}
-                    </button>
-                  </Card>
-                </motion.div>
-                
-                {/* Purchase Options */}
-                <div className="purchase-section">
-                  <h4 className="purchase-title">Token Packages</h4>
-                  <div className="token-packages">
-                    {tokenPackages.map((pkg, index) => (
-                      <motion.div
-                        key={pkg.amount}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 + (index * 0.1) }}
-                      >
-                        <Card 
-                          variant="glass" 
-                          padding="md" 
-                          hover
-                          className={`token-package ${pkg.popular ? 'popular' : ''}`}
-                        >
-                          {pkg.popular && (
-                            <div className="popular-badge">
-                              <FontAwesomeIcon icon={faStar} />
-                              Most Popular
-                            </div>
-                          )}
-                          
-                          <button 
-                            className="package-button"
-                            onClick={() => handlePurchaseTokens(pkg.amount)}
-                            disabled={isPurchasing || isWatchingAd}
-                          >
-                            <div className="package-icon">
-                              <FontAwesomeIcon icon={pkg.icon} />
-                            </div>
-                            <div className="package-content">
-                              <div className="package-amount">{pkg.amount} Tokens</div>
-                              <div className="package-label">{pkg.label}</div>
-                              <div className="package-price">{pkg.price}</div>
-                            </div>
-                            {isPurchasing && (
-                              <motion.div 
-                                className="loading-spinner"
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                              />
-                            )}
-                          </button>
-                        </Card>
-                      </motion.div>
-                    ))}
+                  </div>
+                  <div className="balance-text">
+                    <span className="balance-amount">{tokenBalance}</span>
+                    <span className="balance-label">Tokens</span>
                   </div>
                 </div>
-                
-                {/* Token Usage Info */}
-                <motion.div 
-                  className="token-info"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                >
-                  <Card variant="glass" padding="sm" className="usage-info-card">
-                    <h5 className="usage-title">Token Usage</h5>
+              </div>
+
+              {/* Error Message */}
+              {error && (
+                <div className="error-message">
+                  <FontAwesomeIcon icon={faExclamationTriangle} />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {/* Guest User Actions */}
+              {isGuest ? (
+                <div className="auth-section">
+                  <div className="auth-message">
+                    <p>Sign in to get tokens</p>
+                  </div>
+                  <div className="auth-buttons">
+                    <button 
+                      className="auth-btn signin-btn"
+                      onClick={() => {
+                        onShowLogin?.();
+                        setShowDropdown(false);
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faSignInAlt} />
+                      Sign In
+                    </button>
+                    <button 
+                      className="auth-btn signup-btn"
+                      onClick={() => {
+                        onShowSignup?.();
+                        setShowDropdown(false);
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faUserPlus} />
+                      Sign Up
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Watch Ad Section */}
+                  <div className="watch-ad-section">
+                    <button 
+                      className="watch-ad-btn"
+                      onClick={handleWatchAd}
+                      disabled={isWatchingAd || isPurchasing}
+                    >
+                      <div className="ad-icon">
+                        <FontAwesomeIcon icon={faVideo} />
+                      </div>
+                      <div className="ad-text">
+                        <span className="ad-title">Watch Ad</span>
+                        <span className="ad-reward">{isWatchingAd ? 'Playing...' : 'Earn 1 token'}</span>
+                      </div>
+                      {isWatchingAd && <div className="spinner" />}
+                    </button>
+                  </div>
+
+                  {/* Purchase Section */}
+                  <div className="purchase-section">
+                    <div className="section-title">Token Packages</div>
+                    <div className="packages-list">
+                      {tokenPackages.map((pkg) => (
+                        <button 
+                          key={pkg.amount}
+                          className={`package-item ${pkg.popular ? 'popular' : ''}`}
+                          onClick={() => handlePurchaseTokens(pkg.amount)}
+                          disabled={isPurchasing || isWatchingAd}
+                        >
+                          <div className="package-icon" style={{ background: pkg.gradient }}>
+                            <FontAwesomeIcon icon={pkg.icon} />
+                          </div>
+                          <div className="package-details">
+                            <div className="package-amount">{pkg.amount} tokens</div>
+                            <div className="package-price">{pkg.price}</div>
+                          </div>
+                          {pkg.popular && <div className="popular-badge">Popular</div>}
+                          {isPurchasing && <div className="spinner" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Usage Info */}
+                  <div className="usage-section">
+                    <div className="section-title">Token Usage</div>
                     <div className="usage-list">
                       <div className="usage-item">
-                        <FontAwesomeIcon icon={faCoins} />
-                        <span>Background Removal: 1 token</span>
+                        <span className="service">Background Removal</span>
+                        <span className="cost">1 token</span>
                       </div>
                       <div className="usage-item">
-                        <FontAwesomeIcon icon={faCoins} />
-                        <span>AI Upscaling: 1 token</span>
+                        <span className="service">AI Upscaling</span>
+                        <span className="cost">1 token</span>
                       </div>
                       <div className="usage-item">
-                        <FontAwesomeIcon icon={faCoins} />
-                        <span>Smart Enlarge: 1 token</span>
+                        <span className="service">Smart Enlarge</span>
+                        <span className="cost">1 token</span>
                       </div>
                       <div className="usage-item">
-                        <FontAwesomeIcon icon={faCoins} />
-                        <span>Object Removal: 1 token</span>
+                        <span className="service">Object Removal</span>
+                        <span className="cost">1 token</span>
                       </div>
                     </div>
-                  </Card>
-                </motion.div>
-              </Card>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+                  </div>
+                </>
+              )}
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

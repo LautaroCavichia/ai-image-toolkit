@@ -1,10 +1,9 @@
 // src/components/sections/Hero/Hero.tsx
-import React, { useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useRef, useState } from 'react';
+import { gsap } from 'gsap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faRocket, faWandMagicSparkles, faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { faRocket, faWandMagicSparkles, faArrowRight, faPlay, faTimes } from '@fortawesome/free-solid-svg-icons';
 import Button from '../../shared/Button';
-import AnimatedText from '../../shared/AnimatedText/AnimatedText';
 import './Hero.css';
 
 interface HeroProps {
@@ -17,6 +16,13 @@ const Hero: React.FC<HeroProps> = ({
   onWatchDemo,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const subtitleRef = useRef<HTMLParagraphElement>(null);
+  const buttonsRef = useRef<HTMLDivElement>(null);
+  const aiWordRef = useRef<HTMLSpanElement>(null);
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   // Particle animation effect (io.net inspired)
   useEffect(() => {
@@ -127,30 +133,99 @@ const Hero: React.FC<HeroProps> = ({
     };
   }, []);
 
-  const containerVariants = {
-    hidden: {},
-    visible: {
-      transition: {
-        staggerChildren: 0.2,
-        delayChildren: 0.3,
-      },
-    },
+  // GSAP animations
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      // Set initial states
+      gsap.set([titleRef.current, subtitleRef.current, buttonsRef.current], {
+        opacity: 0,
+        y: 30,
+      });
+
+      // Entrance animation timeline
+      const tl = gsap.timeline({ delay: 0.5 });
+      
+      tl.to(titleRef.current, {
+        opacity: 1,
+        y: 0,
+        duration: 0.8,
+        ease: "power2.out",
+      })
+      .to(subtitleRef.current, {
+        opacity: 1,
+        y: 0,
+        duration: 0.6,
+        ease: "power2.out",
+      }, "-=0.4")
+      .to(buttonsRef.current, {
+        opacity: 1,
+        y: 0,
+        duration: 0.6,
+        ease: "power2.out",
+      }, "-=0.3");
+
+      // Floating animations
+      gsap.to(".hero-float-1", {
+        y: 10,
+        rotation: 5,
+        duration: 3,
+        repeat: -1,
+        yoyo: true,
+        ease: "power1.inOut",
+      });
+
+      gsap.to(".hero-float-2", {
+        y: -10,
+        rotation: -5,
+        duration: 4,
+        repeat: -1,
+        yoyo: true,
+        ease: "power1.inOut",
+      });
+
+      // Scroll indicator
+      gsap.to(".scroll-indicator", {
+        opacity: 1,
+        duration: 0.5,
+        delay: 2,
+        ease: "power2.out",
+      });
+    }, heroRef);
+
+    return () => ctx.revert();
+  }, []);
+
+  // Mouse tracking for AI gradient
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!aiWordRef.current) return;
+      
+      const rect = aiWordRef.current.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      
+      setMousePosition({ x, y });
+    };
+
+    const aiWord = aiWordRef.current;
+    if (aiWord) {
+      aiWord.addEventListener('mousemove', handleMouseMove);
+      return () => aiWord.removeEventListener('mousemove', handleMouseMove);
+    }
+  }, []);
+
+  // Handle demo video
+  const handleWatchDemo = () => {
+    setShowVideoModal(true);
+    if (onWatchDemo) onWatchDemo();
   };
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.8,
-        ease: [0.25, 0.46, 0.45, 0.94],
-      },
-    },
+  const closeVideoModal = () => {
+    setShowVideoModal(false);
   };
 
   return (
-    <section className="hero" id="home">
+    <section className="hero" id="home" ref={heroRef}>
       {/* Animated background canvas */}
       <canvas
         ref={canvasRef}
@@ -162,40 +237,41 @@ const Hero: React.FC<HeroProps> = ({
       <div className="hero-gradient" />
       
       <div className="hero-container">
-        <motion.div
-          className="hero-content"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
+        <div className="hero-content">
           {/* Main headline */}
-          <motion.div variants={itemVariants as any} className="hero-headline">
-            <AnimatedText
-              as="h1"
-              className="hero-title"
-              animation="fadeInUp"
-              delay={0.1}
-              autoplay={true}
-            >
-              TRANSFORM IMAGES WITH AI MAGIC
-            </AnimatedText>
-          </motion.div>
+          <div className="hero-headline">
+            <h1 ref={titleRef} className="hero-title">
+              TRANSFORM IMAGES WITH{' '}
+              <span 
+                ref={aiWordRef}
+                className="ai-word"
+                style={{
+                  background: `radial-gradient(circle at ${mousePosition.x}% ${mousePosition.y}%, 
+                    #8b5cf6 0%, 
+                    #3b82f6 25%, 
+                    #10b981 50%, 
+                    #f59e0b 75%, 
+                    #ef4444 100%)`,
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }}
+              >
+                AI
+              </span>{' '}
+              MAGIC
+            </h1>
+          </div>
 
           {/* Subtitle */}
-          <motion.div variants={itemVariants as any} className="hero-subtitle-container">
-            <AnimatedText
-              as="p"
-              className="hero-subtitle"
-              animation="fadeInUp"
-              delay={0}
-              autoplay={true}
-            > 
+          <div className="hero-subtitle-container">
+            <p ref={subtitleRef} className="hero-subtitle">
               Remove backgrounds, upscale images, and enlarge photos in seconds.
-            </AnimatedText>
-          </motion.div>
+            </p>
+          </div>
 
           {/* CTA Buttons */}
-          <motion.div variants={itemVariants as any} className="hero-actions">
+          <div ref={buttonsRef} className="hero-actions">
             <Button
               variant="gradient"
               size="xl"
@@ -210,59 +286,69 @@ const Hero: React.FC<HeroProps> = ({
             <Button
               variant="outline"
               size="xl"
-              rightIcon={<FontAwesomeIcon icon={faArrowRight} />}
-              onClick={onWatchDemo}
+              leftIcon={<FontAwesomeIcon icon={faPlay} />}
+              onClick={handleWatchDemo}
               className="hero-cta-secondary"
             >
               Watch Demo
             </Button>
-          </motion.div>
-
-    
+          </div>
 
           {/* Floating elements */}
-          <motion.div
-            className="hero-float-1"
-            animate={{
-              y: [-10, 10, -10],
-              rotate: [0, 5, 0],
-            }}
-            transition={{
-              duration: 6,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-          >
+          <div className="hero-float-1">
             <FontAwesomeIcon icon={faWandMagicSparkles} />
-          </motion.div>
+          </div>
 
-          <motion.div
-            className="hero-float-2"
-            animate={{
-              y: [10, -10, 10],
-              rotate: [0, -5, 0],
-            }}
-            transition={{
-              duration: 8,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-          >
+          <div className="hero-float-2">
             <div className="float-orb" />
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
 
         {/* Scroll indicator */}
-        <motion.div
-          className="scroll-indicator"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2 }}
+        <div 
+          className="scroll-indicator" 
+          style={{ opacity: 0 }}
+          onClick={() => {
+            const servicesSection = document.querySelector('#services');
+            if (servicesSection) {
+              servicesSection.scrollIntoView({ behavior: 'smooth' });
+            }
+          }}
         >
           <div className="scroll-line" />
           <span className="scroll-text">Scroll to explore</span>
-        </motion.div>
+        </div>
       </div>
+
+      {/* Video Modal */}
+      {showVideoModal && (
+        <div className="video-modal-backdrop" onClick={closeVideoModal}>
+          <div className="video-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="video-close-btn" onClick={closeVideoModal}>
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+            <div className="video-container">
+              <video
+                controls
+                autoPlay
+                className="demo-video"
+                poster="/assets/video-thumbnail.jpg"
+              >
+                <source src="/assets/demo-video.mp4" type="video/mp4" />
+                <source src="/assets/demo-video.webm" type="video/webm" />
+                Your browser does not support the video tag.
+              </video>
+              <div className="video-placeholder">
+                <div className="placeholder-content">
+                  <FontAwesomeIcon icon={faPlay} className="placeholder-icon" />
+                  <h3>Demo Video Coming Soon</h3>
+                  <p>We're preparing an amazing demo video to showcase our AI-powered image processing capabilities.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };

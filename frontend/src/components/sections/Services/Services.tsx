@@ -1,6 +1,7 @@
 // src/components/sections/Services/Services.tsx
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useRef } from 'react';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faScissors, 
@@ -10,13 +11,13 @@ import {
   faUserCog as faUsersCrown,
   faPalette,
   faClock,
-  faCheck,
-  faLock
+  faCheck
 } from '@fortawesome/free-solid-svg-icons';
-import AnimatedText from '../../shared/AnimatedText/AnimatedText';
-import ScrollReveal from '../../shared/ScrollReveal';
 import Card from '../../shared/Card';
 import './Services.css';
+
+// Register ScrollTrigger plugin
+gsap.registerPlugin(ScrollTrigger);
 
 const services = [
   {
@@ -28,7 +29,8 @@ const services = [
     disabled: false,
     features: ['Edge Detection', 'Hair Details', 'Complex Backgrounds'],
     processingTime: '3-8s',
-    accuracy: '99.7%'
+    accuracy: '99.7%',
+    serviceKey: 'background-removal' as const
   },
   {
     name: 'AI Upscaling',
@@ -39,7 +41,8 @@ const services = [
     disabled: false,
     features: ['4x Resolution', 'Quality Preserve', 'Detail Enhancement'],
     processingTime: '5-12s',
-    accuracy: '98.5%'
+    accuracy: '98.5%',
+    serviceKey: 'upscale' as const
   },
   {
     name: 'Smart Enlarge',
@@ -50,7 +53,8 @@ const services = [
     disabled: false,
     features: ['Context Aware', 'Natural Extension', 'Scene Coherence'],
     processingTime: '8-15s',
-    accuracy: '96.8%'
+    accuracy: '96.8%',
+    serviceKey: 'enlarge' as const
   },
   {
     name: 'Object Removal',
@@ -61,7 +65,8 @@ const services = [
     disabled: false,
     features: ['Smart Select', 'Generative Fill', 'Seamless Blend'],
     processingTime: '6-10s',
-    accuracy: '97.2%'
+    accuracy: '97.2%',
+    serviceKey: 'object-removal' as const
   },
   {
     name: 'Face Swap',
@@ -72,7 +77,8 @@ const services = [
     disabled: true,
     features: ['Realistic Swap', 'Expression Match', 'Lighting Adapt'],
     processingTime: 'Coming Soon',
-    accuracy: 'TBD'
+    accuracy: 'TBD',
+    serviceKey: null
   },
   {
     name: 'Style Transfer',
@@ -83,69 +89,126 @@ const services = [
     disabled: true,
     features: ['Artistic Styles', 'Custom Models', 'Style Blending'],
     processingTime: 'Coming Soon',
-    accuracy: 'TBD'
+    accuracy: 'TBD',
+    serviceKey: null
   },
 ];
 
-const Services: React.FC = () => {
-  const containerVariants = {
-    hidden: {},
-    visible: {
-      transition: {
-        staggerChildren: 0.15,
-        delayChildren: 0.2,
-      },
-    },
-  };
+interface ServicesProps {
+  onServiceClick?: (servicePage: 'background-removal' | 'upscale' | 'enlarge' | 'object-removal') => void;
+}
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 40, scale: 0.9 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: {
-        duration: 0.7,
-        ease: [0.25, 0.46, 0.45, 0.94],
-      },
-    },
-  };
+const Services: React.FC<ServicesProps> = ({ onServiceClick }) => {
+  const sectionRef = useRef<HTMLElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const cardsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      // Header animation
+      if (headerRef.current?.children) {
+        gsap.fromTo(headerRef.current.children, {
+          opacity: 0,
+          y: 30,
+        }, {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          stagger: 0.2,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: headerRef.current,
+            start: "top 80%",
+            end: "bottom 20%",
+            toggleActions: "play none none reverse",
+          }
+        });
+      }
+
+      // Service cards animation
+      gsap.fromTo(".service-card", {
+        opacity: 0,
+        y: 50,
+        scale: 0.9,
+      }, {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        duration: 0.6,
+        stagger: 0.15,
+        ease: "power2.out",
+        scrollTrigger: {
+          trigger: cardsRef.current,
+          start: "top 80%",
+          end: "bottom 20%",
+          toggleActions: "play none none reverse",
+        }
+      });
+
+      // Tech logos animation
+      gsap.fromTo(".tech-logo", {
+        opacity: 0,
+        scale: 0.8,
+      }, {
+        opacity: 1,
+        scale: 1,
+        duration: 0.4,
+        stagger: 0.1,
+        ease: "back.out(1.2)",
+        scrollTrigger: {
+          trigger: ".tech-logos",
+          start: "top 80%",
+          end: "bottom 20%",
+          toggleActions: "play none none reverse",
+        }
+      });
+
+      // Stats animation
+      gsap.fromTo(".stat-item", {
+        opacity: 0,
+        scale: 0.8,
+      }, {
+        opacity: 1,
+        scale: 1,
+        duration: 0.5,
+        stagger: 0.1,
+        ease: "back.out(1.2)",
+        scrollTrigger: {
+          trigger: ".stats-grid",
+          start: "top 80%",
+          end: "bottom 20%",
+          toggleActions: "play none none reverse",
+        }
+      });
+    }, sectionRef);
+
+    return () => ctx.revert();
+  }, []);
 
   return (
-    <section className="services-section" id="services">
+    <section ref={sectionRef} className="services-section" id="services">
       <div className="services-container">
         {/* Header */}
-        <ScrollReveal>
-          <div className="services-header">
-            <AnimatedText
-              as="h2"
-              className="services-title"
-              animation="fadeInUp"
-            >
-              AI-Powered Services
-            </AnimatedText>
-            <AnimatedText
-              as="p"
-              className="services-subtitle"
-              animation="fadeInUp"
-              delay={0.2}
-            >
-              Professional-grade microservices for automated image editing. 
-              Built to scale, designed to integrate seamlessly into your workflow.
-            </AnimatedText>
-          </div>
-        </ScrollReveal>
+        <div ref={headerRef} className="services-header">
+          <h2 className="services-title">AI-Powered Services</h2>
+          <p className="services-subtitle">
+            Professional-grade microservices for automated image editing. 
+            Built to scale, designed to integrate seamlessly into your workflow.
+          </p>
+        </div>
 
         {/* Services Grid */}
-        <motion.div 
-          className="services-grid"
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-50px" }}
-        >
+        <div ref={cardsRef} className="services-grid">
           {services.map((service) => (
-            <motion.div key={service.name} variants={itemVariants}>
+            <div 
+              key={service.name}
+              onClick={() => {
+                if (!service.disabled && service.serviceKey && onServiceClick) {
+                  onServiceClick(service.serviceKey);
+                }
+              }}
+              style={{ cursor: !service.disabled && service.serviceKey ? 'pointer' : 'default' }}
+            >
               <Card
                 variant="glass"
                 padding="xl"
@@ -211,37 +274,33 @@ const Services: React.FC = () => {
                   }}
                 />
               </Card>
-            </motion.div>
+            </div>
           ))}
-        </motion.div>
+        </div>
 
-        {/* Bottom CTA */}
-        <ScrollReveal delay={0.6}>
-          <div className="services-cta">
-            <motion.div 
-              className="cta-content"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-            >
-              <h3 className="cta-title">Ready to Transform Your Images?</h3>
-              <p className="cta-subtitle">
-                Start with our free tier and scale as you grow. No setup required.
-              </p>
-              <div className="cta-stats">
-                <div className="cta-stat">
-                  <FontAwesomeIcon icon={faLock} />
-                  <span>Enterprise Security</span>
-                </div>
-                <div className="cta-stat">
-                  <FontAwesomeIcon icon={faCheck} />
-                  <span>99.9% Uptime SLA</span>
-                </div>
+        {/* Tech Stack */}
+        <div className="tech-stack">
+          <h3 className="tech-stack-title">Powered by Modern Technologies</h3>
+          
+          <div className="tech-logos">
+            {[
+              { name: 'React', icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg' },
+              { name: 'TypeScript', icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg' },
+              { name: 'Spring Boot', icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/spring/spring-original.svg' },
+              { name: 'Python', icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg' },
+              { name: 'PostgreSQL', icon: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg' },
+            ].map((tech) => (
+              <div key={tech.name} className="tech-logo">
+                <img 
+                  src={tech.icon}
+                  alt={tech.name}
+                  className="tech-logo-img" 
+                />
+                <span className="tech-name">{tech.name}</span>
               </div>
-            </motion.div>
+            ))}
           </div>
-        </ScrollReveal>
+        </div>
       </div>
     </section>
   );
