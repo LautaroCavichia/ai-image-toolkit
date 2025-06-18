@@ -1,22 +1,19 @@
-// src/components/TokenPanel/TokenPanel.tsx
 import React, { useState, useEffect, useRef } from 'react';
-import { gsap } from 'gsap';
+import { motion, AnimatePresence } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faCoins,
-  faSignInAlt,
-  faUserPlus,
+  faPlus,
   faVideo,
-  faArrowDown,
-  faMagicWandSparkles as faSparkles,
+  faStar,
   faCrown,
   faGift,
-  faStar,
+  faSpinner,
+  faChevronDown,
   faExclamationTriangle
 } from '@fortawesome/free-solid-svg-icons';
 import { purchaseTokens, earnTokenFromAd } from '../../services/tokenService';
-import { isGuestUser, getCurrentUser } from '../../services/authService';
-import Card from '../shared/Card';
+import { isGuestUser } from '../../services/authService';
 import './TokenPanel.css';
 
 interface TokenPanelProps {
@@ -32,309 +29,264 @@ const TokenPanel: React.FC<TokenPanelProps> = ({
   onShowLogin,
   onShowSignup
 }) => {
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [isPurchasing, setPurchasing] = useState(false);
-  const [isWatchingAd, setWatchingAd] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   
   const isGuest = isGuestUser();
-  
+
   const tokenPackages = [
     {
-      amount: 5,
-      price: '$2.99',
+      id: 'starter',
+      tokens: 10,
+      price: '$4.99',
+      bonus: 0,
       icon: faGift,
-      label: 'Starter',
-      popular: false,
-      gradient: 'linear-gradient(135deg, #10b981, #059669)'
+      color: 'var(--success)',
+      label: 'Starter'
     },
     {
-      amount: 20,
+      id: 'popular',
+      tokens: 25,
       price: '$9.99',
+      bonus: 5,
       icon: faStar,
+      color: 'var(--accent-primary)',
       label: 'Popular',
-      popular: true,
-      gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)'
+      popular: true
     },
     {
-      amount: 50,
+      id: 'pro',
+      tokens: 60,
       price: '$19.99',
+      bonus: 15,
       icon: faCrown,
-      label: 'Pro',
-      popular: false,
-      gradient: 'linear-gradient(135deg, #8b5cf6, #7c3aed)'
+      color: 'var(--warning)',
+      label: 'Pro'
     }
   ];
 
-  const handlePurchaseTokens = async (amount: number) => {
+  const handleToggle = () => {
     if (isGuest) {
-      setError('Please sign in to purchase tokens');
+      onShowLogin?.();
       return;
     }
-
+    setIsOpen(!isOpen);
     setError(null);
-    setPurchasing(true);
+  };
+
+  const handlePurchase = async (packageId: string) => {
+    const pkg = tokenPackages.find(p => p.id === packageId);
+    if (!pkg) return;
+
+    setIsLoading(true);
+    setError(null);
     
     try {
-      const success = await purchaseTokens(amount);
+      const totalTokens = pkg.tokens + pkg.bonus;
+      const success = await purchaseTokens(totalTokens);
+      
       if (success) {
-        onBalanceChange(tokenBalance + amount);
-        setShowDropdown(false);
+        onBalanceChange(tokenBalance + totalTokens);
+        setIsOpen(false);
       } else {
-        setError('Failed to purchase tokens. Please try again.');
+        setError('Purchase failed. Please try again.');
       }
     } catch (err) {
-      console.error('Token purchase error:', err);
-      setError('An error occurred while purchasing tokens.');
+      setError('An error occurred during purchase.');
     } finally {
-      setPurchasing(false);
+      setIsLoading(false);
     }
   };
-  
-  const handleWatchAd = async () => {
-    if (isGuest) {
-      setError('Please sign in to earn tokens');
-      return;
-    }
 
+  const handleWatchAd = async () => {
+    setIsLoading(true);
     setError(null);
-    setWatchingAd(true);
     
     try {
       // Simulate ad watching
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       const success = await earnTokenFromAd();
       if (success) {
-        const userData = getCurrentUser();
-        if (userData) {
-          const updatedBalance = localStorage.getItem('tokenBalance');
-          if (updatedBalance) {
-            onBalanceChange(Number(updatedBalance));
-          }
-        }
-        setShowDropdown(false);
+        onBalanceChange(tokenBalance + 1);
+        setIsOpen(false);
       } else {
-        setError('Failed to earn token. Please try again.');
+        setError('Ad reward failed. Please try again.');
       }
     } catch (err) {
-      console.error('Watch ad error:', err);
-      setError('An error occurred while processing the ad reward.');
+      setError('An error occurred while processing ad reward.');
     } finally {
-      setWatchingAd(false);
+      setIsLoading(false);
     }
-  };
-
-  const toggleDropdown = () => {
-    setError(null);
-    setShowDropdown(!showDropdown);
   };
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
+        setIsOpen(false);
       }
     };
 
-    if (showDropdown) {
+    if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showDropdown]);
-
-  // Dropdown animations
-  useEffect(() => {
-    if (showDropdown && dropdownRef.current) {
-      const ctx = gsap.context(() => {
-        gsap.fromTo(dropdownRef.current, {
-          opacity: 0,
-          y: -10,
-          scale: 0.95,
-        }, {
-          opacity: 1,
-          y: 0,
-          scale: 1,
-          duration: 0.2,
-          ease: "power2.out",
-        });
-
-        // Animate content elements
-        gsap.fromTo(".dropdown-content > *", {
-          opacity: 0,
-          y: 10,
-        }, {
-          opacity: 1,
-          y: 0,
-          duration: 0.15,
-          stagger: 0.03,
-          delay: 0.1,
-          ease: "power2.out",
-        });
-      }, dropdownRef);
-
-      return () => ctx.revert();
-    }
-  }, [showDropdown]);
+  }, [isOpen]);
 
   return (
-    <div ref={panelRef} className="token-panel">
-      {/* Token Balance Button */}
-      <button 
-        className="token-balance-btn"
-        onClick={toggleDropdown}
-        title="Manage Tokens"
+    <div ref={panelRef} className="token-panel-wrapper">
+      <motion.button
+        className={`token-panel-trigger ${isGuest ? 'guest' : ''}`}
+        onClick={handleToggle}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
       >
-        <div className="token-icon-wrapper">
+        <div className="token-icon-container">
           <FontAwesomeIcon icon={faCoins} className="token-icon" />
-          <div className="token-sparkle">
-            <FontAwesomeIcon icon={faSparkles} />
-          </div>
+          <motion.div 
+            className="token-glow"
+            animate={{ 
+              opacity: [0.5, 1, 0.5],
+              scale: [1, 1.1, 1] 
+            }}
+            transition={{ 
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut" 
+            }}
+          />
         </div>
-        <div className="token-content">
+        
+        <div className="token-info">
           <span className="token-count">{tokenBalance}</span>
           <span className="token-label">Tokens</span>
         </div>
-        <FontAwesomeIcon 
-          icon={faArrowDown} 
-          className={`dropdown-icon ${showDropdown ? 'open' : ''}`} 
-        />
-      </button>
-      
-      {/* Dropdown */}
-      {showDropdown && (
-        <div ref={dropdownRef} className="token-dropdown">
-          <Card variant="glass" className="dropdown-card">
-            <div className="dropdown-content">
-              {/* Header */}
-              <div className="dropdown-header">
-                <div className="balance-info">
-                  <div className="balance-icon">
-                    <FontAwesomeIcon icon={faCoins} />
-                  </div>
-                  <div className="balance-text">
-                    <span className="balance-amount">{tokenBalance}</span>
-                    <span className="balance-label">Tokens</span>
-                  </div>
+
+        {!isGuest && (
+          <FontAwesomeIcon 
+            icon={faChevronDown} 
+            className={`chevron ${isOpen ? 'open' : ''}`}
+          />
+        )}
+      </motion.button>
+
+      <AnimatePresence>
+        {isOpen && !isGuest && (
+          <motion.div
+            className="token-panel-dropdown"
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
+            <div className="dropdown-header">
+              <h3>Get More Tokens</h3>
+              <p>Choose how you'd like to earn tokens</p>
+            </div>
+
+            {error && (
+              <motion.div 
+                className="error-notice"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+              >
+                <FontAwesomeIcon icon={faExclamationTriangle} />
+                <span>{error}</span>
+              </motion.div>
+            )}
+
+            {/* Watch Ad Section */}
+            <div className="earn-section">
+              <motion.button
+                className="watch-ad-button"
+                onClick={handleWatchAd}
+                disabled={isLoading}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <div className="ad-icon">
+                  <FontAwesomeIcon icon={isLoading ? faSpinner : faVideo} 
+                    className={isLoading ? 'spinning' : ''} />
+                </div>
+                <div className="ad-content">
+                  <span className="ad-title">
+                    {isLoading ? 'Processing...' : 'Watch Ad'}
+                  </span>
+                  <span className="ad-reward">Earn 1 free token</span>
+                </div>
+              </motion.button>
+            </div>
+
+            {/* Purchase Packages */}
+            <div className="purchase-section">
+              <h4>Token Packages</h4>
+              <div className="packages-grid">
+                {tokenPackages.map((pkg, index) => (
+                  <motion.button
+                    key={pkg.id}
+                    className={`package-card ${pkg.popular ? 'popular' : ''}`}
+                    onClick={() => handlePurchase(pkg.id)}
+                    disabled={isLoading}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    {pkg.popular && (
+                      <div className="popular-badge">Most Popular</div>
+                    )}
+                    
+                    <div className="package-icon" style={{ color: pkg.color }}>
+                      <FontAwesomeIcon icon={pkg.icon} />
+                    </div>
+                    
+                    <div className="package-info">
+                      <div className="package-tokens">
+                        {pkg.tokens} tokens
+                        {pkg.bonus > 0 && (
+                          <span className="bonus">+{pkg.bonus} bonus</span>
+                        )}
+                      </div>
+                      <div className="package-price">{pkg.price}</div>
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+
+            {/* Usage Info */}
+            <div className="usage-info">
+              <h4>Token Usage</h4>
+              <div className="usage-list">
+                <div className="usage-item">
+                  <span>Background Removal</span>
+                  <span>1 token</span>
+                </div>
+                <div className="usage-item">
+                  <span>AI Upscaling (Premium)</span>
+                  <span>1 token</span>
+                </div>
+                <div className="usage-item">
+                  <span>Image Enlargement (Premium)</span>
+                  <span>1 token</span>
+                </div>
+                <div className="usage-item">
+                  <span>Object Removal (Premium)</span>
+                  <span>1 token</span>
                 </div>
               </div>
-
-              {/* Error Message */}
-              {error && (
-                <div className="error-message">
-                  <FontAwesomeIcon icon={faExclamationTriangle} />
-                  <span>{error}</span>
-                </div>
-              )}
-
-              {/* Guest User Actions */}
-              {isGuest ? (
-                <div className="auth-section">
-                  <div className="auth-message">
-                    <p>Sign in to get tokens</p>
-                  </div>
-                  <div className="auth-buttons">
-                    <button 
-                      className="auth-btn signin-btn"
-                      onClick={() => {
-                        onShowLogin?.();
-                        setShowDropdown(false);
-                      }}
-                    >
-                      <FontAwesomeIcon icon={faSignInAlt} />
-                      Sign In
-                    </button>
-                    <button 
-                      className="auth-btn signup-btn"
-                      onClick={() => {
-                        onShowSignup?.();
-                        setShowDropdown(false);
-                      }}
-                    >
-                      <FontAwesomeIcon icon={faUserPlus} />
-                      Sign Up
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {/* Watch Ad Section */}
-                  <div className="watch-ad-section">
-                    <button 
-                      className="watch-ad-btn"
-                      onClick={handleWatchAd}
-                      disabled={isWatchingAd || isPurchasing}
-                    >
-                      <div className="ad-icon">
-                        <FontAwesomeIcon icon={faVideo} />
-                      </div>
-                      <div className="ad-text">
-                        <span className="ad-title">Watch Ad</span>
-                        <span className="ad-reward">{isWatchingAd ? 'Playing...' : 'Earn 1 token'}</span>
-                      </div>
-                      {isWatchingAd && <div className="spinner" />}
-                    </button>
-                  </div>
-
-                  {/* Purchase Section */}
-                  <div className="purchase-section">
-                    <div className="section-title">Token Packages</div>
-                    <div className="packages-list">
-                      {tokenPackages.map((pkg) => (
-                        <button 
-                          key={pkg.amount}
-                          className={`package-item ${pkg.popular ? 'popular' : ''}`}
-                          onClick={() => handlePurchaseTokens(pkg.amount)}
-                          disabled={isPurchasing || isWatchingAd}
-                        >
-                          <div className="package-icon" style={{ background: pkg.gradient }}>
-                            <FontAwesomeIcon icon={pkg.icon} />
-                          </div>
-                          <div className="package-details">
-                            <div className="package-amount">{pkg.amount} tokens</div>
-                            <div className="package-price">{pkg.price}</div>
-                          </div>
-                          {pkg.popular && <div className="popular-badge">Popular</div>}
-                          {isPurchasing && <div className="spinner" />}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Usage Info */}
-                  <div className="usage-section">
-                    <div className="section-title">Token Usage</div>
-                    <div className="usage-list">
-                      <div className="usage-item">
-                        <span className="service">Background Removal</span>
-                        <span className="cost">1 token</span>
-                      </div>
-                      <div className="usage-item">
-                        <span className="service">AI Upscaling</span>
-                        <span className="cost">1 token</span>
-                      </div>
-                      <div className="usage-item">
-                        <span className="service">Smart Enlarge</span>
-                        <span className="cost">1 token</span>
-                      </div>
-                      <div className="usage-item">
-                        <span className="service">Object Removal</span>
-                        <span className="cost">1 token</span>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
             </div>
-          </Card>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

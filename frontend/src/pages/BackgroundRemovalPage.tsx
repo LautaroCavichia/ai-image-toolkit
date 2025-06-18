@@ -49,6 +49,11 @@ const BackgroundRemovalPage: React.FC<BackgroundRemovalPageProps> = ({ onBack })
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.2 }}
       >
+        <ImageUploader 
+          onJobCreated={handleJobCreated}
+          jobType="BG_REMOVAL"
+        />
+
         <div className="service-instructions">
           <h3 className="instructions-title">How to Remove Backgrounds</h3>
           <div className="instructions-list">
@@ -75,11 +80,6 @@ const BackgroundRemovalPage: React.FC<BackgroundRemovalPageProps> = ({ onBack })
             </div>
           </div>
         </div>
-
-        <ImageUploader 
-          onJobCreated={handleJobCreated}
-          jobType="BG_REMOVAL"
-        />
       </motion.div>
 
       {currentJob && (

@@ -49,6 +49,11 @@ const UpscalePage: React.FC<UpscalePageProps> = ({ onBack }) => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.2 }}
       >
+        <ImageUploader 
+          onJobCreated={handleJobCreated}
+          jobType="UPSCALE"
+        />
+
         <div className="service-instructions">
           <h3 className="instructions-title">How to Upscale Images</h3>
           <div className="instructions-list">
@@ -75,11 +80,6 @@ const UpscalePage: React.FC<UpscalePageProps> = ({ onBack }) => {
             </div>
           </div>
         </div>
-
-        <ImageUploader 
-          onJobCreated={handleJobCreated}
-          jobType="UPSCALE"
-        />
       </motion.div>
 
       {currentJob && (
