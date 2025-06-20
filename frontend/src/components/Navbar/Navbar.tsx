@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faSignOutAlt, 
@@ -12,7 +12,12 @@ import {
   faBars,
   faTimes,
   faUser,
-  faHistory
+  faHistory,
+  faImage,
+  faArrowsUpDown,
+  faExpand,
+  faWandMagicSparkles,
+  faPalette
 } from '@fortawesome/free-solid-svg-icons';
 import TokenPanel from '../TokenPanel/TokenPanel';
 import './Navbar.css';
@@ -40,6 +45,7 @@ const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -65,39 +71,78 @@ const Navbar: React.FC<NavbarProps> = ({
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
     >
       <div className="navbar-container">
-        <motion.div 
-          className="navbar-logo"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <div className="logo-icon">
-            <div className="logo-square"></div>
-            <div className="logo-circle"></div>
-          </div>
-          <span className="logo-text">PixelPerfect AI</span>
-        </motion.div>
+        <Link to="/">
+          <motion.div 
+            className="navbar-logo"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <div className="logo-icon">
+              <div className="logo-square"></div>
+              <div className="logo-circle"></div>
+            </div>
+            <span className="logo-text">PixelPerfect AI</span>
+          </motion.div>
+        </Link>
         
         <div className="mobile-menu-toggle" onClick={toggleMobileMenu}>
           <FontAwesomeIcon icon={mobileMenuOpen ? faTimes : faBars} />
         </div>
         
         <div className={`navbar-links ${mobileMenuOpen ? 'active' : ''}`}>
-          <a href="#home" className="nav-link" onClick={() => setMobileMenuOpen(false)}>
+          <Link 
+            to="/" 
+            className={`nav-link ${location.pathname === '/' ? 'active' : ''}`} 
+            onClick={() => setMobileMenuOpen(false)}
+          >
             <FontAwesomeIcon icon={faHome} />
             <span>Home</span>
-          </a>
-          <a href="#features" className="nav-link" onClick={() => setMobileMenuOpen(false)}>
-            <FontAwesomeIcon icon={faInfo} />
-            <span>Features</span>
-          </a>
-          <a href="#api" className="nav-link" onClick={() => setMobileMenuOpen(false)}>
-            <FontAwesomeIcon icon={faFileAlt} />
-            <span>API</span>
-          </a>
-          <a href="#contact" className="nav-link" onClick={() => setMobileMenuOpen(false)}>
-            <FontAwesomeIcon icon={faEnvelope} />
-            <span>Contact</span>
-          </a>
+          </Link>
+          
+          <Link 
+            to="/background-removal" 
+            className={`nav-link ${location.pathname === '/background-removal' ? 'active' : ''}`} 
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <FontAwesomeIcon icon={faImage} />
+            <span>Background Removal</span>
+          </Link>
+          
+          <Link 
+            to="/upscale" 
+            className={`nav-link ${location.pathname === '/upscale' ? 'active' : ''}`} 
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <FontAwesomeIcon icon={faArrowsUpDown} />
+            <span>Upscale</span>
+          </Link>
+          
+          <Link 
+            to="/enlarge" 
+            className={`nav-link ${location.pathname === '/enlarge' ? 'active' : ''}`} 
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <FontAwesomeIcon icon={faExpand} />
+            <span>Enlarge</span>
+          </Link>
+          
+          <Link 
+            to="/object-removal" 
+            className={`nav-link ${location.pathname === '/object-removal' ? 'active' : ''}`} 
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <FontAwesomeIcon icon={faWandMagicSparkles} />
+            <span>Object Removal</span>
+          </Link>
+          
+          <div 
+            className="nav-link disabled coming-soon"
+            title="Coming Soon"
+          >
+            <FontAwesomeIcon icon={faPalette} />
+            <span>Style Transfer</span>
+            <span className="nav-badge">Soon</span>
+          </div>
         </div>
         
         <div className="navbar-actions">

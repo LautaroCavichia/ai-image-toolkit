@@ -1,0 +1,98 @@
+/* Layout styles */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main {
+  flex: 1;
+  padding-top: 80px; /* Account for fixed navbar */
+}
+
+/* Modal styles */
+.auth-modal,
+.job-status-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.auth-modal-content,
+.job-status-content {
+  background: white;
+  border-radius: 12px;
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.auth-modal-content {
+  width: 100%;
+  max-width: 500px;
+  padding: 0;
+}
+
+.job-status-content {
+  width: 100%;
+  max-width: 800px;
+  padding: 20px;
+}
+
+.profile-modal {
+  max-width: 600px;
+}
+
+.close-button {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(0, 0, 0, 0.1);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  color: #666;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.close-button:hover {
+  background: rgba(0, 0, 0, 0.2);
+  color: #333;
+  transform: scale(1.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .auth-modal,
+  .job-status-modal {
+    padding: 10px;
+  }
+  
+  .auth-modal-content,
+  .job-status-content {
+    max-width: 95vw;
+    max-height: 95vh;
+  }
+  
+  .app-main {
+    padding-top: 70px;
+  }
+}
