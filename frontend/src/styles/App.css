@@ -243,11 +243,6 @@ button {
   transition: all 0.2s;
 }
 
-.hero-content {
-  text-align: center;
-  margin-bottom: 2rem;
-  max-width: 800px;
-}
 
 .hero-title {
   font-size: 3.5rem;

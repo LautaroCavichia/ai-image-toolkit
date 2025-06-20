@@ -1,0 +1,42 @@
+/* PixelPerfectLogo.css */
+.logo-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+.pixel-perfect-logo {
+  width: 100%;
+  height: auto;
+  max-width: 500px;
+  color: var(--logo-color, #1e40af);
+}
+
+.pixel-perfect-logo path {
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: currentColor;
+  paint-order: stroke;
+}
+
+/* Theme adaptation */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --logo-color: #ffffff;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --logo-color: #1e40af;
+  }
+}
+
+[data-theme="dark"] .pixel-perfect-logo {
+  color: #ffffff;
+}
+
+[data-theme="light"] .pixel-perfect-logo {
+  color: #1e40af;
+}

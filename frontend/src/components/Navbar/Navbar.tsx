@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -17,9 +17,14 @@ import {
   faArrowsUpDown,
   faExpand,
   faWandMagicSparkles,
-  faPalette
+  faPalette,
+  faMoon,
+  faSun
 } from '@fortawesome/free-solid-svg-icons';
+import { gsap } from 'gsap';
+import { useTheme } from '../../contexts/ThemeContext';
 import TokenPanel from '../TokenPanel/TokenPanel';
+import PixelPerfectLogo from '../Logo/PixelPerfectLogo';
 import './Navbar.css';
 
 interface NavbarProps {
@@ -45,6 +50,8 @@ const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
+  const navRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
   useEffect(() => {
@@ -61,6 +68,15 @@ const Navbar: React.FC<NavbarProps> = ({
     };
   }, [scrolled]);
 
+  useEffect(() => {
+    if (navRef.current && !mobileMenuOpen) {
+      gsap.fromTo(navRef.current.querySelectorAll('.nav-link'), 
+        { opacity: 0, y: -20 },
+        { opacity: 1, y: 0, duration: 0.6, stagger: 0.1, ease: 'back.out(1.7)' }
+      );
+    }
+  }, [mobileMenuOpen]);
+
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
 
   return (
@@ -71,17 +87,15 @@ const Navbar: React.FC<NavbarProps> = ({
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
     >
       <div className="navbar-container">
-        <Link to="/">
+        <Link to="/" className="navbar-brand">
           <motion.div 
             className="navbar-logo"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
-            <div className="logo-icon">
-              <div className="logo-square"></div>
-              <div className="logo-circle"></div>
-            </div>
-            <span className="logo-text">PixelPerfect AI</span>
+            <PixelPerfectLogo size={32} animated={false} glowOnHover={true} />
+            <span className="logo-text gradient-text">PixelPerfect</span>
+            <span className="logo-suffix">AI</span>
           </motion.div>
         </Link>
         
@@ -89,7 +103,7 @@ const Navbar: React.FC<NavbarProps> = ({
           <FontAwesomeIcon icon={mobileMenuOpen ? faTimes : faBars} />
         </div>
         
-        <div className={`navbar-links ${mobileMenuOpen ? 'active' : ''}`}>
+        <div className={`navbar-links ${mobileMenuOpen ? 'active' : ''}`} ref={navRef}>
           <Link 
             to="/" 
             className={`nav-link ${location.pathname === '/' ? 'active' : ''}`} 
@@ -97,55 +111,88 @@ const Navbar: React.FC<NavbarProps> = ({
           >
             <FontAwesomeIcon icon={faHome} />
             <span>Home</span>
+            <div className="nav-indicator"></div>
           </Link>
           
-          <Link 
-            to="/background-removal" 
-            className={`nav-link ${location.pathname === '/background-removal' ? 'active' : ''}`} 
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <FontAwesomeIcon icon={faImage} />
-            <span>Background Removal</span>
-          </Link>
-          
-          <Link 
-            to="/upscale" 
-            className={`nav-link ${location.pathname === '/upscale' ? 'active' : ''}`} 
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <FontAwesomeIcon icon={faArrowsUpDown} />
-            <span>Upscale</span>
-          </Link>
-          
-          <Link 
-            to="/enlarge" 
-            className={`nav-link ${location.pathname === '/enlarge' ? 'active' : ''}`} 
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <FontAwesomeIcon icon={faExpand} />
-            <span>Enlarge</span>
-          </Link>
-          
-          <Link 
-            to="/object-removal" 
-            className={`nav-link ${location.pathname === '/object-removal' ? 'active' : ''}`} 
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <FontAwesomeIcon icon={faWandMagicSparkles} />
-            <span>Object Removal</span>
-          </Link>
-          
-          <div 
-            className="nav-link disabled coming-soon"
-            title="Coming Soon"
-          >
-            <FontAwesomeIcon icon={faPalette} />
-            <span>Style Transfer</span>
-            <span className="nav-badge">Soon</span>
+          <div className="nav-dropdown">
+            <div className="nav-link dropdown-trigger">
+              <FontAwesomeIcon icon={faImage} />
+              <span>Services</span>
+              <div className="nav-indicator"></div>
+            </div>
+            <div className="dropdown-menu glass">
+              <Link 
+                to="/background-removal" 
+                className={`dropdown-item ${location.pathname === '/background-removal' ? 'active' : ''}`} 
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <FontAwesomeIcon icon={faImage} style={{ color: 'var(--color-service-background)' }} />
+                <div>
+                  <span className="item-title">Background Removal</span>
+                  <span className="item-desc">Remove backgrounds instantly</span>
+                </div>
+              </Link>
+              
+              <Link 
+                to="/upscale" 
+                className={`dropdown-item ${location.pathname === '/upscale' ? 'active' : ''}`} 
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <FontAwesomeIcon icon={faArrowsUpDown} style={{ color: 'var(--color-service-upscale)' }} />
+                <div>
+                  <span className="item-title">AI Upscaling</span>
+                  <span className="item-desc">Enhance image resolution</span>
+                </div>
+              </Link>
+              
+              <Link 
+                to="/enlarge" 
+                className={`dropdown-item ${location.pathname === '/enlarge' ? 'active' : ''}`} 
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <FontAwesomeIcon icon={faExpand} style={{ color: 'var(--color-service-enlarge)' }} />
+                <div>
+                  <span className="item-title">Smart Enlargement</span>
+                  <span className="item-desc">Expand with AI generation</span>
+                </div>
+              </Link>
+              
+              <Link 
+                to="/object-removal" 
+                className={`dropdown-item ${location.pathname === '/object-removal' ? 'active' : ''}`} 
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <FontAwesomeIcon icon={faWandMagicSparkles} style={{ color: 'var(--color-service-object)' }} />
+                <div>
+                  <span className="item-title">Object Removal</span>
+                  <span className="item-desc">Remove unwanted objects</span>
+                </div>
+              </Link>
+              
+              <div className="dropdown-item disabled">
+                <FontAwesomeIcon icon={faPalette} style={{ color: 'var(--color-service-style)' }} />
+                <div>
+                  <span className="item-title">Style Transfer</span>
+                  <span className="item-desc">Coming soon</span>
+                </div>
+                <span className="coming-soon-badge">Soon</span>
+              </div>
+            </div>
           </div>
         </div>
         
         <div className="navbar-actions">
+          {/* Theme Toggle */}
+          <motion.button 
+            className="theme-toggle"
+            onClick={toggleTheme}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+          >
+            <FontAwesomeIcon icon={theme === 'light' ? faMoon : faSun} />
+          </motion.button>
+          
           {/* Always show token panel */}
           <TokenPanel 
             tokenBalance={tokenBalance}

@@ -9,6 +9,7 @@ import {
   faLinkedinIn, 
   faYoutube 
 } from '@fortawesome/free-brands-svg-icons';
+import PixelPerfectLogo from '../Logo/PixelPerfectLogo';
 import './Footer.css';
 
 const Footer: React.FC = () => {
@@ -19,11 +20,8 @@ const Footer: React.FC = () => {
       <div className="footer-content">
         <div className="footer-column">
           <div className="footer-logo">
-            <div className="logo-icon-footer">
-              <div className="logo-square"></div>
-              <div className="logo-circle"></div>
-            </div>
-            <span className="footer-logo-text">PixelPerfect AI</span>
+            <PixelPerfectLogo size={40} animated={false} glowOnHover={false} />
+            <span className="footer-logo-text">PixelPerfect</span>
           </div>
           <p className="footer-description">
             Transforming images with AI technology. Our platform makes professional-quality 
