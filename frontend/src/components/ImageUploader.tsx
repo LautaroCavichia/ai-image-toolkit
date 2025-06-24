@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { JobTypeEnum } from '../types';
 import { uploadImageAndCreateJob } from '../services/apiService';
+import DragDropUploader from './DragDropUploader';
 
 interface ImageUploaderProps {
   onJobCreated: (jobId: string) => void;
@@ -8,15 +9,20 @@ interface ImageUploaderProps {
 
 const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const [jobType, setJobType] = useState<JobTypeEnum>(JobTypeEnum.BG_REMOVAL);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-    }
+  const handleFileSelect = (file: File) => {
+    setSelectedFile(file);
+    setError('');
+    
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleUpload = async () => {
@@ -62,21 +68,15 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
           </select>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Choose Image
-          </label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileSelect}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+        <DragDropUploader
+          onFileSelect={handleFileSelect}
+          preview={preview}
+          maxSize={10}
+        />
 
         {selectedFile && (
-          <div className="text-sm text-gray-600">
-            Selected: {selectedFile.name}
+          <div className="text-center text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+            <strong>File:</strong> {selectedFile.name} ({Math.round(selectedFile.size / 1024)} KB)
           </div>
         )}
 

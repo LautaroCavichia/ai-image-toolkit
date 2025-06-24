@@ -8,7 +8,7 @@ const StyleTransferPage: React.FC = () => {
       <Navbar />
       <div className="max-w-4xl mx-auto py-8 px-4">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Style Transfer</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-4 title-font">Style Transfer</h1>
           <p className="text-lg text-gray-600">
             Transform your images with artistic styles and custom prompts.
           </p>

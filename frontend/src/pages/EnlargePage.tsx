@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import Navbar from '../components/Navbar';
 import JobStatus from '../components/JobStatus';
+import DragDropUploader from '../components/DragDropUploader';
 import { JobTypeEnum } from '../types';
 import { uploadImageAndCreateJob } from '../services/apiService';
 
@@ -21,18 +22,15 @@ const EnlargePage: React.FC = () => {
     quality: 'FREE'
   });
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      setError('');
-      
-      const reader = new FileReader();
-      reader.onload = () => {
-        setPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleFileSelect = (file: File) => {
+    setSelectedFile(file);
+    setError('');
+    
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleUpload = async () => {
@@ -85,7 +83,7 @@ const EnlargePage: React.FC = () => {
       <Navbar />
       <div className="max-w-4xl mx-auto py-8 px-4">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Image Enlargement</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-4 title-font">Image Enlargement</h1>
           <p className="text-lg text-gray-600">
             Intelligently enlarge images with AI-generated content to fill new dimensions.
           </p>
@@ -102,29 +100,15 @@ const EnlargePage: React.FC = () => {
             )}
 
             <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Choose Image
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileSelect}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+              <DragDropUploader
+                onFileSelect={handleFileSelect}
+                preview={preview}
+                maxSize={10}
+              />
 
-              {preview && (
-                <div className="border rounded-lg p-4">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Preview:</h4>
-                  <img 
-                    src={preview} 
-                    alt="Preview" 
-                    className="max-w-full h-auto max-h-64 rounded border mx-auto"
-                  />
-                  <p className="text-xs text-gray-500 mt-2 text-center">
-                    {selectedFile?.name} ({Math.round((selectedFile?.size || 0) / 1024)} KB)
-                  </p>
+              {selectedFile && (
+                <div className="text-center text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                  <strong>File:</strong> {selectedFile.name} ({Math.round(selectedFile.size / 1024)} KB)
                 </div>
               )}
 

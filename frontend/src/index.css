@@ -2,6 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
+/* AwareBold Font */
+@font-face {
+  font-family: 'AwareBold';
+  src: url('./assets/fonts/AwareBold.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Font utility classes */
+.font-brand {
+  font-family: 'AwareBold', sans-serif;
+}
+
+.font-title {
+  font-family: 'Poppins', sans-serif;
+}
+
+.font-accent {
+  font-family: 'Playfair Display', serif;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* Legacy support */
+.title-font {
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Text gradient utilities - Deep Blues */
+.text-gradient-primary {
+  background: linear-gradient(135deg, #1e293b 0%, #3b82f6 50%, #0ea5e9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-reverse {
+  background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 50%, #1e293b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 /* Custom slider styles */
 .slider {
   background: linear-gradient(to right, #dbeafe 0%, #3b82f6 50%, #dbeafe 100%);
