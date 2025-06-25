@@ -425,7 +425,7 @@ class MVPGenerativeFillProcessor:
             negative_prompt=self.negative_prompt,
             image=canvas,
             mask_image=mask,
-            num_inference_steps=40,        # Más pasos
+            num_inference_steps=30,        # Más pasos
             guidance_scale=12,              # Intermedio - ni muy alto ni muy bajo
             strength=0.99,                  # Intermedio - suficiente para generar
             eta=0.0,
