@@ -5,7 +5,7 @@ import LoadingScreen from '../components/LoadingScreen';
 import { isAuthenticated } from '../services/authService';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Scissors, Maximize, Sparkles, Zap, Target, Shield, ArrowRight, Star } from 'lucide-react';
+import { Scissors, Maximize, Sparkles, Expand, Zap, Target, Shield, ArrowRight, Star } from 'lucide-react';
 import logo from '../assets/logo.png';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -103,28 +103,70 @@ const HomePage: React.FC = () => {
       });
     }
 
-    // Services section animation
+    // Services section animation with enhanced title animation
     if (servicesRef.current) {
+      const serviceTitle = servicesRef.current.querySelector('.services-title');
+      const serviceSubtitle = servicesRef.current.querySelector('.services-subtitle');
       const serviceCards = servicesRef.current.querySelectorAll('.service-card');
-      gsap.fromTo(serviceCards, 
+      
+      // Create a timeline for the services section
+      const servicesTl = gsap.timeline({
+        scrollTrigger: {
+          trigger: servicesRef.current,
+          start: "top 80%",
+          toggleActions: "play none none reverse"
+        }
+      });
+      
+      // Animate title with snappier timing
+      servicesTl.fromTo(serviceTitle, 
         { 
           opacity: 0, 
-          y: 60, 
-          scale: 0.9 
+          y: 30, 
+          scale: 0.95,
+          filter: "blur(10px)"
         },
         {
           opacity: 1,
           y: 0,
           scale: 1,
-          duration: 1,
-          ease: "power3.out",
-          stagger: 0.2,
-          scrollTrigger: {
-            trigger: servicesRef.current,
-            start: "top 80%",
-            toggleActions: "play none none reverse"
-          }
+          filter: "blur(0px)",
+          duration: 0.8,
+          ease: "power4.out"
         }
+      )
+      // Animate subtitle
+      .fromTo(serviceSubtitle,
+        {
+          opacity: 0,
+          y: 20
+        },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.6,
+          ease: "power3.out"
+        },
+        "-=0.5"
+      )
+      // Animate service cards with improved stagger
+      .fromTo(serviceCards, 
+        { 
+          opacity: 0, 
+          y: 40, 
+          scale: 0.9,
+          rotationX: 15
+        },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          rotationX: 0,
+          duration: 0.7,
+          ease: "power3.out",
+          stagger: 0.1
+        },
+        "-=0.2"
       );
     }
 
@@ -200,7 +242,14 @@ const HomePage: React.FC = () => {
       icon: Scissors,
       title: "Background Removal",
       description: "Remove backgrounds with surgical precision. Perfect for product photography and creative projects.",
-      tokens: "1 token"
+      tokens: "Free"
+    },
+    {
+      href: "/enlarge",
+      icon: Expand,
+      title: "Image Enlargement",
+      description: "Intelligently expand images with AI-generated content to any aspect ratio.",
+      tokens: "Free"
     },
     {
       href: "/upscale",
@@ -308,15 +357,15 @@ const HomePage: React.FC = () => {
       >
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-light text-slate-900 mb-6 tracking-tight">
+            <h2 className="services-title text-4xl md:text-5xl font-light text-slate-900 mb-6 tracking-tight">
               <em className="italic text-slate-600">Powerful</em> AI Tools
             </h2>
-            <p className="text-xl text-slate-600 max-w-2xl mx-auto font-light">
+            <p className="services-subtitle text-xl text-slate-600 max-w-2xl mx-auto font-light">
               Everything you need to transform your creative vision into reality.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {services.map((service) => (
               <a
                 key={service.href}

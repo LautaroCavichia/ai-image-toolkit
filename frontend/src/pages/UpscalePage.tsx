@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { gsap } from 'gsap';
+import { Maximize, Upload, CheckCircle, Sparkles, TrendingUp, Star, Zap, Target, Shield } from 'lucide-react';
 import Layout from '../components/Layout';
 import Navbar from '../components/Navbar';
 import JobStatus from '../components/JobStatus';
 import DragDropUploader from '../components/DragDropUploader';
+import BeforeAfterSlider from '../components/BeforeAfterSlider';
 import { JobTypeEnum } from '../types';
 import { uploadImageAndCreateJob } from '../services/apiService';
 
@@ -13,6 +16,83 @@ const UpscalePage: React.FC = () => {
   const [error, setError] = useState('');
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [quality, setQuality] = useState<'FREE' | 'PREMIUM'>('FREE');
+
+  const heroRef = useRef<HTMLDivElement>(null);
+  const uploaderRef = useRef<HTMLDivElement>(null);
+  const configRef = useRef<HTMLDivElement>(null);
+  const workflowRef = useRef<HTMLDivElement>(null);
+  const featuresRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const tl = gsap.timeline();
+    
+    // Set initial states for vertical layout
+    gsap.set([heroRef.current, uploaderRef.current, configRef.current, workflowRef.current, featuresRef.current], {
+      opacity: 0,
+      y: 40,
+      scale: 0.95
+    });
+    
+    // Entrance animations in sequence
+    tl.to(heroRef.current, {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      duration: 1.2,
+      ease: "power3.out"
+    })
+    .to(uploaderRef.current, {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      duration: 1,
+      ease: "power3.out"
+    }, "-=0.8")
+    .to(configRef.current, {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      duration: 0.8,
+      ease: "power3.out"
+    }, "-=0.6")
+    .to(workflowRef.current, {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      duration: 0.8,
+      ease: "power3.out"
+    }, "-=0.4")
+    .to(featuresRef.current, {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      duration: 0.8,
+      ease: "power3.out"
+    }, "-=0.4");
+
+    // Workflow animation
+    setTimeout(() => {
+      const workflowCards = workflowRef.current?.querySelectorAll('.workflow-card');
+      
+      if (workflowCards) {
+        gsap.fromTo(workflowCards, 
+          { 
+            opacity: 0, 
+            y: 30,
+            scale: 0.95
+          },
+          { 
+            opacity: 1, 
+            y: 0,
+            scale: 1,
+            duration: 0.8, 
+            stagger: 0.2,
+            ease: "power3.out"
+          }
+        );
+      }
+    }, 1500);
+  }, []);
 
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
@@ -54,28 +134,92 @@ const UpscalePage: React.FC = () => {
     // Job completed
   };
 
+  // Mock images for the slider
+  const mockImages = [
+    {
+      before: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=300&fit=crop&q=50',
+      after: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=600&fit=crop&q=90',
+      title: '2x Upscaling',
+      description: 'Enhanced resolution with preserved details and clarity'
+    },
+    {
+      before: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=200&h=200&fit=crop&q=50',
+      after: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&h=800&fit=crop&q=95',
+      title: '4x Premium Upscaling',
+      description: 'Professional quality enhancement for print and display'
+    },
+    {
+      before: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=250&h=250&fit=crop&q=60',
+      after: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1000&h=1000&fit=crop&q=100',
+      title: 'Detail Enhancement',
+      description: 'AI-powered detail recovery and texture improvement'
+    }
+  ];
+
+  const qualityOptions = [
+    {
+      type: 'FREE' as const,
+      title: 'Standard Quality',
+      description: 'Fast 2x upscaling with excellent quality for web use',
+      scale: '2x',
+      cost: 'FREE',
+      features: ['2x resolution', 'Fast processing', 'Good for web use'],
+      color: 'green'
+    },
+    {
+      type: 'PREMIUM' as const,
+      title: 'Premium Quality',
+      description: 'Professional 4x upscaling with AI enhancement for print quality',
+      scale: '4x',
+      cost: '2 TOKENS',
+      features: ['4x resolution', 'AI enhancement', 'Print quality'],
+      color: 'orange'
+    }
+  ];
+
   return (
     <Layout>
       <Navbar />
-      <div className="max-w-4xl mx-auto py-8 px-4">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4 title-font">Image Upscaling</h1>
-          <p className="text-lg text-gray-600">
-            Enhance image resolution while preserving quality and details using advanced AI technology.
-          </p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-slate-100 pt-20">
+        <div className="max-w-4xl mx-auto py-12 px-6">
+          
+          {/* Hero Section */}
+          <div ref={heroRef} className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-full font-medium text-sm mb-8">
+              <Maximize size={16} />
+              Image Upscaling
+            </div>
+            <h1 className="text-5xl md:text-6xl font-light text-slate-900 mb-6 leading-tight tracking-tight">
+              Scale Beyond
+              <br />
+              <span className="font-medium italic bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                Pixel Perfection
+              </span>
+            </h1>
+            <p className="text-xl md:text-2xl text-slate-600 max-w-3xl mx-auto leading-relaxed font-light">
+              Push the boundaries of resolution. Enhance without compromise.
+              <br />
+              <em className="text-slate-500">AI-powered upscaling that preserves every detail.</em>
+            </p>
+          </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold mb-4">Upload Your Image</h3>
+          {/* Upload Section */}
+          <div ref={uploaderRef} className="bg-white/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-xl border border-slate-200/50 mb-8">
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-200 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                <Upload className="text-slate-700" size={24} />
+              </div>
+              <h3 className="text-3xl font-light text-slate-900 mb-3 tracking-tight">Upload Your Image</h3>
+              <p className="text-slate-600 text-lg">Ready to supercharge your resolution?</p>
+            </div>
 
             {error && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-2xl mb-8 text-center">
                 {error}
               </div>
             )}
 
-            <div className="space-y-6">
+            <div className="space-y-8">
               <DragDropUploader
                 onFileSelect={handleFileSelect}
                 preview={preview}
@@ -83,113 +227,207 @@ const UpscalePage: React.FC = () => {
               />
 
               {selectedFile && (
-                <div className="text-center text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-                  <strong>File:</strong> {selectedFile.name} ({Math.round(selectedFile.size / 1024)} KB)
+                <div className="text-center bg-green-50 p-6 rounded-2xl border border-green-200">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <CheckCircle className="text-green-600" size={20} />
+                    <strong className="text-green-800">Image Ready</strong>
+                  </div>
+                  <div className="text-slate-600">{selectedFile.name} ({Math.round(selectedFile.size / 1024)} KB)</div>
                 </div>
               )}
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Upscaling Quality
-                </label>
-                <div className="grid grid-cols-1 gap-3">
-                  <button
-                    onClick={() => setQuality('FREE')}
-                    className={`p-4 rounded-md border text-left transition-all ${
-                      quality === 'FREE'
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="font-medium">Standard Quality (2x)</div>
-                    <div className="text-sm text-gray-600">Fast 2x upscaling with good quality</div>
-                    <div className="text-xs text-green-600 mt-1">FREE</div>
-                  </button>
-                  <button
-                    onClick={() => setQuality('PREMIUM')}
-                    className={`p-4 rounded-md border text-left transition-all ${
-                      quality === 'PREMIUM'
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="font-medium">Premium Quality (4x)</div>
-                    <div className="text-sm text-gray-600">High-quality 4x upscaling with AI enhancement</div>
-                    <div className="text-xs text-orange-600 mt-1">1 TOKEN</div>
-                  </button>
-                </div>
-              </div>
-
-              <button
-                onClick={handleUpload}
-                disabled={!selectedFile || loading}
-                className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-              >
-                {loading ? (
-                  <span className="flex items-center justify-center">
-                    <div className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                    Processing...
-                  </span>
-                ) : (
-                  `Upscale Image (${quality === 'PREMIUM' ? '4x' : '2x'})`
-                )}
-              </button>
-            </div>
-
-            <div className="mt-6 bg-blue-50 p-4 rounded-lg">
-              <h4 className="font-medium mb-2 text-blue-900">Service Features:</h4>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• Enhances resolution up to 4x</li>
-                <li>• Preserves image quality and details</li>
-                <li>• Best for photos and artwork</li>
-                <li>• AI-powered enhancement algorithms</li>
-                <li>• Multiple quality options available</li>
-              </ul>
             </div>
           </div>
 
-          <div>
-            {currentJobId ? (
+          {/* Before/After Examples */}
+          <div className="mb-8">
+            <BeforeAfterSlider images={mockImages} />
+          </div>
+
+          {/* Configuration Section */}
+          {selectedFile && (
+            <div ref={configRef} className="bg-white/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-xl border border-slate-200/50 mb-8">
+            <div className="text-center mb-12">
+              <h3 className="text-3xl font-light text-slate-900 mb-3 tracking-tight">
+                <em className="italic text-slate-600">Choose</em> Your Scale
+              </h3>
+              <p className="text-slate-600 text-lg">Select the perfect upscaling level for your needs</p>
+            </div>
+
+            {/* Quality Selection */}
+            <div className="mb-8">
+              <h4 className="text-xl font-medium text-slate-900 mb-6 text-center">Upscaling Quality</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {qualityOptions.map((option) => (
+                  <button
+                    key={option.type}
+                    onClick={() => setQuality(option.type)}
+                    className={`group p-8 rounded-2xl border-2 text-left transition-all duration-300 ${
+                      quality === option.type
+                        ? `border-${option.color}-500 bg-${option.color}-50 shadow-lg`
+                        : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-300 ${
+                          quality === option.type
+                            ? option.color === 'green' ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'
+                            : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                        }`}>
+                          {option.color === 'green' ? <Sparkles size={24} /> : <Star size={24} />}
+                        </div>
+                        <div>
+                          <h5 className="font-medium text-slate-900">{option.title}</h5>
+                          <div className="text-sm text-slate-600">{option.scale} resolution</div>
+                        </div>
+                      </div>
+                      <div className={`px-3 py-1 rounded-full text-xs font-bold ${
+                        option.color === 'green' 
+                          ? 'bg-green-500 text-white' 
+                          : 'bg-orange-500 text-white'
+                      }`}>
+                        {option.cost}
+                      </div>
+                    </div>
+                    <p className="text-sm text-slate-600 mb-4">{option.description}</p>
+                    <div className="space-y-1">
+                      {option.features.map((feature, index) => (
+                        <div key={index} className="flex items-center gap-2 text-xs text-slate-500">
+                          <div className="w-1 h-1 bg-slate-400 rounded-full" />
+                          {feature}
+                        </div>
+                      ))}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={handleUpload}
+              disabled={!selectedFile || loading}
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white py-6 px-8 rounded-2xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] text-lg"
+            >
+              <div className="flex items-center justify-center gap-3">
+                {loading ? (
+                  <>
+                    <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Enhancing Resolution...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={24} />
+                    Upscale to {quality === 'PREMIUM' ? '4x' : '2x'}
+                  </>
+                )}
+              </div>
+            </button>
+          </div>
+          )}
+
+          {/* Job Status Section */}
+          {currentJobId && (
+            <div className="mb-8">
               <JobStatus 
                 jobId={currentJobId} 
                 onJobCompleted={handleJobCompleted}
               />
-            ) : (
-              <div className="bg-gray-100 p-6 rounded-lg shadow-md">
-                <h3 className="text-lg font-semibold mb-4">Upscaling Process</h3>
-                <div className="space-y-4 text-gray-600">
-                  <div className="flex items-start">
-                    <div className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-0.5">1</div>
-                    <div>
-                      <h4 className="font-medium text-gray-900">Image Analysis</h4>
-                      <p className="text-sm">AI analyzes pixel patterns and textures</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start">
-                    <div className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-0.5">2</div>
-                    <div>
-                      <h4 className="font-medium text-gray-900">Smart Enhancement</h4>
-                      <p className="text-sm">Intelligent interpolation and detail enhancement</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start">
-                    <div className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3 mt-0.5">3</div>
-                    <div>
-                      <h4 className="font-medium text-gray-900">Quality Optimization</h4>
-                      <p className="text-sm">Final quality optimization and artifact removal</p>
-                    </div>
-                  </div>
-                </div>
+            </div>
+          )}
 
-                <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <h4 className="font-medium text-yellow-800 mb-2">Quality Comparison</h4>
-                  <div className="text-sm text-yellow-700 space-y-1">
-                    <div><strong>Standard (2x):</strong> Fast processing, good for web use</div>
-                    <div><strong>Premium (4x):</strong> Best quality, ideal for print and professional use</div>
-                  </div>
+          {/* How it Works Section */}
+          <div ref={workflowRef} className="bg-white/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-xl border border-slate-200/50 mb-8">
+            <div className="text-center mb-16">
+              <h3 className="text-4xl md:text-5xl font-light text-slate-900 mb-6 tracking-tight">
+                <em className="italic font-medium bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">Intelligent</em> Enhancement
+              </h3>
+              <p className="text-xl text-slate-600 max-w-2xl mx-auto font-light">
+                Watch AI transform low resolution into crystal-clear detail
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              
+              {/* Step 1 */}
+              <div className="workflow-card text-center group opacity-0">
+                <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-slate-900 transition-colors duration-300 shadow-lg group-hover:shadow-xl">
+                  <Upload className="text-slate-600 group-hover:text-white transition-colors duration-300" size={28} />
                 </div>
+                <h4 className="text-xl font-medium text-slate-900 mb-4">Image Analysis</h4>
+                <p className="text-slate-600 leading-relaxed">
+                  AI analyzes pixel patterns, textures, and edge details with surgical precision
+                </p>
               </div>
-            )}
+
+              {/* Step 2 */}
+              <div className="workflow-card text-center group opacity-0">
+                <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-slate-900 transition-colors duration-300 shadow-lg group-hover:shadow-xl">
+                  <Target className="text-slate-600 group-hover:text-white transition-colors duration-300" size={28} />
+                </div>
+                <h4 className="text-xl font-medium text-slate-900 mb-4">Smart Enhancement</h4>
+                <p className="text-slate-600 leading-relaxed">
+                  Intelligent interpolation and detail enhancement using advanced neural networks
+                </p>
+              </div>
+
+              {/* Step 3 */}
+              <div className="workflow-card text-center group opacity-0">
+                <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-slate-900 transition-colors duration-300 shadow-lg group-hover:shadow-xl">
+                  <Zap className="text-slate-600 group-hover:text-white transition-colors duration-300" size={28} />
+                </div>
+                <h4 className="text-xl font-medium text-slate-900 mb-4">Quality Optimization</h4>
+                <p className="text-slate-600 leading-relaxed">
+                  Final quality optimization and artifact removal for professional results
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Features Section */}
+          <div ref={featuresRef} className="bg-white/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-xl border border-slate-200/50">
+            <div className="text-center mb-16">
+              <h3 className="text-4xl md:text-5xl font-light text-slate-900 mb-6 tracking-tight">
+                Why Choose <em className="italic text-slate-600">Image Upscaling</em>
+              </h3>
+              <p className="text-xl text-slate-600 max-w-2xl mx-auto font-light">
+                Professional-grade resolution enhancement with unmatched quality
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+              {[
+                {
+                  icon: Zap,
+                  title: "Lightning Fast",
+                  description: "Process and enhance images in seconds with our optimized AI infrastructure."
+                },
+                {
+                  icon: Target,
+                  title: "Detail Preserving",
+                  description: "Advanced algorithms that preserve fine details while enhancing resolution."
+                },
+                {
+                  icon: Shield,
+                  title: "Privacy First",
+                  description: "Your images are processed securely and never stored permanently."
+                }
+              ].map((feature) => (
+                <div 
+                  key={feature.title}
+                  className="text-center group"
+                >
+                  <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                    <feature.icon className="text-slate-700" size={28} />
+                  </div>
+                  <h3 className="text-xl font-medium text-slate-900 mb-4">
+                    {feature.title}
+                  </h3>
+                  <p className="text-slate-600 leading-relaxed">
+                    {feature.description}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

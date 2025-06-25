@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { isAuthenticated, getCurrentUser } from '../services/authService';
-import { ChevronDown, Home, Coins, Scissors, Maximize, Sparkles, Palette, Menu, X } from 'lucide-react';
+import { ChevronDown, Home, Coins, Scissors, Maximize, Sparkles, Expand, Palette, Menu, X } from 'lucide-react';
 import { gsap } from 'gsap';
 import TokenPanel from './TokenPanel';
 import logo from '../assets/logo.png';
@@ -124,6 +124,7 @@ const Navbar: React.FC = () => {
                   <div className="p-2">
                     {[
                       { href: "/background-removal", icon: Scissors, title: "Background Removal", desc: "Remove backgrounds instantly" },
+                      { href: "/enlarge", icon: Expand, title: "Image Enlargement", desc: "Expand canvas with AI" },
                       { href: "/upscale", icon: Maximize, title: "Image Upscaling", desc: "Enhance image quality" },
                       { href: "/object-removal", icon: Sparkles, title: "Object Removal", desc: "Remove unwanted objects" },
                     ].map((service) => (
@@ -232,6 +233,7 @@ const Navbar: React.FC = () => {
                   <div className="space-y-1">
                     {[
                       { href: "/background-removal", icon: Scissors, title: "Background Removal" },
+                      { href: "/enlarge", icon: Expand, title: "Image Enlargement" },
                       { href: "/upscale", icon: Maximize, title: "Image Upscaling" },
                       { href: "/object-removal", icon: Sparkles, title: "Object Removal" },
                     ].map((service) => (

@@ -5,6 +5,7 @@ import Layout from '../components/Layout';
 import Navbar from '../components/Navbar';
 import JobStatus from '../components/JobStatus';
 import DragDropUploader from '../components/DragDropUploader';
+import BeforeAfterSlider from '../components/BeforeAfterSlider';
 import { JobTypeEnum } from '../types';
 import { uploadImageAndCreateJob } from '../services/apiService';
 
@@ -119,6 +120,28 @@ const BackgroundRemovalPage: React.FC = () => {
     // Job completed
   };
 
+  // Mock images for the slider
+  const mockImages = [
+    {
+      before: 'https://images.unsplash.com/photo-1494790108755-2616c9efe1a2?w=600&h=600&fit=crop&crop=face',
+      after: 'https://images.unsplash.com/photo-1494790108755-2616c9efe1a2?w=600&h=600&fit=crop&crop=face&blend=transparent&blend-alpha=0',
+      title: 'Portrait Background Removal',
+      description: 'Professional headshot with clean transparent background'
+    },
+    {
+      before: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600&h=600&fit=crop',
+      after: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600&h=600&fit=crop&blend=transparent&blend-alpha=0',
+      title: 'Product Photography',
+      description: 'E-commerce ready product shots with pristine backgrounds'
+    },
+    {
+      before: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=600&h=600&fit=crop',
+      after: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=600&h=600&fit=crop&blend=transparent&blend-alpha=0',
+      title: 'Pet Photography',
+      description: 'Cute pets isolated perfectly for creative projects'
+    }
+  ];
+
   return (
     <Layout>
       <Navbar />
@@ -178,26 +201,33 @@ const BackgroundRemovalPage: React.FC = () => {
                 </div>
               )}
 
-              <button
-                onClick={handleUpload}
-                disabled={!selectedFile || loading}
-                className="w-full bg-slate-900 hover:bg-slate-800 text-white py-6 px-8 rounded-2xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] text-lg"
-              >
-                <div className="flex items-center justify-center gap-3">
-                  {loading ? (
-                    <>
-                      <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Cutting Through...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={24} />
-                      Slice & Dice
-                    </>
-                  )}
-                </div>
-              </button>
+              {selectedFile && (
+                <button
+                  onClick={handleUpload}
+                  disabled={loading}
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-white py-6 px-8 rounded-2xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] text-lg"
+                >
+                  <div className="flex items-center justify-center gap-3">
+                    {loading ? (
+                      <>
+                        <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Cutting Through...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={24} />
+                        Slice & Dice
+                      </>
+                    )}
+                  </div>
+                </button>
+              )}
             </div>
+          </div>
+
+          {/* Before/After Examples */}
+          <div className="mb-8">
+            <BeforeAfterSlider images={mockImages} />
           </div>
 
           {/* Job Status Section */}
