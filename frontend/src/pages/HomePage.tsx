@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Layout from '../components/Layout';
 import Navbar from '../components/Navbar';
+import LoadingScreen from '../components/LoadingScreen';
 import { isAuthenticated } from '../services/authService';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -10,42 +11,84 @@ import logo from '../assets/logo.png';
 gsap.registerPlugin(ScrollTrigger);
 
 const HomePage: React.FC = () => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [showContent, setShowContent] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const subtitleRef = useRef<HTMLParagraphElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLImageElement>(null);
+  const servicesRef = useRef<HTMLDivElement>(null);
+  const featuresRef = useRef<HTMLDivElement>(null);
+
+  const handleLoadingComplete = () => {
+    setIsLoading(false);
+    setTimeout(() => setShowContent(true), 100);
+  };
 
   useEffect(() => {
+    if (!showContent) return;
+
+    // Main entrance timeline
     const tl = gsap.timeline();
     
-    tl.fromTo(logoRef.current, 
-      { opacity: 0, scale: 0.8, y: 30 },
-      { opacity: 1, scale: 1, y: 0, duration: 1, ease: "power3.out" }
+    // Set initial states
+    gsap.set([logoRef.current, titleRef.current, subtitleRef.current, ctaRef.current], {
+      opacity: 0,
+      y: 40,
+      scale: 0.95
+    });
+    
+    // Enhanced entrance animations with Apple-like easing
+    tl.to(logoRef.current, 
+      { 
+        opacity: 1, 
+        scale: 1, 
+        y: 0, 
+        duration: 1.2, 
+        ease: "power3.out",
+        filter: "blur(0px)"
+      }
     )
-    .fromTo(titleRef.current,
-      { opacity: 0, y: 50 },
-      { opacity: 1, y: 0, duration: 1.2, ease: "power3.out" },
-      "-=0.7"
-    )
-    .fromTo(subtitleRef.current,
-      { opacity: 0, y: 30 },
-      { opacity: 1, y: 0, duration: 1, ease: "power3.out" },
+    .to(titleRef.current,
+      { 
+        opacity: 1, 
+        y: 0, 
+        scale: 1,
+        duration: 1.4, 
+        ease: "power3.out" 
+      },
       "-=0.8"
     )
-    .fromTo(ctaRef.current,
-      { opacity: 0, y: 20 },
-      { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" },
-      "-=0.5"
+    .to(subtitleRef.current,
+      { 
+        opacity: 1, 
+        y: 0, 
+        scale: 1,
+        duration: 1.2, 
+        ease: "power3.out" 
+      },
+      "-=1.0"
+    )
+    .to(ctaRef.current,
+      { 
+        opacity: 1, 
+        y: 0, 
+        scale: 1,
+        duration: 1, 
+        ease: "power3.out" 
+      },
+      "-=0.8"
     );
 
     // Floating animation for logo
     gsap.to(logoRef.current, {
-      y: -10,
-      duration: 2,
+      y: -8,
+      duration: 3,
       repeat: -1,
       yoyo: true,
-      ease: "power2.inOut"
+      ease: "power2.inOut",
+      delay: 1.5
     });
 
     // Gradient text animation
@@ -53,16 +96,68 @@ const HomePage: React.FC = () => {
     if (gradientText) {
       gsap.to(gradientText, {
         backgroundPosition: "200% center",
-        duration: 3,
+        duration: 4,
         repeat: -1,
-        ease: "none"
+        ease: "none",
+        delay: 2
       });
+    }
+
+    // Services section animation
+    if (servicesRef.current) {
+      const serviceCards = servicesRef.current.querySelectorAll('.service-card');
+      gsap.fromTo(serviceCards, 
+        { 
+          opacity: 0, 
+          y: 60, 
+          scale: 0.9 
+        },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 1,
+          ease: "power3.out",
+          stagger: 0.2,
+          scrollTrigger: {
+            trigger: servicesRef.current,
+            start: "top 80%",
+            toggleActions: "play none none reverse"
+          }
+        }
+      );
+    }
+
+    // Features section animation
+    if (featuresRef.current) {
+      const featureCards = featuresRef.current.querySelectorAll('.feature-card');
+      gsap.fromTo(featureCards, 
+        { 
+          opacity: 0, 
+          y: 40, 
+          scale: 0.95 
+        },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.8,
+          ease: "power3.out",
+          stagger: 0.15,
+          scrollTrigger: {
+            trigger: featuresRef.current,
+            start: "top 85%",
+            toggleActions: "play none none reverse"
+          }
+        }
+      );
     }
 
     return () => {
       ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+      tl.kill();
     };
-  }, []);
+  }, [showContent]);
 
   if (!isAuthenticated()) {
     return (
@@ -141,6 +236,10 @@ const HomePage: React.FC = () => {
     }
   ];
 
+  if (isLoading) {
+    return <LoadingScreen onComplete={handleLoadingComplete} />;
+  }
+
   return (
     <Layout>
       <Navbar />
@@ -155,12 +254,12 @@ const HomePage: React.FC = () => {
             ref={logoRef}
             src={logo} 
             alt="Pixel Perfect AI" 
-            className="w-24 h-24 mx-auto mb-12 drop-shadow-2xl"
+            className="w-24 h-24 mx-auto mb-12 drop-shadow-2xl opacity-0"
           />
           
           <h1 
             ref={titleRef}
-            className="text-5xl md:text-7xl font-light text-slate-900 mb-8 leading-tight tracking-tight"
+            className="text-5xl md:text-7xl font-light text-slate-900 mb-8 leading-tight tracking-tight opacity-0"
           >
             Rebel Against
             <br />
@@ -171,7 +270,7 @@ const HomePage: React.FC = () => {
           
           <p 
             ref={subtitleRef}
-            className="text-xl md:text-2xl text-slate-600 mb-12 max-w-3xl mx-auto leading-relaxed font-light"
+            className="text-xl md:text-2xl text-slate-600 mb-12 max-w-3xl mx-auto leading-relaxed font-light opacity-0"
           >
             Break the rules. Transform the mundane. Create the extraordinary.
             <br />
@@ -180,7 +279,7 @@ const HomePage: React.FC = () => {
           
           <div 
             ref={ctaRef}
-            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+            className="flex flex-col sm:flex-row gap-4 justify-center items-center opacity-0"
           >
             <a 
               href="/background-removal" 
@@ -203,6 +302,7 @@ const HomePage: React.FC = () => {
       
       {/* Services Section */}
       <div 
+        ref={servicesRef}
         id="services" 
         className="py-32 bg-white"
       >
@@ -221,7 +321,7 @@ const HomePage: React.FC = () => {
               <a
                 key={service.href}
                 href={service.href}
-                className="group bg-white border border-slate-200 rounded-3xl p-8 transition-all duration-300 hover:shadow-2xl hover:border-slate-300 hover:-translate-y-2"
+                className="service-card group bg-white border border-slate-200 rounded-3xl p-8 transition-all duration-300 hover:shadow-2xl hover:border-slate-300 hover:-translate-y-2 opacity-0"
               >
                 <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-slate-900 transition-colors duration-300">
                   <service.icon className="text-slate-600 group-hover:text-white transition-colors duration-300" size={24} />
@@ -249,8 +349,8 @@ const HomePage: React.FC = () => {
         </div>
       </div>
       
-      {/* Features Section */}
-      <div className="py-32 bg-slate-50">
+     {/* Features Section */}
+     <div ref={featuresRef} className="py-32 bg-slate-50">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-20">
             <h2 className="text-4xl md:text-5xl font-light text-slate-900 mb-6 tracking-tight">
@@ -262,7 +362,7 @@ const HomePage: React.FC = () => {
             {features.map((feature) => (
               <div 
                 key={feature.title}
-                className="text-center group"
+                className="feature-card text-center group opacity-0"
               >
                 <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                   <feature.icon className="text-slate-700" size={28} />

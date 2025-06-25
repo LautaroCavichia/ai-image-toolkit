@@ -129,6 +129,39 @@
   }
 }
 
+@keyframes apple-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0px);
+  }
+}
+
+@keyframes apple-breathe {
+  0%, 100% { 
+    transform: scale(1);
+  }
+  50% { 
+    transform: scale(1.02);
+  }
+}
+
+@keyframes loading-pulse {
+  0%, 100% { 
+    opacity: 0.4;
+    transform: translateY(0);
+  }
+  50% { 
+    opacity: 1;
+    transform: translateY(-8px);
+  }
+}
+
 /* Apple-style component styles */
 @layer components {
   /* Apple button base */
