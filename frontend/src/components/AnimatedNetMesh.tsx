@@ -16,10 +16,11 @@ const AnimatedNetMesh: React.FC<AnimatedNetMeshProps> = ({
   useEffect(() => {
     if (!meshRef.current || !svgRef.current) return;
 
-    const gridSize = 40;
-    // Ensure we have enough coverage for any viewport, especially portrait
-    const minRows = Math.max(Math.ceil(window.innerHeight / gridSize), Math.ceil(window.innerWidth / gridSize)) + 8;
-    const minCols = Math.max(Math.ceil(window.innerWidth / gridSize), Math.ceil(window.innerHeight / gridSize)) + 8;
+    // Performance optimization: Larger grid size = fewer elements
+    const gridSize = 60; // Increased from 40 to reduce element count
+    // Reduce coverage slightly for better performance
+    const minRows = Math.max(Math.ceil(window.innerHeight / gridSize), Math.ceil(window.innerWidth / gridSize)) + 4;
+    const minCols = Math.max(Math.ceil(window.innerWidth / gridSize), Math.ceil(window.innerHeight / gridSize)) + 4;
     const rows = minRows;
     const cols = minCols;
     const svgWidth = cols * gridSize;
@@ -59,64 +60,66 @@ const AnimatedNetMesh: React.FC<AnimatedNetMeshProps> = ({
       paths.push(path);
     }
 
-    // Create wave animation timeline
-    const tl = gsap.timeline({ repeat: -1 });
-
-    // Wave animation function
+    // Performance optimized wave animation
     const createWaveAnimation = () => {
       const horizontalLines = svgRef.current?.querySelectorAll('.mesh-horizontal');
       const verticalLines = svgRef.current?.querySelectorAll('.mesh-vertical');
 
       if (!horizontalLines || !verticalLines) return;
 
-      // Animate horizontal lines with wave effect
-      horizontalLines.forEach((line, index) => {
+      // Only animate every 3rd line for better performance
+      const animateEveryNth = 3;
+      
+      // Animate selected horizontal lines
+      Array.from(horizontalLines).forEach((line, index) => {
+        if (index % animateEveryNth !== 0) return; // Skip most lines
+        
         const y = index * gridSize;
         const amplitude = intensity === 'subtle' ? 4 : intensity === 'medium' ? 6 : 8;
-        const baseDelay = index * 0.2;
+        const baseDelay = (index / animateEveryNth) * 0.3;
 
-        tl.to(line, {
+        gsap.to(line, {
           attr: {
             d: `M 0 ${y} Q ${svgWidth * 0.33} ${y + amplitude} ${svgWidth * 0.66} ${y - amplitude} T ${svgWidth} ${y}`
-          },
-          duration: 12,
-          ease: "power1.inOut",
-          repeat: -1,
-          yoyo: true,
-          delay: baseDelay
-        }, 0);
-      });
-
-      // Animate vertical lines with wave effect
-      verticalLines.forEach((line, index) => {
-        const x = index * gridSize;
-        const amplitude = intensity === 'subtle' ? 3 : intensity === 'medium' ? 5 : 7;
-        const baseDelay = index * 0.15;
-
-        tl.to(line, {
-          attr: {
-            d: `M ${x} 0 Q ${x + amplitude} ${svgHeight * 0.33} ${x - amplitude} ${svgHeight * 0.66} T ${x} ${svgHeight}`
           },
           duration: 15,
           ease: "power1.inOut",
           repeat: -1,
           yoyo: true,
           delay: baseDelay
-        }, 0);
+        });
       });
 
-      // Subtle opacity pulsing for depth
-      tl.to(paths, {
+      // Animate selected vertical lines
+      Array.from(verticalLines).forEach((line, index) => {
+        if (index % animateEveryNth !== 0) return; // Skip most lines
+        
+        const x = index * gridSize;
+        const amplitude = intensity === 'subtle' ? 3 : intensity === 'medium' ? 5 : 7;
+        const baseDelay = (index / animateEveryNth) * 0.25;
+
+        gsap.to(line, {
+          attr: {
+            d: `M ${x} 0 Q ${x + amplitude} ${svgHeight * 0.33} ${x - amplitude} ${svgHeight * 0.66} T ${x} ${svgHeight}`
+          },
+          duration: 18,
+          ease: "power1.inOut",
+          repeat: -1,
+          yoyo: true,
+          delay: baseDelay
+        });
+      });
+
+      // Reduced opacity animation - only on some paths
+      const selectedPaths = paths.filter((_, index) => index % (animateEveryNth * 2) === 0);
+      gsap.to(selectedPaths, {
         opacity: 0.35,
-        duration: 6,
+        duration: 8,
         ease: "power2.inOut",
-        stagger: {
-          amount: 2,
-          from: "random"
-        },
+        stagger: 0.1,
         repeat: -1,
         yoyo: true
-      }, 0);
+      });
     };
 
     createWaveAnimation();
@@ -126,23 +129,35 @@ const AnimatedNetMesh: React.FC<AnimatedNetMeshProps> = ({
     svgRef.current.setAttribute('width', '100%');
     svgRef.current.setAttribute('height', '100%');
 
-    // Handle resize
+    // Throttled resize handler for better performance
+    let resizeTimeout: NodeJS.Timeout;
     const handleResize = () => {
-      if (!svgRef.current) return;
-      const newMinRows = Math.max(Math.ceil(window.innerHeight / gridSize), Math.ceil(window.innerWidth / gridSize)) + 8;
-      const newMinCols = Math.max(Math.ceil(window.innerWidth / gridSize), Math.ceil(window.innerHeight / gridSize)) + 8;
-      const newSvgWidth = newMinCols * gridSize;
-      const newSvgHeight = newMinRows * gridSize;
-      
-      svgRef.current.setAttribute('viewBox', `0 0 ${newSvgWidth} ${newSvgHeight}`);
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        if (!svgRef.current) return;
+        const newMinRows = Math.max(Math.ceil(window.innerHeight / gridSize), Math.ceil(window.innerWidth / gridSize)) + 4;
+        const newMinCols = Math.max(Math.ceil(window.innerWidth / gridSize), Math.ceil(window.innerHeight / gridSize)) + 4;
+        const newSvgWidth = newMinCols * gridSize;
+        const newSvgHeight = newMinRows * gridSize;
+        
+        svgRef.current.setAttribute('viewBox', `0 0 ${newSvgWidth} ${newSvgHeight}`);
+      }, 150); // Throttle resize events
     };
 
     window.addEventListener('resize', handleResize);
     handleResize();
 
     return () => {
-      tl.kill();
+      // Clean up all GSAP animations
+      if (svgRef.current) {
+        const meshLines = svgRef.current.querySelectorAll('.mesh-line');
+        gsap.killTweensOf(meshLines);
+      }
+      gsap.killTweensOf(paths);
       window.removeEventListener('resize', handleResize);
+      if (resizeTimeout) {
+        clearTimeout(resizeTimeout);
+      }
     };
   }, [intensity]);
 
@@ -200,9 +215,12 @@ const AnimatedNetMesh: React.FC<AnimatedNetMeshProps> = ({
         style={{
           ...getIntensityStyles(),
           transform: 'translateZ(0)',
-          mixBlendMode: 'overlay'
+          mixBlendMode: 'overlay',
+          willChange: 'transform', // GPU acceleration hint
         }}
         preserveAspectRatio="none"
+        shapeRendering="optimizeSpeed" // Prioritize speed over quality
+        vectorEffect="non-scaling-stroke"
       />
       
       {/* Additional depth layers */}

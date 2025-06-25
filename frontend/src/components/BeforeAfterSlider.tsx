@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { gsap } from 'gsap';
 import { ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react';
 
 interface BeforeAfterImage {
@@ -18,139 +17,150 @@ interface BeforeAfterSliderProps {
 const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({ 
   images, 
   autoPlay = true, 
-  autoPlayInterval = 4000 
+  autoPlayInterval = 8000 
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(autoPlay);
   const [sliderPosition, setSliderPosition] = useState(50);
+  const [isDragging, setIsDragging] = useState(false);
   const [isUserInteracting, setIsUserInteracting] = useState(false);
+  
+  const animationRef = useRef<number | undefined>(undefined);
+  const animationStartTimeRef = useRef<number>(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const sliderAnimationRef = useRef<gsap.core.Tween | null>(null);
-  const userInteractionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const directionRef = useRef(1); // 1 for forward (0->100), -1 for backward (100->0)
   const sliderRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Auto-advance to next image
   useEffect(() => {
-    if (sliderRef.current) {
-      gsap.fromTo(sliderRef.current,
-        { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }
-      );
-    }
-  }, []);
-
-  // Remove the old slideshow interval - now controlled by slider animation
-
-  // Slider animation effect
-  useEffect(() => {
-    if (!isPlaying || isUserInteracting) {
-      if (sliderAnimationRef.current) {
-        sliderAnimationRef.current.kill();
+    if (!isPlaying || isDragging || images.length <= 1) {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
       return;
     }
 
-    const animateToTarget = () => {
-      if (sliderAnimationRef.current) {
-        sliderAnimationRef.current.kill();
-      }
-
-      const targetPos = directionRef.current > 0 ? 100 : 0;
-      
-      // Use a ref to track current position for consistent animation
-      let currentPos = sliderPosition;
-      const distance = Math.abs(targetPos - currentPos);
-      const duration = (distance / 100) * 5; // 5 seconds for full range
-
-      sliderAnimationRef.current = gsap.to({ pos: currentPos }, {
-        pos: targetPos,
-        duration: Math.max(duration, 0.3),
-        ease: "sine.inOut", // Smooth sinusoidal easing for consistent smoothness
-        onUpdate: function() {
-          const newPos = this.targets()[0].pos;
-          setSliderPosition(newPos);
-        },
-        onComplete: () => {
-          // Only proceed if still playing and not interacting
-          if (isPlaying && !isUserInteracting) {
-            // Change to next image
-            setCurrentIndex((prev) => (prev + 1) % images.length);
-            
-            // Reverse direction for next animation
-            directionRef.current *= -1;
-            
-            // Small delay then continue
-            setTimeout(() => {
-              if (isPlaying && !isUserInteracting) {
-                animateToTarget();
-              }
-            }, 200);
-          }
-        }
-      });
-    };
-
-    // Start the animation
-    animateToTarget();
+    intervalRef.current = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % images.length);
+    }, autoPlayInterval);
 
     return () => {
-      if (sliderAnimationRef.current) {
-        sliderAnimationRef.current.kill();
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
-  }, [isPlaying, isUserInteracting]);
+  }, [isPlaying, isDragging, images.length, autoPlayInterval]);
 
-  // Handle user interaction timeout
+  // Smooth slider animation
   useEffect(() => {
-    if (isUserInteracting) {
-      if (userInteractionTimeoutRef.current) {
-        clearTimeout(userInteractionTimeoutRef.current);
+    if (!isPlaying || isDragging) {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = undefined;
       }
-      
-      userInteractionTimeoutRef.current = setTimeout(() => {
-        setIsUserInteracting(false);
-      }, 1500); // Resume animation after 1.5 seconds of no interaction
+      return;
     }
 
+    animationStartTimeRef.current = Date.now();
+    
+    const animate = () => {
+      if (!isPlaying || isDragging) {
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current);
+          animationRef.current = undefined;
+        }
+        return;
+      }
+      
+      const elapsed = Date.now() - animationStartTimeRef.current;
+      const cycleDuration = 8000; // 4 second cycle for smooth animation
+      
+      const progress = (elapsed % cycleDuration) / cycleDuration;
+      const position = ((Math.cos(progress * Math.PI * 2) + 1) / 2) * 100;
+      
+      setSliderPosition(position);
+      animationRef.current = requestAnimationFrame(animate);
+    };
+    
+    animationRef.current = requestAnimationFrame(animate);
+    
     return () => {
-      if (userInteractionTimeoutRef.current) {
-        clearTimeout(userInteractionTimeoutRef.current);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = undefined;
       }
     };
-  }, [isUserInteracting]);
+  }, [isPlaying, isDragging]);
 
   const handlePrevious = () => {
     setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
-    setIsUserInteracting(true);
   };
 
   const handleNext = () => {
     setCurrentIndex((prev) => (prev + 1) % images.length);
-    setIsUserInteracting(true);
   };
 
   const togglePlayPause = () => {
     setIsPlaying(!isPlaying);
   };
 
-  const handleSliderMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+    updateSliderPosition(e.clientX);
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+    if (e.touches[0]) {
+      updateSliderPosition(e.touches[0].clientX);
+    }
+  };
+
+  const updateSliderPosition = (clientX: number) => {
     if (!containerRef.current) return;
     
     const rect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
+    const x = clientX - rect.left;
     const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
     setSliderPosition(percentage);
-    setIsUserInteracting(true);
   };
 
-  const handleMouseEnter = () => {
-    setIsUserInteracting(true);
-  };
+  // Global event listeners for dragging
+  useEffect(() => {
+    if (!isDragging) return;
 
-  const handleMouseLeave = () => {
-    // Don't immediately stop interaction, let the timeout handle it
-  };
+    const handleMouseMove = (e: MouseEvent) => {
+      updateSliderPosition(e.clientX);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches[0]) {
+        updateSliderPosition(e.touches[0].clientX);
+      }
+    };
+
+    const handleEnd = () => setIsDragging(false);
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleEnd);
+    window.addEventListener('touchmove', handleTouchMove);
+    window.addEventListener('touchend', handleEnd);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleEnd);
+    };
+  }, [isDragging]);
 
   const currentImage = images[currentIndex];
 
@@ -168,10 +178,8 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
       {/* Before/After Container */}
       <div 
         ref={containerRef}
-        className="relative w-full h-96 md:h-[500px] rounded-2xl overflow-hidden cursor-ew-resize shadow-2xl mb-8"
-        onMouseMove={handleSliderMove}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+        className="relative w-full h-96 md:h-[500px] rounded-2xl overflow-hidden shadow-2xl mb-8 select-none"
+        style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
       >
         {/* Before Image */}
         <div className="absolute inset-0">
@@ -206,7 +214,12 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           style={{ left: `${sliderPosition}%` }}
         >
           {/* Slider Handle */}
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-white rounded-full shadow-xl flex items-center justify-center cursor-ew-resize">
+          <div 
+            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-white rounded-full shadow-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
+            style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+            onMouseDown={handleMouseDown}
+            onTouchStart={handleTouchStart}
+          >
             <div className="w-6 h-6 bg-slate-900 rounded-full flex items-center justify-center">
               <div className="flex gap-0.5">
                 <div className="w-0.5 h-4 bg-white rounded-full"></div>
