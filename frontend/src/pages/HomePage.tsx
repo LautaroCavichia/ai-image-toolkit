@@ -3,6 +3,7 @@ import Layout from '../components/Layout';
 import Navbar from '../components/Navbar';
 import LoadingScreen from '../components/LoadingScreen';
 import AnimatedGradientMesh from '../components/AnimatedGradientMesh';
+import AnimatedNetMesh from '../components/AnimatedNetMesh';
 import { isAuthenticated } from '../services/authService';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -293,6 +294,7 @@ const HomePage: React.FC = () => {
   return (
     <Layout>
       <AnimatedGradientMesh variant="default" intensity="subtle" />
+      <AnimatedNetMesh intensity="subtle" />
       <Navbar />
       
       {/* Hero Section */}

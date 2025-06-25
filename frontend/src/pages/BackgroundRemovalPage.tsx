@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
-import { Scissors, Upload, CheckCircle, Sparkles, Info, Zap, Target, Shield, ChevronRight } from 'lucide-react';
+import { Scissors, Upload, CheckCircle, Sparkles, Info, Zap, Target, Shield } from 'lucide-react';
 import Layout from '../components/Layout';
 import Navbar from '../components/Navbar';
 import JobStatus from '../components/JobStatus';
