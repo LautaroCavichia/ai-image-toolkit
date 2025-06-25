@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar';
 import JobStatus from '../components/JobStatus';
 import DragDropUploader from '../components/DragDropUploader';
 import BeforeAfterSlider from '../components/BeforeAfterSlider';
+import AnimatedGradientMesh from '../components/AnimatedGradientMesh';
 import { JobTypeEnum } from '../types';
 import { uploadImageAndCreateJob } from '../services/apiService';
 
@@ -179,8 +180,9 @@ const UpscalePage: React.FC = () => {
 
   return (
     <Layout>
+      <AnimatedGradientMesh variant="upscale" intensity="subtle" />
       <Navbar />
-      <div className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-slate-100 pt-20">
+      <div className="min-h-screen pt-20">
         <div className="max-w-4xl mx-auto py-12 px-6">
           
           {/* Hero Section */}
@@ -204,7 +206,7 @@ const UpscalePage: React.FC = () => {
           </div>
 
           {/* Upload Section */}
-          <div ref={uploaderRef} className="bg-white/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-xl border border-slate-200/50 mb-8">
+          <div ref={uploaderRef} className="bg-white/60 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-xl border border-slate-200/50 mb-8">
             <div className="text-center mb-8">
               <div className="w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-200 rounded-3xl flex items-center justify-center mx-auto mb-6">
                 <Upload className="text-slate-700" size={24} />
@@ -245,7 +247,7 @@ const UpscalePage: React.FC = () => {
 
           {/* Configuration Section */}
           {selectedFile && (
-            <div ref={configRef} className="bg-white/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-xl border border-slate-200/50 mb-8">
+            <div ref={configRef} className="bg-white/60 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-xl border border-slate-200/50 mb-8">
             <div className="text-center mb-12">
               <h3 className="text-3xl font-light text-slate-900 mb-3 tracking-tight">
                 <em className="italic text-slate-600">Choose</em> Your Scale
@@ -336,7 +338,7 @@ const UpscalePage: React.FC = () => {
           )}
 
           {/* How it Works Section */}
-          <div ref={workflowRef} className="bg-white/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-xl border border-slate-200/50 mb-8">
+          <div ref={workflowRef} className="bg-white/60 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-xl border border-slate-200/50 mb-8">
             <div className="text-center mb-16">
               <h3 className="text-4xl md:text-5xl font-light text-slate-900 mb-6 tracking-tight">
                 <em className="italic font-medium bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">Intelligent</em> Enhancement
@@ -384,7 +386,7 @@ const UpscalePage: React.FC = () => {
           </div>
 
           {/* Features Section */}
-          <div ref={featuresRef} className="bg-white/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-xl border border-slate-200/50">
+          <div ref={featuresRef} className="bg-white/60 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-xl border border-slate-200/50">
             <div className="text-center mb-16">
               <h3 className="text-4xl md:text-5xl font-light text-slate-900 mb-6 tracking-tight">
                 Why Choose <em className="italic text-slate-600">Image Upscaling</em>

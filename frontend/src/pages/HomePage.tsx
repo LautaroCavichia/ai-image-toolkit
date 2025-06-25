@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Layout from '../components/Layout';
 import Navbar from '../components/Navbar';
 import LoadingScreen from '../components/LoadingScreen';
+import AnimatedGradientMesh from '../components/AnimatedGradientMesh';
 import { isAuthenticated } from '../services/authService';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -291,12 +292,13 @@ const HomePage: React.FC = () => {
 
   return (
     <Layout>
+      <AnimatedGradientMesh variant="default" intensity="subtle" />
       <Navbar />
       
       {/* Hero Section */}
       <div 
         ref={heroRef}
-        className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-slate-100 flex items-center justify-center px-6 py-20"
+        className="min-h-screen flex items-center justify-center px-6 py-20"
       >
         <div className="max-w-4xl mx-auto text-center">
           <img 
@@ -353,7 +355,7 @@ const HomePage: React.FC = () => {
       <div 
         ref={servicesRef}
         id="services" 
-        className="py-32 bg-white"
+        className="py-32 bg-white/40 backdrop-blur-sm"
       >
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-20">
@@ -399,7 +401,7 @@ const HomePage: React.FC = () => {
       </div>
       
      {/* Features Section */}
-     <div ref={featuresRef} className="py-32 bg-slate-50">
+     <div ref={featuresRef} className="py-32 bg-slate-50/60 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-20">
             <h2 className="text-4xl md:text-5xl font-light text-slate-900 mb-6 tracking-tight">
