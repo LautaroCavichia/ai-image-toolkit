@@ -33,14 +33,14 @@ const ObjectRemovalPage: React.FC = () => {
 
   useEffect(() => {
     const tl = gsap.timeline();
-    
+
     // Set initial states for vertical layout
     gsap.set([heroRef.current, uploaderRef.current, configRef.current, workflowRef.current, featuresRef.current], {
       opacity: 0,
       y: 40,
       scale: 0.95
     });
-    
+
     // Entrance animations in sequence
     tl.to(heroRef.current, {
       opacity: 1,
@@ -49,51 +49,51 @@ const ObjectRemovalPage: React.FC = () => {
       duration: 1.2,
       ease: "power3.out"
     })
-    .to(uploaderRef.current, {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      duration: 1,
-      ease: "power3.out"
-    }, "-=0.8")
-    .to(configRef.current, {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      duration: 0.8,
-      ease: "power3.out"
-    }, "-=0.6")
-    .to(workflowRef.current, {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      duration: 0.8,
-      ease: "power3.out"
-    }, "-=0.4")
-    .to(featuresRef.current, {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      duration: 0.8,
-      ease: "power3.out"
-    }, "-=0.4");
+      .to(uploaderRef.current, {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        duration: 1,
+        ease: "power3.out"
+      }, "-=0.8")
+      .to(configRef.current, {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        duration: 0.8,
+        ease: "power3.out"
+      }, "-=0.6")
+      .to(workflowRef.current, {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        duration: 0.8,
+        ease: "power3.out"
+      }, "-=0.4")
+      .to(featuresRef.current, {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        duration: 0.8,
+        ease: "power3.out"
+      }, "-=0.4");
 
     // Workflow animation
     setTimeout(() => {
       const workflowCards = workflowRef.current?.querySelectorAll('.workflow-card');
-      
+
       if (workflowCards) {
-        gsap.fromTo(workflowCards, 
-          { 
-            opacity: 0, 
+        gsap.fromTo(workflowCards,
+          {
+            opacity: 0,
             y: 30,
             scale: 0.95
           },
-          { 
-            opacity: 1, 
+          {
+            opacity: 1,
             y: 0,
             scale: 1,
-            duration: 0.8, 
+            duration: 0.8,
             stagger: 0.2,
             ease: "power3.out"
           }
@@ -105,7 +105,7 @@ const ObjectRemovalPage: React.FC = () => {
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
     setError('');
-    
+
     const reader = new FileReader();
     reader.onload = () => {
       setPreview(reader.result as string);
@@ -122,7 +122,7 @@ const ObjectRemovalPage: React.FC = () => {
     try {
       const response = await uploadImageAndCreateJob(selectedFile, 'OBJECT_REMOVAL' as any, config);
       setCurrentJobId(response.jobId);
-      
+
       // Reset form
       setSelectedFile(null);
       setPreview(null);
@@ -200,7 +200,7 @@ const ObjectRemovalPage: React.FC = () => {
       <Navbar />
       <div className="min-h-screen pt-20">
         <div className="max-w-4xl mx-auto py-12 px-6">
-          
+
           {/* Hero Section */}
           <div ref={heroRef} className="text-center mb-16">
             <div className="inline-flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-full font-medium text-sm mb-8">
@@ -264,133 +264,129 @@ const ObjectRemovalPage: React.FC = () => {
           {/* Configuration Section */}
           {selectedFile && (
             <div ref={configRef} className="bg-white/60 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-xl border border-slate-200/50 mb-8">
-            <div className="text-center mb-12">
-              <h3 className="text-3xl font-light text-slate-900 mb-3 tracking-tight">
-                <em className="italic text-slate-600">Choose</em> Your Method
-              </h3>
-              <p className="text-slate-600 text-lg">Select how you want to remove unwanted objects</p>
-            </div>
-
-            {/* Removal Method Selection */}
-            <div className="mb-12">
-              <h4 className="text-xl font-medium text-slate-900 mb-6 text-center">Removal Method</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {removalMethods.map((method) => (
-                  <button
-                    key={method.type}
-                    onClick={() => setConfig(prev => ({ ...prev, method: method.type }))}
-                    disabled={method.badge === 'Coming Soon'}
-                    className={`group p-8 rounded-2xl border-2 text-center transition-all duration-300 relative ${
-                      config.method === method.type && method.badge !== 'Coming Soon'
-                        ? 'border-slate-900 bg-slate-50 shadow-lg'
-                        : method.badge === 'Coming Soon'
-                        ? 'border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed'
-                        : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
-                    }`}
-                  >
-                    {method.badge && (
-                      <div className="absolute top-4 right-4 bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-                        {method.badge}
-                      </div>
-                    )}
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 transition-colors duration-300 ${
-                      config.method === method.type && method.badge !== 'Coming Soon'
-                        ? 'bg-slate-900 text-white'
-                        : method.badge === 'Coming Soon'
-                        ? 'bg-slate-200 text-slate-400'
-                        : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
-                    }`}>
-                      <method.icon size={24} />
-                    </div>
-                    <h5 className="font-medium text-slate-900 mb-2">{method.title}</h5>
-                    <p className="text-sm text-slate-600 mb-4">{method.description}</p>
-                    <div className="space-y-1">
-                      {method.features.map((feature, index) => (
-                        <div key={index} className="flex items-center justify-center gap-2 text-xs text-slate-500">
-                          <div className="w-1 h-1 bg-slate-400 rounded-full" />
-                          {feature}
-                        </div>
-                      ))}
-                    </div>
-                  </button>
-                ))}
+              <div className="text-center mb-12">
+                <h3 className="text-3xl font-light text-slate-900 mb-3 tracking-tight">
+                  <em className="italic text-slate-600">Choose</em> Your Method
+                </h3>
+                <p className="text-slate-600 text-lg">Select how you want to remove unwanted objects</p>
               </div>
-            </div>
 
-            {/* Quality Selection */}
-            <div className="mb-8">
-              <h4 className="text-xl font-medium text-slate-900 mb-6 text-center">Quality Level</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {qualityOptions.map((option) => (
-                  <button
-                    key={option.type}
-                    onClick={() => setConfig(prev => ({ ...prev, quality: option.type }))}
-                    className={`group p-8 rounded-2xl border-2 text-left transition-all duration-300 ${
-                      config.quality === option.type
-                        ? `border-${option.color}-500 bg-${option.color}-50 shadow-lg`
-                        : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-300 ${
-                          config.quality === option.type
-                            ? option.color === 'blue' ? 'bg-blue-500 text-white' : 'bg-purple-500 text-white'
+              {/* Removal Method Selection */}
+              <div className="mb-12">
+                <h4 className="text-xl font-medium text-slate-900 mb-6 text-center">Removal Method</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {removalMethods.map((method) => (
+                    <button
+                      key={method.type}
+                      onClick={() => setConfig(prev => ({ ...prev, method: method.type }))}
+                      disabled={method.badge === 'Coming Soon'}
+                      className={`group p-8 rounded-2xl border-2 text-center transition-all duration-300 relative ${config.method === method.type && method.badge !== 'Coming Soon'
+                          ? 'border-slate-900 bg-slate-50 shadow-lg'
+                          : method.badge === 'Coming Soon'
+                            ? 'border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed'
+                            : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
+                        }`}
+                    >
+                      {method.badge && (
+                        <div className="absolute top-4 right-4 bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                          {method.badge}
+                        </div>
+                      )}
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 transition-colors duration-300 ${config.method === method.type && method.badge !== 'Coming Soon'
+                          ? 'bg-slate-900 text-white'
+                          : method.badge === 'Coming Soon'
+                            ? 'bg-slate-200 text-slate-400'
                             : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
                         }`}>
-                          {option.color === 'blue' ? <Sparkles size={24} /> : <Star size={24} />}
-                        </div>
-                        <div>
-                          <h5 className="font-medium text-slate-900">{option.title}</h5>
-                          <div className="text-sm text-slate-600">Advanced AI processing</div>
-                        </div>
+                        <method.icon size={24} />
                       </div>
-                      <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        option.color === 'blue' 
-                          ? 'bg-blue-500 text-white' 
-                          : 'bg-purple-500 text-white'
-                      }`}>
-                        {option.cost}
+                      <h5 className="font-medium text-slate-900 mb-2">{method.title}</h5>
+                      <p className="text-sm text-slate-600 mb-4">{method.description}</p>
+                      <div className="space-y-1">
+                        {method.features.map((feature, index) => (
+                          <div key={index} className="flex items-center justify-center gap-2 text-xs text-slate-500">
+                            <div className="w-1 h-1 bg-slate-400 rounded-full" />
+                            {feature}
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                    <p className="text-sm text-slate-600">{option.description}</p>
-                  </button>
-                ))}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <button
-              onClick={handleUpload}
-              disabled={!selectedFile || loading || config.method === 'MANUAL'}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white py-6 px-8 rounded-2xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] text-lg"
-            >
-              <div className="flex items-center justify-center gap-3">
-                {loading ? (
-                  <>
-                    <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Removing Objects...
-                  </>
-                ) : config.method === 'MANUAL' ? (
-                  <>
-                    <Star size={24} />
-                    Coming Soon
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={24} />
-                    Remove Objects
-                  </>
-                )}
+              {/* Quality Selection */}
+              <div className="mb-8">
+                <h4 className="text-xl font-medium text-slate-900 mb-6 text-center">Quality Level</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {qualityOptions.map((option) => (
+                    <button
+                      key={option.type}
+                      onClick={() => setConfig(prev => ({ ...prev, quality: option.type }))}
+                      className={`group p-8 rounded-2xl border-2 text-left transition-all duration-300 ${config.quality === option.type
+                          ? `border-${option.color}-500 bg-${option.color}-50 shadow-lg`
+                          : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
+                        }`}
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-300 ${config.quality === option.type
+                              ? option.color === 'blue' ? 'bg-blue-500 text-white' : 'bg-purple-500 text-white'
+                              : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                            }`}>
+                            {option.color === 'blue' ? <Sparkles size={24} /> : <Star size={24} />}
+                          </div>
+                          <div>
+                            <h5 className="font-medium text-slate-900">{option.title}</h5>
+                            <div className="text-sm text-slate-600">Advanced AI processing</div>
+                          </div>
+                        </div>
+                        <div className={`px-3 py-1 rounded-full text-xs font-bold ${option.color === 'blue'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-purple-500 text-white'
+                          }`}>
+                          {option.cost}
+                        </div>
+                      </div>
+                      <p className="text-sm text-slate-600">{option.description}</p>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </button>
-          </div>
+
+              <button
+                onClick={handleUpload}
+                disabled={!selectedFile || loading || config.method === 'MANUAL'}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white py-6 px-8 rounded-2xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] text-lg"
+              >
+                <div className="flex items-center justify-center gap-3">
+                  {loading ? (
+                    <>
+                      <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Removing Objects...
+                    </>
+                  ) : config.method === 'MANUAL' ? (
+                    <>
+                      <Star size={24} />
+                      Coming Soon
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={24} />
+                      Remove Objects
+                    </>
+                  )}
+                </div>
+              </button>
+            </div>
           )}
 
           {/* Job Status Section */}
           {currentJobId && (
             <div className="mb-8">
-              <JobStatus 
-                jobId={currentJobId} 
+              <JobStatus
+                initialImageUrl={preview || ''}
+                jobId={currentJobId}
                 onJobCompleted={handleJobCompleted}
               />
             </div>
@@ -406,9 +402,9 @@ const ObjectRemovalPage: React.FC = () => {
                 Watch AI seamlessly erase objects and restore backgrounds
               </p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              
+
               {/* Step 1 */}
               <div className="workflow-card text-center group opacity-0">
                 <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-slate-900 transition-colors duration-300 shadow-lg group-hover:shadow-xl">
@@ -473,7 +469,7 @@ const ObjectRemovalPage: React.FC = () => {
                   description: "Your images are processed securely and never stored permanently."
                 }
               ].map((feature) => (
-                <div 
+                <div
                   key={feature.title}
                   className="text-center group"
                 >

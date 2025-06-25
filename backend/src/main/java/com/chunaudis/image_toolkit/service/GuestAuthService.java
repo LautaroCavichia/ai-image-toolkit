@@ -40,14 +40,13 @@ public class GuestAuthService {
             
             // Create and save guest user
             User guestUser = new User();
-guestUser.setEmail(guestEmail); // ej: "guest1234@example.com" o email temporal generado
-guestUser.setPasswordHash(passwordHash); // ej: password encoder aplicado a alguna clave random
-guestUser.setDisplayName(displayName); // ej: "Guest User"
-guestUser.setIsGuest(true);
-guestUser.setTokenBalance(0);
-userRepository.save(guestUser);
-
+            guestUser.setEmail(guestEmail);
+            guestUser.setPasswordHash(passwordHash);
+            guestUser.setDisplayName(displayName);
+            guestUser.setIsGuest(true);
+            guestUser.setTokenBalance(0);
             
+            // Save user only once
             User savedUser = userRepository.save(guestUser);
             log.info("Created guest user with ID: {}", savedUser.getUserId());
             

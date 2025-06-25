@@ -26,14 +26,14 @@ const UpscalePage: React.FC = () => {
 
   useEffect(() => {
     const tl = gsap.timeline();
-    
+
     // Set initial states for vertical layout
     gsap.set([heroRef.current, uploaderRef.current, configRef.current, workflowRef.current, featuresRef.current], {
       opacity: 0,
       y: 40,
       scale: 0.95
     });
-    
+
     // Entrance animations in sequence
     tl.to(heroRef.current, {
       opacity: 1,
@@ -42,51 +42,51 @@ const UpscalePage: React.FC = () => {
       duration: 1.2,
       ease: "power3.out"
     })
-    .to(uploaderRef.current, {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      duration: 1,
-      ease: "power3.out"
-    }, "-=0.8")
-    .to(configRef.current, {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      duration: 0.8,
-      ease: "power3.out"
-    }, "-=0.6")
-    .to(workflowRef.current, {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      duration: 0.8,
-      ease: "power3.out"
-    }, "-=0.4")
-    .to(featuresRef.current, {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      duration: 0.8,
-      ease: "power3.out"
-    }, "-=0.4");
+      .to(uploaderRef.current, {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        duration: 1,
+        ease: "power3.out"
+      }, "-=0.8")
+      .to(configRef.current, {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        duration: 0.8,
+        ease: "power3.out"
+      }, "-=0.6")
+      .to(workflowRef.current, {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        duration: 0.8,
+        ease: "power3.out"
+      }, "-=0.4")
+      .to(featuresRef.current, {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        duration: 0.8,
+        ease: "power3.out"
+      }, "-=0.4");
 
     // Workflow animation
     setTimeout(() => {
       const workflowCards = workflowRef.current?.querySelectorAll('.workflow-card');
-      
+
       if (workflowCards) {
-        gsap.fromTo(workflowCards, 
-          { 
-            opacity: 0, 
+        gsap.fromTo(workflowCards,
+          {
+            opacity: 0,
             y: 30,
             scale: 0.95
           },
-          { 
-            opacity: 1, 
+          {
+            opacity: 1,
             y: 0,
             scale: 1,
-            duration: 0.8, 
+            duration: 0.8,
             stagger: 0.2,
             ease: "power3.out"
           }
@@ -98,7 +98,7 @@ const UpscalePage: React.FC = () => {
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
     setError('');
-    
+
     const reader = new FileReader();
     reader.onload = () => {
       setPreview(reader.result as string);
@@ -117,10 +117,10 @@ const UpscalePage: React.FC = () => {
         quality,
         scale: quality === 'PREMIUM' ? 4 : 2
       };
-      
+
       const response = await uploadImageAndCreateJob(selectedFile, JobTypeEnum.UPSCALE, jobConfig);
       setCurrentJobId(response.jobId);
-      
+
       // Reset form
       setSelectedFile(null);
       setPreview(null);
@@ -184,7 +184,7 @@ const UpscalePage: React.FC = () => {
       <Navbar />
       <div className="min-h-screen pt-20">
         <div className="max-w-4xl mx-auto py-12 px-6">
-          
+
           {/* Hero Section */}
           <div ref={heroRef} className="text-center mb-16">
             <div className="inline-flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-full font-medium text-sm mb-8">
@@ -248,90 +248,88 @@ const UpscalePage: React.FC = () => {
           {/* Configuration Section */}
           {selectedFile && (
             <div ref={configRef} className="bg-white/60 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-xl border border-slate-200/50 mb-8">
-            <div className="text-center mb-12">
-              <h3 className="text-3xl font-light text-slate-900 mb-3 tracking-tight">
-                <em className="italic text-slate-600">Choose</em> Your Scale
-              </h3>
-              <p className="text-slate-600 text-lg">Select the perfect upscaling level for your needs</p>
-            </div>
+              <div className="text-center mb-12">
+                <h3 className="text-3xl font-light text-slate-900 mb-3 tracking-tight">
+                  <em className="italic text-slate-600">Choose</em> Your Scale
+                </h3>
+                <p className="text-slate-600 text-lg">Select the perfect upscaling level for your needs</p>
+              </div>
 
-            {/* Quality Selection */}
-            <div className="mb-8">
-              <h4 className="text-xl font-medium text-slate-900 mb-6 text-center">Upscaling Quality</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {qualityOptions.map((option) => (
-                  <button
-                    key={option.type}
-                    onClick={() => setQuality(option.type)}
-                    className={`group p-8 rounded-2xl border-2 text-left transition-all duration-300 ${
-                      quality === option.type
-                        ? `border-${option.color}-500 bg-${option.color}-50 shadow-lg`
-                        : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-300 ${
-                          quality === option.type
-                            ? option.color === 'green' ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'
-                            : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
-                        }`}>
-                          {option.color === 'green' ? <Sparkles size={24} /> : <Star size={24} />}
+              {/* Quality Selection */}
+              <div className="mb-8">
+                <h4 className="text-xl font-medium text-slate-900 mb-6 text-center">Upscaling Quality</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {qualityOptions.map((option) => (
+                    <button
+                      key={option.type}
+                      onClick={() => setQuality(option.type)}
+                      className={`group p-8 rounded-2xl border-2 text-left transition-all duration-300 ${quality === option.type
+                          ? `border-${option.color}-500 bg-${option.color}-50 shadow-lg`
+                          : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
+                        }`}
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-300 ${quality === option.type
+                              ? option.color === 'green' ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'
+                              : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                            }`}>
+                            {option.color === 'green' ? <Sparkles size={24} /> : <Star size={24} />}
+                          </div>
+                          <div>
+                            <h5 className="font-medium text-slate-900">{option.title}</h5>
+                            <div className="text-sm text-slate-600">{option.scale} resolution</div>
+                          </div>
                         </div>
-                        <div>
-                          <h5 className="font-medium text-slate-900">{option.title}</h5>
-                          <div className="text-sm text-slate-600">{option.scale} resolution</div>
+                        <div className={`px-3 py-1 rounded-full text-xs font-bold ${option.color === 'green'
+                            ? 'bg-green-500 text-white'
+                            : 'bg-orange-500 text-white'
+                          }`}>
+                          {option.cost}
                         </div>
                       </div>
-                      <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        option.color === 'green' 
-                          ? 'bg-green-500 text-white' 
-                          : 'bg-orange-500 text-white'
-                      }`}>
-                        {option.cost}
+                      <p className="text-sm text-slate-600 mb-4">{option.description}</p>
+                      <div className="space-y-1">
+                        {option.features.map((feature, index) => (
+                          <div key={index} className="flex items-center gap-2 text-xs text-slate-500">
+                            <div className="w-1 h-1 bg-slate-400 rounded-full" />
+                            {feature}
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                    <p className="text-sm text-slate-600 mb-4">{option.description}</p>
-                    <div className="space-y-1">
-                      {option.features.map((feature, index) => (
-                        <div key={index} className="flex items-center gap-2 text-xs text-slate-500">
-                          <div className="w-1 h-1 bg-slate-400 rounded-full" />
-                          {feature}
-                        </div>
-                      ))}
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <button
-              onClick={handleUpload}
-              disabled={!selectedFile || loading}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white py-6 px-8 rounded-2xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] text-lg"
-            >
-              <div className="flex items-center justify-center gap-3">
-                {loading ? (
-                  <>
-                    <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Enhancing Resolution...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={24} />
-                    Upscale to {quality === 'PREMIUM' ? '4x' : '2x'}
-                  </>
-                )}
-              </div>
-            </button>
-          </div>
+              <button
+                onClick={handleUpload}
+                disabled={!selectedFile || loading}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white py-6 px-8 rounded-2xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] text-lg"
+              >
+                <div className="flex items-center justify-center gap-3">
+                  {loading ? (
+                    <>
+                      <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Enhancing Resolution...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={24} />
+                      Upscale to {quality === 'PREMIUM' ? '4x' : '2x'}
+                    </>
+                  )}
+                </div>
+              </button>
+            </div>
           )}
 
           {/* Job Status Section */}
           {currentJobId && (
             <div className="mb-8">
-              <JobStatus 
-                jobId={currentJobId} 
+              <JobStatus
+                initialImageUrl={preview || ''}
+                jobId={currentJobId}
                 onJobCompleted={handleJobCompleted}
               />
             </div>
@@ -347,9 +345,9 @@ const UpscalePage: React.FC = () => {
                 Watch AI transform low resolution into crystal-clear detail
               </p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              
+
               {/* Step 1 */}
               <div className="workflow-card text-center group opacity-0">
                 <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-slate-900 transition-colors duration-300 shadow-lg group-hover:shadow-xl">
@@ -414,7 +412,7 @@ const UpscalePage: React.FC = () => {
                   description: "Your images are processed securely and never stored permanently."
                 }
               ].map((feature) => (
-                <div 
+                <div
                   key={feature.title}
                   className="text-center group"
                 >

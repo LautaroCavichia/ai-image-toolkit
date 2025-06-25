@@ -76,10 +76,12 @@ protected void doFilterInternal(HttpServletRequest request, HttpServletResponse 
                 
                 request.setAttribute("userId", userUUID);
                 
-                log.debug("Authentication set for user ID: {}", userUUID);
+                log.info("Authentication set for user ID: {}", userUUID);
+            } else {
+                log.warn("JWT token validation failed for user ID: {}", userUUID);
             }
         } catch (Exception e) {
-            log.debug("Cannot set user authentication: {}", e.getMessage());
+            log.warn("Cannot set user authentication for user {}: {}", userId, e.getMessage());
         }
     }
     

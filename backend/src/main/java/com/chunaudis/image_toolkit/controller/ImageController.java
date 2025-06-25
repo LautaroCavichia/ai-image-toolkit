@@ -49,14 +49,21 @@ public class ImageController {
     ) {
         // Get user ID from security context
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        log.info("Authentication object: {}", authentication);
+        log.info("Is authenticated: {}", authentication != null ? authentication.isAuthenticated() : "null");
+        
         if (authentication == null || !authentication.isAuthenticated()) {
+            log.warn("Authentication failed - authentication: {}", authentication);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         
         // Get user ID from request attribute set in JwtRequestFilter
         UUID userId = (UUID) request.getAttribute("userId");
+        log.info("User ID from request attribute: {}", userId);
+        
         if (userId == null) {
             UUID authPrincipalUserId = (UUID) authentication.getPrincipal();
+            log.info("User ID from authentication principal: {}", authPrincipalUserId);
             // Use authentication principal as fallback
             userId = authPrincipalUserId;
         }

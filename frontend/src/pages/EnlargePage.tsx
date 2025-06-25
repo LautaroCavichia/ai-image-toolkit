@@ -34,14 +34,14 @@ const EnlargePage: React.FC = () => {
 
   useEffect(() => {
     const tl = gsap.timeline();
-    
+
     // Set initial states for vertical layout
     gsap.set([heroRef.current, uploaderRef.current, configRef.current, workflowRef.current, featuresRef.current], {
       opacity: 0,
       y: 40,
       scale: 0.95
     });
-    
+
     // Entrance animations in sequence
     tl.to(heroRef.current, {
       opacity: 1,
@@ -50,51 +50,51 @@ const EnlargePage: React.FC = () => {
       duration: 1.2,
       ease: "power3.out"
     })
-    .to(uploaderRef.current, {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      duration: 1,
-      ease: "power3.out"
-    }, "-=0.8")
-    .to(configRef.current, {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      duration: 0.8,
-      ease: "power3.out"
-    }, "-=0.6")
-    .to(workflowRef.current, {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      duration: 0.8,
-      ease: "power3.out"
-    }, "-=0.4")
-    .to(featuresRef.current, {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      duration: 0.8,
-      ease: "power3.out"
-    }, "-=0.4");
+      .to(uploaderRef.current, {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        duration: 1,
+        ease: "power3.out"
+      }, "-=0.8")
+      .to(configRef.current, {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        duration: 0.8,
+        ease: "power3.out"
+      }, "-=0.6")
+      .to(workflowRef.current, {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        duration: 0.8,
+        ease: "power3.out"
+      }, "-=0.4")
+      .to(featuresRef.current, {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        duration: 0.8,
+        ease: "power3.out"
+      }, "-=0.4");
 
     // Workflow animation
     setTimeout(() => {
       const workflowCards = workflowRef.current?.querySelectorAll('.workflow-card');
-      
+
       if (workflowCards) {
-        gsap.fromTo(workflowCards, 
-          { 
-            opacity: 0, 
+        gsap.fromTo(workflowCards,
+          {
+            opacity: 0,
             y: 30,
             scale: 0.95
           },
-          { 
-            opacity: 1, 
+          {
+            opacity: 1,
             y: 0,
             scale: 1,
-            duration: 0.8, 
+            duration: 0.8,
             stagger: 0.2,
             ease: "power3.out"
           }
@@ -106,7 +106,7 @@ const EnlargePage: React.FC = () => {
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
     setError('');
-    
+
     const reader = new FileReader();
     reader.onload = () => {
       setPreview(reader.result as string);
@@ -123,7 +123,7 @@ const EnlargePage: React.FC = () => {
     try {
       const response = await uploadImageAndCreateJob(selectedFile, JobTypeEnum.ENLARGE, config);
       setCurrentJobId(response.jobId);
-      
+
       // Reset form
       setSelectedFile(null);
       setPreview(null);
@@ -190,7 +190,7 @@ const EnlargePage: React.FC = () => {
       <Navbar />
       <div className="min-h-screen pt-20">
         <div className="max-w-4xl mx-auto py-12 px-6">
-          
+
           {/* Hero Section */}
           <div ref={heroRef} className="text-center mb-16">
             <div className="inline-flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-full font-medium text-sm mb-8">
@@ -254,135 +254,130 @@ const EnlargePage: React.FC = () => {
           {/* Configuration Section */}
           {selectedFile && (
             <div ref={configRef} className="bg-white/60 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-xl border border-slate-200/50 mb-8">
-            <div className="text-center mb-12">
-              <h3 className="text-3xl font-light text-slate-900 mb-3 tracking-tight">
-                <em className="italic text-slate-600">Choose</em> Your Canvas
-              </h3>
-              <p className="text-slate-600 text-lg">Select how you want to expand your image</p>
-            </div>
+              <div className="text-center mb-12">
+                <h3 className="text-3xl font-light text-slate-900 mb-3 tracking-tight">
+                  <em className="italic text-slate-600">Choose</em> Your Canvas
+                </h3>
+                <p className="text-slate-600 text-lg">Select how you want to expand your image</p>
+              </div>
 
-            {/* Aspect Ratio Selection */}
-            <div className="mb-12">
-              <h4 className="text-xl font-medium text-slate-900 mb-6 text-center">Target Aspect Ratio</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {aspectRatios.map((aspect) => (
+              {/* Aspect Ratio Selection */}
+              <div className="mb-12">
+                <h4 className="text-xl font-medium text-slate-900 mb-6 text-center">Target Aspect Ratio</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {aspectRatios.map((aspect) => (
+                    <button
+                      key={aspect.type}
+                      onClick={() => setConfig(prev => ({ ...prev, aspectRatio: aspect.type }))}
+                      className={`group p-8 rounded-2xl border-2 text-center transition-all duration-300 ${config.aspectRatio === aspect.type
+                          ? 'border-slate-900 bg-slate-50 shadow-lg'
+                          : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
+                        }`}
+                    >
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 transition-colors duration-300 ${config.aspectRatio === aspect.type
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                        }`}>
+                        <aspect.icon size={24} />
+                      </div>
+                      <h5 className="font-medium text-slate-900 mb-2">{aspect.label}</h5>
+                      <p className="text-sm text-slate-600 mb-3">{aspect.description}</p>
+                      <div className="inline-block bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-xs font-medium">
+                        {aspect.ratio}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Quality Selection */}
+              <div className="mb-8">
+                <h4 className="text-xl font-medium text-slate-900 mb-6 text-center">Quality Level</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <button
-                    key={aspect.type}
-                    onClick={() => setConfig(prev => ({ ...prev, aspectRatio: aspect.type }))}
-                    className={`group p-8 rounded-2xl border-2 text-center transition-all duration-300 ${
-                      config.aspectRatio === aspect.type
-                        ? 'border-slate-900 bg-slate-50 shadow-lg'
+                    onClick={() => setConfig(prev => ({ ...prev, quality: 'FREE' }))}
+                    className={`group p-8 rounded-2xl border-2 text-left transition-all duration-300 ${config.quality === 'FREE'
+                        ? 'border-green-500 bg-green-50 shadow-lg'
                         : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
-                    }`}
+                      }`}
                   >
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 transition-colors duration-300 ${
-                      config.aspectRatio === aspect.type
-                        ? 'bg-slate-900 text-white'
-                        : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
-                    }`}>
-                      <aspect.icon size={24} />
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-300 ${config.quality === 'FREE'
+                            ? 'bg-green-500 text-white'
+                            : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                          }`}>
+                          <Sparkles size={24} />
+                        </div>
+                        <div>
+                          <h5 className="font-medium text-slate-900">Standard Quality</h5>
+                          <div className="text-sm text-slate-600">Basic expansion</div>
+                        </div>
+                      </div>
+                      <div className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                        FREE
+                      </div>
                     </div>
-                    <h5 className="font-medium text-slate-900 mb-2">{aspect.label}</h5>
-                    <p className="text-sm text-slate-600 mb-3">{aspect.description}</p>
-                    <div className="inline-block bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-xs font-medium">
-                      {aspect.ratio}
-                    </div>
+                    <p className="text-sm text-slate-600">Basic content-aware expansion with natural blending</p>
                   </button>
-                ))}
-              </div>
-            </div>
 
-            {/* Quality Selection */}
-            <div className="mb-8">
-              <h4 className="text-xl font-medium text-slate-900 mb-6 text-center">Quality Level</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <button
-                  onClick={() => setConfig(prev => ({ ...prev, quality: 'FREE' }))}
-                  className={`group p-8 rounded-2xl border-2 text-left transition-all duration-300 ${
-                    config.quality === 'FREE'
-                      ? 'border-green-500 bg-green-50 shadow-lg'
-                      : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-300 ${
-                        config.quality === 'FREE'
-                          ? 'bg-green-500 text-white'
-                          : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
-                      }`}>
-                        <Sparkles size={24} />
+                  <button
+                    onClick={() => setConfig(prev => ({ ...prev, quality: 'PREMIUM' }))}
+                    className={`group p-8 rounded-2xl border-2 text-left transition-all duration-300 ${config.quality === 'PREMIUM'
+                        ? 'border-orange-500 bg-orange-50 shadow-lg'
+                        : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
+                      }`}
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-300 ${config.quality === 'PREMIUM'
+                            ? 'bg-orange-500 text-white'
+                            : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                          }`}>
+                          <Star size={24} />
+                        </div>
+                        <div>
+                          <h5 className="font-medium text-slate-900">Premium Quality</h5>
+                          <div className="text-sm text-slate-600">AI enhancement</div>
+                        </div>
                       </div>
-                      <div>
-                        <h5 className="font-medium text-slate-900">Standard Quality</h5>
-                        <div className="text-sm text-slate-600">Basic expansion</div>
+                      <div className="bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                        1 TOKEN
                       </div>
                     </div>
-                    <div className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                      FREE
-                    </div>
-                  </div>
-                  <p className="text-sm text-slate-600">Basic content-aware expansion with natural blending</p>
-                </button>
-                
-                <button
-                  onClick={() => setConfig(prev => ({ ...prev, quality: 'PREMIUM' }))}
-                  className={`group p-8 rounded-2xl border-2 text-left transition-all duration-300 ${
-                    config.quality === 'PREMIUM'
-                      ? 'border-orange-500 bg-orange-50 shadow-lg'
-                      : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-300 ${
-                        config.quality === 'PREMIUM'
-                          ? 'bg-orange-500 text-white'
-                          : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
-                      }`}>
-                        <Star size={24} />
-                      </div>
-                      <div>
-                        <h5 className="font-medium text-slate-900">Premium Quality</h5>
-                        <div className="text-sm text-slate-600">AI enhancement</div>
-                      </div>
-                    </div>
-                    <div className="bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                      1 TOKEN
-                    </div>
-                  </div>
-                  <p className="text-sm text-slate-600">AI-powered generative fill with Stable Diffusion technology</p>
-                </button>
+                    <p className="text-sm text-slate-600">AI-powered generative fill with Stable Diffusion technology</p>
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <button
-              onClick={handleUpload}
-              disabled={!selectedFile || loading}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white py-6 px-8 rounded-2xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] text-lg"
-            >
-              <div className="flex items-center justify-center gap-3">
-                {loading ? (
-                  <>
-                    <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Expanding Canvas...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={24} />
-                    Expand to {config.aspectRatio}
-                  </>
-                )}
-              </div>
-            </button>
-          </div>
+              <button
+                onClick={handleUpload}
+                disabled={!selectedFile || loading}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white py-6 px-8 rounded-2xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] text-lg"
+              >
+                <div className="flex items-center justify-center gap-3">
+                  {loading ? (
+                    <>
+                      <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Expanding Canvas...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={24} />
+                      Expand to {config.aspectRatio}
+                    </>
+                  )}
+                </div>
+              </button>
+            </div>
           )}
 
           {/* Job Status Section */}
           {currentJobId && (
             <div className="mb-8">
-              <JobStatus 
-                jobId={currentJobId} 
+              <JobStatus
+                initialImageUrl={preview || ''}
+                jobId={currentJobId}
                 onJobCompleted={handleJobCompleted}
               />
             </div>
@@ -398,9 +393,9 @@ const EnlargePage: React.FC = () => {
                 Watch AI create natural extensions of your images
               </p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              
+
               {/* Step 1 */}
               <div className="workflow-card text-center group opacity-0">
                 <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-slate-900 transition-colors duration-300 shadow-lg group-hover:shadow-xl">
@@ -465,7 +460,7 @@ const EnlargePage: React.FC = () => {
                   description: "Your images are processed securely and never stored permanently."
                 }
               ].map((feature) => (
-                <div 
+                <div
                   key={feature.title}
                   className="text-center group"
                 >

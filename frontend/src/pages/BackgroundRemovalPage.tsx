@@ -9,10 +9,12 @@ import BeforeAfterSlider from '../components/BeforeAfterSlider';
 import AnimatedGradientMesh from '../components/AnimatedGradientMesh';
 import { JobTypeEnum } from '../types';
 import { uploadImageAndCreateJob } from '../services/apiService';
+import { isAuthenticated } from '../services/authService';
 
 const BackgroundRemovalPage: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [statusPreview, setStatusPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
@@ -100,17 +102,27 @@ const BackgroundRemovalPage: React.FC = () => {
   const handleUpload = async () => {
     if (!selectedFile) return;
 
+    console.log('📤 === HANDLE UPLOAD START ===');
+    console.log('📤 Selected file:', selectedFile.name, selectedFile.size);
+    console.log('📤 Token in localStorage before upload:', localStorage.getItem('token') ? 'EXISTS' : 'MISSING');
+    console.log('📤 User authenticated before upload:', isAuthenticated());
+
     setLoading(true);
     setError('');
 
     try {
+      console.log('📤 Calling uploadImageAndCreateJob...');
       const response = await uploadImageAndCreateJob(selectedFile, JobTypeEnum.BG_REMOVAL);
+      console.log('📤 Upload response received:', response);
       setCurrentJobId(response.jobId);
       
       // Reset form
       setSelectedFile(null);
+      setStatusPreview(preview);
       setPreview(null);
+      
     } catch (err: any) {
+      console.error('📤 Upload error caught:', err);
       setError(err.message || 'Upload failed');
     } finally {
       setLoading(false);
@@ -124,20 +136,14 @@ const BackgroundRemovalPage: React.FC = () => {
   // Mock images for the slider
   const mockImages = [
     {
-      before: 'https://images.unsplash.com/photo-1494790108755-2616c9efe1a2?w=600&h=600&fit=crop&crop=face',
-      after: 'https://images.unsplash.com/photo-1494790108755-2616c9efe1a2?w=600&h=600&fit=crop&crop=face&blend=transparent&blend-alpha=0',
-      title: 'Portrait Background Removal',
-      description: 'Professional headshot with clean transparent background'
-    },
-    {
-      before: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600&h=600&fit=crop',
-      after: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=600&h=600&fit=crop&blend=transparent&blend-alpha=0',
-      title: 'Product Photography',
-      description: 'E-commerce ready product shots with pristine backgrounds'
+      before: '/assets/before_and_after/car_before.png',
+      after: '/assets/before_and_after/car_after.png',
+      title: 'Car Background Removal',
+      description: 'Professional car photography with clean transparent background'
     },
     {
       before: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=600&h=600&fit=crop',
-      after: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=600&h=600&fit=crop&blend=transparent&blend-alpha=0',
+      after: '/assets/before_and_after/pet_after.png',
       title: 'Pet Photography',
       description: 'Cute pets isolated perfectly for creative projects'
     }
@@ -205,7 +211,12 @@ const BackgroundRemovalPage: React.FC = () => {
 
               {selectedFile && (
                 <button
-                  onClick={handleUpload}
+                  onClick={() => {
+                    console.log('🔥 PROCESS BUTTON CLICKED!');
+                    console.log('🔥 Auth state before upload:', isAuthenticated());
+                    console.log('🔥 Token before upload:', localStorage.getItem('token') ? 'EXISTS' : 'MISSING');
+                    handleUpload();
+                  }}
                   disabled={loading}
                   className="w-full bg-slate-900 hover:bg-slate-800 text-white py-6 px-8 rounded-2xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] text-lg"
                 >
@@ -227,20 +238,23 @@ const BackgroundRemovalPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Before/After Examples */}
-          <div className="mb-8">
-            <BeforeAfterSlider images={mockImages} />
-          </div>
 
           {/* Job Status Section */}
           {currentJobId && (
             <div className="mb-8">
               <JobStatus 
                 jobId={currentJobId} 
+                initialImageUrl={statusPreview || ''} 
+  
                 onJobCompleted={handleJobCompleted}
               />
             </div>
           )}
+
+          {/* Before/After Examples */}
+          <div className="mb-8">
+            <BeforeAfterSlider images={mockImages} />
+          </div>
 
           {/* How it Works Section */}
           <div ref={workflowRef} className="bg-white/60 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-xl border border-slate-200/50 mb-8">

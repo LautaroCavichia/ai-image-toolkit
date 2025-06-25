@@ -86,7 +86,13 @@ export const register = async (credentials: AuthRequest): Promise<AuthResponse> 
 };
 
 export const createGuestUser = async (): Promise<AuthResponse> => {
-  const response = await axios.post<AuthResponse>(`${API_BASE_URL}/auth/guest`);
+  // Create a separate axios instance without interceptors for guest user creation
+  const guestAxios = axios.create({
+    baseURL: API_BASE_URL,
+    timeout: 10000
+  });
+  
+  const response = await guestAxios.post<AuthResponse>('/auth/guest');
   
   // Store the token and user info in localStorage
   storeUserData(response.data);
@@ -134,15 +140,23 @@ export const createTestUser = async (): Promise<AuthResponse> => {
 };
 
 export const logout = (): void => {
+  console.log('🚪 === LOGOUT CALLED ===');
+  console.log('🚪 Current stack trace:', new Error().stack);
   localStorage.removeItem('token');
   localStorage.removeItem('userId');
   localStorage.removeItem('email');
   localStorage.removeItem('displayName');
   localStorage.removeItem('isGuest');
   localStorage.removeItem('tokenBalance');
+  console.log('🚪 LocalStorage cleared');
 };
 
 export const storeUserData = (userData: AuthResponse): void => {
+  console.log('💾 === STORING USER DATA ===');
+  console.log('💾 Token:', userData.token ? `${userData.token.substring(0, 30)}...` : 'NO TOKEN');
+  console.log('💾 UserId:', userData.userId);
+  console.log('💾 IsGuest:', userData.isGuest);
+  
   localStorage.setItem('token', userData.token);
   localStorage.setItem('userId', userData.userId);
   if (userData.email) localStorage.setItem('email', userData.email);
@@ -154,6 +168,9 @@ export const storeUserData = (userData: AuthResponse): void => {
   if (userData.tokenBalance !== undefined) {
     localStorage.setItem('tokenBalance', userData.tokenBalance.toString());
   }
+  
+  console.log('💾 Verification - token stored:', localStorage.getItem('token') ? 'YES' : 'NO');
+  console.log('💾 All localStorage keys after store:', Object.keys(localStorage));
 };
 
 
@@ -180,7 +197,15 @@ export const getUserData = (): AuthResponse | null => {
 };
 
 export const isAuthenticated = (): boolean => {
-  return localStorage.getItem('token') !== null;
+  const token = localStorage.getItem('token');
+  const hasToken = token !== null;
+  console.log('🔍 isAuthenticated check:', {
+    hasToken,
+    tokenExists: !!token,
+    tokenLength: token?.length,
+    allStorageKeys: Object.keys(localStorage)
+  });
+  return hasToken;
 };
 
 export const isGuestUser = (): boolean => {
@@ -216,11 +241,26 @@ const processQueue = (error: any, token: string | null = null) => {
 };
 
 export function setupAxiosInterceptors() {
+  // Clear existing interceptors to avoid duplicates
+  axios.interceptors.request.clear();
+  axios.interceptors.response.clear();
+  
   axios.interceptors.request.use(config => {
     const token = localStorage.getItem('token');
+    console.log('🔧 === AXIOS REQUEST INTERCEPTOR ===');
+    console.log('🔧 Request URL:', config.url);
+    console.log('🔧 Request method:', config.method);
+    console.log('🔧 Token found:', token ? `${token.substring(0, 30)}...` : 'NO TOKEN');
+    console.log('🔧 Existing Authorization header:', config.headers?.Authorization);
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('🔧 Set Authorization header:', `Bearer ${token.substring(0, 30)}...`);
+    } else {
+      console.log('🔧 No token - skipping Authorization header');
     }
+    
+    console.log('🔧 Final headers:', config.headers);
     return config;
   });
 
@@ -228,13 +268,19 @@ export function setupAxiosInterceptors() {
     response => response,
     async error => {
       const originalRequest = error.config;
+      console.log('🚨 Axios interceptor error:', error.response?.status, originalRequest.url);
 
-      // Evitar retry y refresh token en la llamada a login
-      if (originalRequest.url?.includes('/auth/login')) {
+      // Evitar retry y refresh token en las llamadas de auth
+      if (originalRequest.url?.includes('/auth/login') || 
+          originalRequest.url?.includes('/auth/guest') ||
+          originalRequest.url?.includes('/auth/register') ||
+          originalRequest.url?.includes('/images/upload')) {
+        console.log('🔄 Skipping retry for auth endpoint');
         return Promise.reject(error);
       }
 
       if (error.response?.status === 401 && !originalRequest._retry) {
+        console.log('🔄 401 error detected, attempting to handle...');
         originalRequest._retry = true;
 
         if (isRefreshing) {
@@ -251,9 +297,20 @@ export function setupAxiosInterceptors() {
         isRefreshing = true;
 
         if (!onUnauthorizedCallback) {
+          console.log('🔴 === 401 ERROR - TRIGGERING LOGOUT ===');
+          console.log('🔴 Error details:', error.response?.data);
+          console.log('🔴 Request URL:', originalRequest.url);
+          console.log('🔴 Request headers:', originalRequest.headers);
+          console.log('🔴 Current path:', window.location.pathname);
+          console.log('🔴 Token at time of error:', localStorage.getItem('token')?.substring(0, 30) + '...');
+          
           // 🔴 No se puede renovar, desloguear y redirigir
-          logout();
-          window.location.href = '/login'; // Ruta a tu página de login
+          // But only redirect if we're not on the login page already
+          if (window.location.pathname !== '/login') {
+            console.log('🔴 Logging out and redirecting to login...');
+            logout();
+            window.location.href = '/login';
+          }
           return Promise.reject(error);
         }
 
@@ -268,8 +325,10 @@ export function setupAxiosInterceptors() {
         } catch (err) {
           // 🔴 Falló la renovación: desloguear y redirigir
           processQueue(err, null);
-          logout();
-          window.location.href = '/login';
+          if (window.location.pathname !== '/login') {
+            logout();
+            window.location.href = '/login';
+          }
           return Promise.reject(err);
         } finally {
           isRefreshing = false;

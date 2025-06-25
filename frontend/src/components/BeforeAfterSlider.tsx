@@ -14,17 +14,17 @@ interface BeforeAfterSliderProps {
   autoPlayInterval?: number;
 }
 
-const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({ 
-  images, 
-  autoPlay = true, 
-  autoPlayInterval = 8000 
+const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
+  images,
+  autoPlay = true,
+  autoPlayInterval = 8000
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(autoPlay);
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
   const [isUserInteracting, setIsUserInteracting] = useState(false);
-  
+
   const animationRef = useRef<number | undefined>(undefined);
   const animationStartTimeRef = useRef<number>(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -64,7 +64,7 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
     }
 
     animationStartTimeRef.current = Date.now();
-    
+
     const animate = () => {
       if (!isPlaying || isDragging) {
         if (animationRef.current) {
@@ -73,19 +73,19 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         }
         return;
       }
-      
+
       const elapsed = Date.now() - animationStartTimeRef.current;
       const cycleDuration = 8000; // 4 second cycle for smooth animation
-      
+
       const progress = (elapsed % cycleDuration) / cycleDuration;
       const position = ((Math.cos(progress * Math.PI * 2) + 1) / 2) * 100;
-      
+
       setSliderPosition(position);
       animationRef.current = requestAnimationFrame(animate);
     };
-    
+
     animationRef.current = requestAnimationFrame(animate);
-    
+
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
@@ -126,7 +126,7 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
 
   const updateSliderPosition = (clientX: number) => {
     if (!containerRef.current) return;
-    
+
     const rect = containerRef.current.getBoundingClientRect();
     const x = clientX - rect.left;
     const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
@@ -176,16 +176,16 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
       </div>
 
       {/* Before/After Container */}
-      <div 
+      <div
         ref={containerRef}
         className="relative w-full h-96 md:h-[500px] rounded-2xl overflow-hidden shadow-2xl mb-8 select-none"
         style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
       >
         {/* Before Image */}
         <div className="absolute inset-0">
-          <img 
-            src={currentImage.before} 
-            alt="Before" 
+          <img
+            src={currentImage.before}
+            alt="Before"
             className="w-full h-full object-cover"
           />
           <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium">
@@ -194,27 +194,40 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         </div>
 
         {/* After Image with Clip */}
-        <div 
+        <div
           className="absolute inset-0 transition-all duration-75 ease-out"
           style={{ clipPath: `polygon(${sliderPosition}% 0%, 100% 0%, 100% 100%, ${sliderPosition}% 100%)` }}
         >
-          <img 
-            src={currentImage.after} 
-            alt="After" 
-            className="w-full h-full object-cover"
-          />
+          {/* Container with a white background */}
+          <div className="w-full h-full relative bg-white">
+            {/* Grid positioned underneath the image */}
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px)`,
+                backgroundSize: '20px 20px',
+              }}
+            />
+            {/* Image with relative positioning to stack on top of the grid */}
+            <img
+              src={currentImage.after}
+              alt="After"
+              className="w-full h-full object-cover relative"
+            />
+          </div>
+
           <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium">
             After
           </div>
         </div>
 
         {/* Slider Line */}
-        <div 
+        <div
           className="absolute top-0 bottom-0 w-0.5 bg-white shadow-lg transition-all duration-75 ease-out"
           style={{ left: `${sliderPosition}%` }}
         >
           {/* Slider Handle */}
-          <div 
+          <div
             className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-white rounded-full shadow-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
             style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
             onMouseDown={handleMouseDown}
@@ -277,9 +290,8 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
                 setCurrentIndex(index);
                 setIsUserInteracting(true);
               }}
-              className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                index === currentIndex ? 'bg-slate-900 w-6' : 'bg-slate-300 hover:bg-slate-400'
-              }`}
+              className={`w-2 h-2 rounded-full transition-all duration-200 ${index === currentIndex ? 'bg-slate-900 w-6' : 'bg-slate-300 hover:bg-slate-400'
+                }`}
             />
           ))}
         </div>
