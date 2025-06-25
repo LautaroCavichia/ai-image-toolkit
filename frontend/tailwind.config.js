@@ -6,64 +6,78 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Primary palette - Deep Navy Blue
-        primary: {
-          50: '#f8fafc',
-          100: '#f1f5f9', 
-          200: '#e2e8f0',
-          300: '#cbd5e1',
-          400: '#94a3b8',
-          500: '#64748b', // Main primary - Slate
-          600: '#475569',
-          700: '#334155',
-          800: '#1e293b',
-          900: '#0f172a',
-          950: '#020617',
-        },
-        // Secondary palette - Professional Blue
-        secondary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6', // Main secondary - Blue
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
-          950: '#172554',
-        },
-        // Accent palette - Ocean Blue
-        accent: {
+        // Glacier Blue - Primary cold tone
+        glacier: {
           50: '#f0f9ff',
-          100: '#e0f2fe',
+          100: '#e0f2fe', 
           200: '#bae6fd',
           300: '#7dd3fc',
           400: '#38bdf8',
-          500: '#0ea5e9', // Main accent - Sky Blue
+          500: '#0ea5e9', // Main glacier blue
           600: '#0284c7',
           700: '#0369a1',
           800: '#075985',
           900: '#0c4a6e',
           950: '#082f49',
         },
-        // Tertiary palette - Cool Gray
-        tertiary: {
-          50: '#f9fafb',
-          100: '#f3f4f6',
-          200: '#e5e7eb',
-          300: '#d1d5db',
-          400: '#9ca3af',
-          500: '#6b7280',
-          600: '#4b5563',
-          700: '#374151',
-          800: '#1f2937',
-          900: '#111827',
-          950: '#030712',
+        // Ice - Secondary cold tone
+        ice: {
+          50: '#f8fafc',
+          100: '#f1f5f9',
+          200: '#e2e8f0',
+          300: '#cbd5e1',
+          400: '#94a3b8',
+          500: '#64748b', // Main ice gray
+          600: '#475569',
+          700: '#334155',
+          800: '#1e293b',
+          900: '#0f172a',
+          950: '#020617',
         },
-        // Neutral grays (blue-tinted)
-        neutral: {
+        // Frost - Tertiary cold tone
+        frost: {
+          50: '#ecfeff',
+          100: '#cffafe',
+          200: '#a5f3fc',
+          300: '#67e8f9',
+          400: '#22d3ee',
+          500: '#06b6d4', // Main frost cyan
+          600: '#0891b2',
+          700: '#0e7490',
+          800: '#155e75',
+          900: '#164e63',
+          950: '#083344',
+        },
+        // Snow - Ultra-light tones
+        snow: {
+          50: '#ffffff',
+          100: '#fefefe',
+          200: '#fafafa',
+          300: '#f5f5f5',
+          400: '#eeeeee',
+          500: '#e0e0e0',
+          600: '#d5d5d5',
+          700: '#b8b8b8',
+          800: '#8a8a8a',
+          900: '#5c5c5c',
+          950: '#2e2e2e',
+        },
+        // Primary (Glacier as primary)
+        primary: {
+          50: '#f0f9ff',
+          100: '#e0f2fe',
+          200: '#bae6fd',
+          300: '#7dd3fc',
+          400: '#38bdf8',
+          500: '#0ea5e9',
+          600: '#0284c7',
+          700: '#0369a1',
+          800: '#075985',
+          900: '#0c4a6e',
+          950: '#082f49',
+        },
+        // Secondary (Ice as secondary)
+        secondary: {
           50: '#f8fafc',
           100: '#f1f5f9',
           200: '#e2e8f0',
@@ -75,6 +89,34 @@ module.exports = {
           800: '#1e293b',
           900: '#0f172a',
           950: '#020617',
+        },
+        // Accent (Frost as accent)
+        accent: {
+          50: '#ecfeff',
+          100: '#cffafe',
+          200: '#a5f3fc',
+          300: '#67e8f9',
+          400: '#22d3ee',
+          500: '#06b6d4',
+          600: '#0891b2',
+          700: '#0e7490',
+          800: '#155e75',
+          900: '#164e63',
+          950: '#083344',
+        },
+        // Neutral (Snow-based neutrals)
+        neutral: {
+          50: '#ffffff',
+          100: '#fefefe',
+          200: '#fafafa',
+          300: '#f5f5f5',
+          400: '#eeeeee',
+          500: '#e0e0e0',
+          600: '#d5d5d5',
+          700: '#b8b8b8',
+          800: '#8a8a8a',
+          900: '#5c5c5c',
+          950: '#2e2e2e',
         },
         success: {
           50: '#ecfdf5',
@@ -117,11 +159,14 @@ module.exports = {
         },
       },
       fontFamily: {
-        'brand': ["'AwareBold'", 'sans-serif'],
-        'title': ["'Poppins'", 'sans-serif'],
-        'body': ["'Inter'", '-apple-system', 'BlinkMacSystemFont', "'Segoe UI'", 'sans-serif'],
-        'accent': ["'Playfair Display'", 'serif'],
-        'mono': ["'JetBrains Mono'", "'Fira Code'", 'monospace'],
+        'sans': ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Segoe UI', 'Roboto', 'sans-serif'],
+        'system': ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Segoe UI', 'Roboto', 'sans-serif'],
+        'display': ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Segoe UI', 'Roboto', 'sans-serif'],
+        'mono': ['SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'monospace'],
+        'brand': ["'AwareBold'", '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        'title': ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Segoe UI', 'Roboto', 'sans-serif'],
+        'body': ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'Segoe UI', 'Roboto', 'sans-serif'],
+        'accent': ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
       boxShadow: {
         'theme-sm': '0 1px 2px 0 rgba(30, 41, 59, 0.05)',
@@ -143,42 +188,69 @@ module.exports = {
         '3xl': '64px',
       },
       backgroundImage: {
-        'gradient-primary': 'linear-gradient(135deg, #1e293b 0%, #3b82f6 50%, #0ea5e9 100%)',
-        'gradient-primary-light': 'linear-gradient(135deg, #cbd5e1 0%, #93c5fd 50%, #7dd3fc 100%)',
-        'gradient-primary-reverse': 'linear-gradient(135deg, #0ea5e9 0%, #3b82f6 50%, #1e293b 100%)',
-        'gradient-hero': 'linear-gradient(135deg, #f8fafc 0%, #eff6ff 50%, #f0f9ff 100%)',
-        'gradient-card': 'linear-gradient(135deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.3) 100%)',
-        'gradient-glass': 'linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05))',
-        'gradient-glass-navy': 'linear-gradient(135deg, rgba(30, 41, 59, 0.08), rgba(30, 41, 59, 0))',
-        'gradient-glass-blue': 'linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(59, 130, 246, 0))',
-        'gradient-glass-ocean': 'linear-gradient(135deg, rgba(14, 165, 233, 0.06), rgba(14, 165, 233, 0))',
+        'gradient-glacier': 'linear-gradient(135deg, #f0f9ff 0%, #0ea5e9 50%, #082f49 100%)',
+        'gradient-ice': 'linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #64748b 100%)',
+        'gradient-frost': 'linear-gradient(135deg, #ecfeff 0%, #06b6d4 50%, #083344 100%)',
+        'gradient-apple': 'linear-gradient(135deg, #ffffff 0%, #f8fafc 25%, #e0f2fe 75%, #bae6fd 100%)',
+        'gradient-hero': 'linear-gradient(135deg, #ffffff 0%, #f0f9ff 50%, #e0f2fe 100%)',
+        'gradient-card': 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.8) 100%)',
+        'gradient-glass': 'linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.1))',
+        'gradient-glass-glacier': 'linear-gradient(135deg, rgba(240, 249, 255, 0.6), rgba(240, 249, 255, 0.1))',
+        'gradient-glass-ice': 'linear-gradient(135deg, rgba(248, 250, 252, 0.8), rgba(248, 250, 252, 0.3))',
+        'gradient-glass-frost': 'linear-gradient(135deg, rgba(236, 254, 255, 0.6), rgba(236, 254, 255, 0.1))',
+        'gradient-button': 'linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%)',
+        'gradient-button-hover': 'linear-gradient(135deg, #0284c7 0%, #0891b2 100%)',
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-subtle': 'linear-gradient(135deg, #64748b 0%, #3b82f6 100%)',
+        'gradient-subtle': 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
       },
       animation: {
-        'float': 'float 6s ease-in-out infinite',
-        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'bounce-slow': 'bounce 3s infinite',
-        'fade-in': 'fadeIn 0.5s ease-in',
-        'slide-up': 'slideUp 0.5s ease-out',
-        'scale-in': 'scaleIn 0.3s ease-out',
+        'fade-in': 'fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+        'slide-up': 'slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+        'slide-down': 'slideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1)',
+        'scale-in': 'scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+        'float': 'float 8s ease-in-out infinite',
+        'glow': 'glow 3s ease-in-out infinite alternate',
+        'shimmer': 'shimmer 2.5s linear infinite',
+        'bounce-gentle': 'bounceGentle 2s ease-in-out infinite',
+        'pulse-soft': 'pulseSoft 4s ease-in-out infinite',
       },
       keyframes: {
-        float: {
-          '0%, 100%': { transform: 'translateY(0px)' },
-          '50%': { transform: 'translateY(-20px)' },
-        },
         fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
         },
         slideUp: {
-          '0%': { transform: 'translateY(20px)', opacity: '0' },
+          '0%': { transform: 'translateY(30px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        slideDown: {
+          '0%': { transform: 'translateY(-30px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
         scaleIn: {
-          '0%': { transform: 'scale(0.9)', opacity: '0' },
+          '0%': { transform: 'scale(0.95)', opacity: '0' },
           '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+          '33%': { transform: 'translateY(-10px) rotate(1deg)' },
+          '66%': { transform: 'translateY(-5px) rotate(-1deg)' },
+        },
+        glow: {
+          '0%': { boxShadow: '0 0 5px rgba(14, 165, 233, 0.5)' },
+          '100%': { boxShadow: '0 0 20px rgba(14, 165, 233, 0.8)' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        bounceGentle: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-5px)' },
+        },
+        pulseSoft: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.7' },
         },
       },
     },
@@ -227,6 +299,13 @@ module.exports = {
           '-webkit-backdrop-filter': 'blur(20px)',
           'border': '1px solid rgba(255, 255, 255, 0.15)',
           'box-shadow': '0 8px 32px 0 rgba(31, 41, 55, 0.25)',
+        },
+        '.glass-orange': {
+          'background': 'rgba(251, 113, 133, 0.08)',
+          'backdrop-filter': 'blur(20px)',
+          '-webkit-backdrop-filter': 'blur(20px)',
+          'border': '1px solid rgba(251, 113, 133, 0.2)',
+          'box-shadow': '0 8px 32px 0 rgba(251, 113, 133, 0.12)',
         },
       }
       addUtilities(newUtilities)

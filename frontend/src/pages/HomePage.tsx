@@ -1,38 +1,96 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import Layout from '../components/Layout';
 import Navbar from '../components/Navbar';
 import { isAuthenticated } from '../services/authService';
-import { Scissors, Search, Maximize, Sparkles, Palette, Zap, Target, Settings, ArrowRight, Sparkle, TrendingUp, Shield } from 'lucide-react';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { Scissors, Maximize, Sparkles, Zap, Target, Shield, ArrowRight, Star } from 'lucide-react';
 import logo from '../assets/logo.png';
 
+gsap.registerPlugin(ScrollTrigger);
+
 const HomePage: React.FC = () => {
+  const heroRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const subtitleRef = useRef<HTMLParagraphElement>(null);
+  const ctaRef = useRef<HTMLDivElement>(null);
+  const logoRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    const tl = gsap.timeline();
+    
+    tl.fromTo(logoRef.current, 
+      { opacity: 0, scale: 0.8, y: 30 },
+      { opacity: 1, scale: 1, y: 0, duration: 1, ease: "power3.out" }
+    )
+    .fromTo(titleRef.current,
+      { opacity: 0, y: 50 },
+      { opacity: 1, y: 0, duration: 1.2, ease: "power3.out" },
+      "-=0.7"
+    )
+    .fromTo(subtitleRef.current,
+      { opacity: 0, y: 30 },
+      { opacity: 1, y: 0, duration: 1, ease: "power3.out" },
+      "-=0.8"
+    )
+    .fromTo(ctaRef.current,
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" },
+      "-=0.5"
+    );
+
+    // Floating animation for logo
+    gsap.to(logoRef.current, {
+      y: -10,
+      duration: 2,
+      repeat: -1,
+      yoyo: true,
+      ease: "power2.inOut"
+    });
+
+    // Gradient text animation
+    const gradientText = document.querySelector('.gradient-text');
+    if (gradientText) {
+      gsap.to(gradientText, {
+        backgroundPosition: "200% center",
+        duration: 3,
+        repeat: -1,
+        ease: "none"
+      });
+    }
+
+    return () => {
+      ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+    };
+  }, []);
+
   if (!isAuthenticated()) {
     return (
       <Layout>
         <Navbar />
-        <div className="min-h-screen bg-gradient-hero flex items-center justify-center px-4">
-          <div className="max-w-2xl text-center">
-            <div className="glass rounded-3xl p-12 shadow-glass-lg">
-              <div className="mb-8">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center px-6">
+          <div className="max-w-md w-full">
+            <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/50">
+              <div className="text-center mb-8">
                 <img 
                   src={logo} 
                   alt="Pixel Perfect AI" 
-                  className="w-24 h-24 mx-auto mb-6 animate-float filter drop-shadow-2xl"
+                  className="w-16 h-16 mx-auto mb-6 drop-shadow-lg"
                 />
-                <h1 className="text-4xl font-bold font-title text-gradient-primary mb-4">
+                <h1 className="text-2xl font-medium text-slate-900 mb-3 tracking-tight">
                   Welcome to Pixel Perfect AI
                 </h1>
-                <p className="text-lg text-neutral-700 font-title leading-relaxed">
+                <p className="text-slate-600 text-sm leading-relaxed">
                   Professional image processing powered by cutting-edge AI technology.
                 </p>
               </div>
               <a 
                 href="/login" 
-                className="inline-flex items-center gap-3 bg-gradient-primary text-white px-8 py-4 rounded-2xl font-title font-semibold hover:scale-105 hover:shadow-glass-lg transition-all duration-300 group"
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3 px-6 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
               >
-                <Sparkle size={20} className="group-hover:rotate-12 transition-transform duration-300" />
+                <Star size={16} />
                 Get Started
-                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform duration-300" />
+                <ArrowRight size={16} />
               </a>
             </div>
           </div>
@@ -41,347 +99,182 @@ const HomePage: React.FC = () => {
     );
   }
 
+  const services = [
+    {
+      href: "/background-removal",
+      icon: Scissors,
+      title: "Background Removal",
+      description: "Remove backgrounds with surgical precision. Perfect for product photography and creative projects.",
+      tokens: "1 token"
+    },
+    {
+      href: "/upscale",
+      icon: Maximize,
+      title: "Image Upscaling",
+      description: "Enhance resolution up to 4x while preserving every detail with advanced AI algorithms.",
+      tokens: "2 tokens"
+    },
+    {
+      href: "/object-removal",
+      icon: Sparkles,
+      title: "Object Removal",
+      description: "Remove unwanted objects with intelligent content-aware fill technology.",
+      tokens: "3 tokens"
+    }
+  ];
+
+  const features = [
+    {
+      icon: Zap,
+      title: "Lightning Fast",
+      description: "Process images in seconds with our optimized AI infrastructure."
+    },
+    {
+      icon: Target,
+      title: "Pixel Perfect",
+      description: "Professional-grade results with unmatched precision and quality."
+    },
+    {
+      icon: Shield,
+      title: "Privacy First",
+      description: "Your images are processed securely and never stored permanently."
+    }
+  ];
+
   return (
     <Layout>
       <Navbar />
       
       {/* Hero Section */}
-      <div className="relative min-h-screen bg-gradient-hero overflow-hidden">
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-20 left-20 w-96 h-96 bg-gradient-to-br from-primary-400/20 to-secondary-400/20 rounded-full blur-3xl animate-float"></div>
-          <div className="absolute bottom-20 right-20 w-80 h-80 bg-gradient-to-br from-accent-400/20 to-primary-400/20 rounded-full blur-3xl animate-float" style={{animationDelay: '2s'}}></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-br from-secondary-400/20 to-accent-400/20 rounded-full blur-3xl animate-float" style={{animationDelay: '4s'}}></div>
-        </div>
-        
-        <div className="relative max-w-7xl mx-auto px-4 pt-20 pb-32">
-          <div className="text-center mb-16">
-            {/* Hero Logo */}
-            <div className="mb-12 relative group">
-              <div className="absolute inset-0 bg-gradient-primary rounded-full blur-2xl opacity-30 group-hover:opacity-50 transition-opacity duration-700 w-32 h-32 mx-auto"></div>
-              <img 
-                src={logo} 
-                alt="Pixel Perfect AI" 
-                className="w-32 h-32 mx-auto relative z-10 animate-float group-hover:scale-110 group-hover:rotate-12 transition-all duration-700 filter drop-shadow-2xl cursor-pointer"
-              />
-            </div>
+      <div 
+        ref={heroRef}
+        className="min-h-screen bg-gradient-to-br from-white via-slate-50 to-slate-100 flex items-center justify-center px-6 py-20"
+      >
+        <div className="max-w-4xl mx-auto text-center">
+          <img 
+            ref={logoRef}
+            src={logo} 
+            alt="Pixel Perfect AI" 
+            className="w-24 h-24 mx-auto mb-12 drop-shadow-2xl"
+          />
+          
+          <h1 
+            ref={titleRef}
+            className="text-5xl md:text-7xl font-light text-slate-900 mb-8 leading-tight tracking-tight"
+          >
+            Rebel Against
+            <br />
+            <span className="gradient-text font-medium italic bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent bg-[length:200%_100%]">
+              Ordinary Images
+            </span>
+          </h1>
+          
+          <p 
+            ref={subtitleRef}
+            className="text-xl md:text-2xl text-slate-600 mb-12 max-w-3xl mx-auto leading-relaxed font-light"
+          >
+            Break the rules. Transform the mundane. Create the extraordinary.
+            <br />
+            <em className="text-slate-500">Young creators deserve young tools.</em>
+          </p>
+          
+          <div 
+            ref={ctaRef}
+            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+          >
+            <a 
+              href="/background-removal" 
+              className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-2xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-3"
+            >
+              <Scissors size={20} />
+              Start Creating
+            </a>
             
-            <div className="max-w-5xl mx-auto">
-              <h1 className="text-6xl md:text-8xl font-title font-bold mb-8 leading-tight animate-fade-in">
-                Transform Images with{' '}
-                <span className="font-accent italic text-gradient-primary relative">
-                  AI Magic
-                  <div className="absolute -bottom-2 left-0 w-full h-1 bg-gradient-primary rounded-full opacity-50"></div>
-                </span>
-              </h1>
-              
-              <p className="text-xl md:text-2xl text-neutral-700 mb-12 max-w-4xl mx-auto leading-relaxed font-title font-light animate-slide-up">
-                Professional image processing powered by cutting-edge AI technology. 
-                <span className="font-accent italic text-gradient-reverse"> 
-                  Remove, enhance, transform, and perfect
-                </span> your images with precision.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-6 justify-center items-center animate-scale-in">
-                <a 
-                  href="/background-removal" 
-                  className="group relative overflow-hidden bg-gradient-primary text-white px-10 py-5 rounded-2xl font-title font-semibold text-lg transition-all duration-500 hover:scale-105 hover:shadow-glass-lg"
-                >
-                  <div className="absolute inset-0 bg-gradient-primary-reverse opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <span className="relative flex items-center gap-3">
-                    <Scissors size={24} className="group-hover:rotate-12 transition-transform duration-300" />
-                    Start Creating
-                    <Sparkle size={20} className="group-hover:scale-125 transition-transform duration-300" />
-                  </span>
-                </a>
-                
-                <a 
-                  href="#services" 
-                  className="group glass border border-white/40 text-neutral-800 px-10 py-5 rounded-2xl font-title font-semibold text-lg transition-all duration-500 hover:scale-105 hover:shadow-glass-lg"
-                >
-                  <span className="flex items-center gap-3">
-                    <TrendingUp size={24} className="text-primary-600 group-hover:scale-110 transition-transform duration-300" />
-                    Explore Services
-                    <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform duration-300" />
-                  </span>
-                </a>
-              </div>
-            </div>
+            <a 
+              href="#services" 
+              className="bg-white/60 backdrop-blur-sm border border-slate-200 text-slate-700 px-8 py-4 rounded-2xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-3"
+            >
+              Explore Tools
+              <ArrowRight size={20} />
+            </a>
           </div>
         </div>
       </div>
       
       {/* Services Section */}
-      <div id="services" className="relative py-32 bg-gradient-to-b from-neutral-50 to-white overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-20 left-1/4 w-96 h-96 bg-gradient-to-br from-primary-300/10 to-secondary-300/10 rounded-full blur-3xl animate-pulse-slow"></div>
-          <div className="absolute bottom-20 right-1/4 w-80 h-80 bg-gradient-to-br from-accent-300/10 to-primary-300/10 rounded-full blur-3xl animate-pulse-slow" style={{animationDelay: '2s'}}></div>
-        </div>
-        
-        <div className="relative max-w-7xl mx-auto px-4">
+      <div 
+        id="services" 
+        className="py-32 bg-white"
+      >
+        <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-20">
-            <div className="inline-flex items-center gap-3 bg-gradient-primary text-white px-6 py-3 rounded-full font-title font-medium text-sm mb-6 shadow-glass">
-              <Shield size={16} />
-              Professional AI Services
-            </div>
-            <h2 className="text-5xl md:text-6xl font-title font-bold text-neutral-900 mb-6 leading-tight">
-              <span className="text-gradient-primary">AI-Powered</span>{' '}
-              <span className="font-accent italic">Image Services</span>
+            <h2 className="text-4xl md:text-5xl font-light text-slate-900 mb-6 tracking-tight">
+              <em className="italic text-slate-600">Powerful</em> AI Tools
             </h2>
-            <p className="text-xl text-neutral-600 max-w-3xl mx-auto font-title font-light">
-              Choose the perfect tool for your image processing needs. Each service is crafted with precision and powered by state-of-the-art AI technology.
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto font-light">
+              Everything you need to transform your creative vision into reality.
             </p>
           </div>
 
-          {/* Main Services Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
-            {/* Background Removal */}
-            <a 
-              href="/background-removal" 
-              className="group relative glass p-8 rounded-3xl shadow-glass hover:shadow-glass-lg transition-all duration-500 border border-white/30 hover:border-primary-300/50 backdrop-blur-2xl transform hover:scale-105 hover:-translate-y-4 animate-fade-in"
-            >
-              <div className="absolute inset-0 bg-gradient-glass-orange opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl"></div>
-              
-              <div className="relative z-10">
-                <div className="mb-6 relative">
-                  <div className="w-16 h-16 bg-gradient-to-br from-primary-400 to-primary-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 shadow-glass">
-                    <Scissors className="text-white" size={28} />
-                  </div>
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-primary rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <Sparkle className="text-white" size={12} />
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {services.map((service) => (
+              <a
+                key={service.href}
+                href={service.href}
+                className="group bg-white border border-slate-200 rounded-3xl p-8 transition-all duration-300 hover:shadow-2xl hover:border-slate-300 hover:-translate-y-2"
+              >
+                <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-slate-900 transition-colors duration-300">
+                  <service.icon className="text-slate-600 group-hover:text-white transition-colors duration-300" size={24} />
                 </div>
                 
-                <h3 className="text-xl font-title font-bold text-neutral-900 mb-3 group-hover:text-primary-700 transition-colors duration-300">
-                  Background Removal
+                <h3 className="text-xl font-medium text-slate-900 mb-3">
+                  {service.title}
                 </h3>
-                <p className="text-neutral-600 text-sm mb-6 leading-relaxed font-title">
-                  Remove backgrounds with AI precision. Perfect for product photos, portraits, and e-commerce.
+                <p className="text-slate-600 text-sm mb-6 leading-relaxed">
+                  {service.description}
                 </p>
                 
                 <div className="flex items-center justify-between">
-                  <span className="text-primary-600 font-title font-semibold text-sm">
-                    1 token per image
+                  <span className="text-slate-500 text-sm font-medium">
+                    {service.tokens}
                   </span>
-                  <ArrowRight size={16} className="text-primary-600 group-hover:translate-x-1 group-hover:scale-110 transition-all duration-300" />
+                  <ArrowRight 
+                    size={16} 
+                    className="text-slate-400 group-hover:text-slate-900 group-hover:translate-x-1 transition-all duration-300" 
+                  />
                 </div>
-              </div>
-            </a>
-
-            {/* Image Upscaling */}
-            <a 
-              href="/upscale" 
-              className="group relative glass p-8 rounded-3xl shadow-glass hover:shadow-glass-lg transition-all duration-500 border border-white/30 hover:border-secondary-300/50 backdrop-blur-2xl transform hover:scale-105 hover:-translate-y-4 animate-fade-in"
-              style={{animationDelay: '100ms'}}
-            >
-              <div className="absolute inset-0 bg-gradient-glass-blue opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl"></div>
-              
-              <div className="relative z-10">
-                <div className="mb-6 relative">
-                  <div className="w-16 h-16 bg-gradient-to-br from-secondary-400 to-secondary-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 shadow-glass">
-                    <Search className="text-white" size={28} />
-                  </div>
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-primary rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <Sparkle className="text-white" size={12} />
-                  </div>
-                </div>
-                
-                <h3 className="text-xl font-title font-bold text-neutral-900 mb-3 group-hover:text-secondary-700 transition-colors duration-300">
-                  Image Upscaling
-                </h3>
-                <p className="text-neutral-600 text-sm mb-6 leading-relaxed font-title">
-                  Enhance resolution up to 4x while preserving quality and fine details with advanced AI.
-                </p>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-secondary-600 font-title font-semibold text-sm">
-                    2 tokens per image
-                  </span>
-                  <ArrowRight size={16} className="text-secondary-600 group-hover:translate-x-1 group-hover:scale-110 transition-all duration-300" />
-                </div>
-              </div>
-            </a>
-
-            {/* Image Enlargement */}
-            <a 
-              href="/enlarge" 
-              className="group relative glass p-8 rounded-3xl shadow-glass hover:shadow-glass-lg transition-all duration-500 border border-white/30 hover:border-accent-300/50 backdrop-blur-2xl transform hover:scale-105 hover:-translate-y-4 animate-fade-in"
-              style={{animationDelay: '200ms'}}
-            >
-              <div className="absolute inset-0 bg-gradient-glass-purple opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl"></div>
-              
-              <div className="relative z-10">
-                <div className="mb-6 relative">
-                  <div className="w-16 h-16 bg-gradient-to-br from-accent-400 to-accent-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 shadow-glass">
-                    <Maximize className="text-white" size={28} />
-                  </div>
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-primary rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <Sparkle className="text-white" size={12} />
-                  </div>
-                </div>
-                
-                <h3 className="text-xl font-title font-bold text-neutral-900 mb-3 group-hover:text-accent-700 transition-colors duration-300">
-                  Image Enlargement
-                </h3>
-                <p className="text-neutral-600 text-sm mb-6 leading-relaxed font-title">
-                  Intelligently enlarge images with AI-generated content to fill new dimensions perfectly.
-                </p>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-accent-600 font-title font-semibold text-sm">
-                    2 tokens per image
-                  </span>
-                  <ArrowRight size={16} className="text-accent-600 group-hover:translate-x-1 group-hover:scale-110 transition-all duration-300" />
-                </div>
-              </div>
-            </a>
-
-            {/* Object Removal */}
-            <a 
-              href="/object-removal" 
-              className="group relative glass p-8 rounded-3xl shadow-glass hover:shadow-glass-lg transition-all duration-500 border border-white/30 hover:border-primary-300/50 backdrop-blur-2xl transform hover:scale-105 hover:-translate-y-4 animate-fade-in"
-              style={{animationDelay: '300ms'}}
-            >
-              <div className="absolute inset-0 bg-gradient-glass-orange opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl"></div>
-              
-              <div className="relative z-10">
-                <div className="mb-6 relative">
-                  <div className="w-16 h-16 bg-gradient-to-br from-primary-600 to-secondary-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 shadow-glass">
-                    <Sparkles className="text-white" size={28} />
-                  </div>
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-primary rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <Sparkle className="text-white" size={12} />
-                  </div>
-                </div>
-                
-                <h3 className="text-xl font-title font-bold text-neutral-900 mb-3 group-hover:text-primary-700 transition-colors duration-300">
-                  Object Removal
-                </h3>
-                <p className="text-neutral-600 text-sm mb-6 leading-relaxed font-title">
-                  Remove unwanted objects with AI-powered inpainting technology and seamless blending.
-                </p>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-primary-600 font-title font-semibold text-sm">
-                    3 tokens per image
-                  </span>
-                  <ArrowRight size={16} className="text-primary-600 group-hover:translate-x-1 group-hover:scale-110 transition-all duration-300" />
-                </div>
-              </div>
-            </a>
-          </div>
-
-          {/* Coming Soon Service */}
-          <div className="max-w-4xl mx-auto mb-20">
-            <a 
-              href="/style-transfer" 
-              className="group relative glass p-8 rounded-3xl border border-warning-300/40 hover:border-warning-400/60 transition-all duration-500 block backdrop-blur-2xl transform hover:scale-102 hover:shadow-glass-lg animate-fade-in"
-              style={{animationDelay: '400ms'}}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-warning-50/50 to-primary-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl"></div>
-              
-              <div className="relative z-10 flex items-center justify-between">
-                <div className="flex items-center gap-8">
-                  <div className="relative">
-                    <div className="w-20 h-20 bg-gradient-to-br from-warning-400 to-warning-600 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 shadow-glass">
-                      <Palette className="text-white" size={32} />
-                    </div>
-                    <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-primary rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                      <Sparkle className="text-white" size={16} />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-3xl font-title font-bold text-neutral-900 mb-2 group-hover:text-warning-700 transition-colors duration-300">
-                      Style Transfer
-                    </h3>
-                    <p className="text-lg text-neutral-600 font-title mb-2">
-                      Transform images with artistic styles and creative effects.
-                    </p>
-                    <p className="text-sm text-neutral-500 font-title font-light italic">
-                      Advanced AI model training in progress...
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="text-center">
-                  <div className="glass-orange px-6 py-3 rounded-full border border-warning-400/40 mb-4">
-                    <span className="text-warning-700 font-title font-bold text-sm">Coming Soon</span>
-                  </div>
-                  <div className="text-warning-600 font-title font-semibold text-sm">
-                    Notify me when ready
-                  </div>
-                </div>
-              </div>
-            </a>
+              </a>
+            ))}
           </div>
         </div>
       </div>
       
       {/* Features Section */}
-      <div className="relative py-32 bg-gradient-to-b from-white to-neutral-50 overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-20 left-1/4 w-96 h-96 bg-gradient-to-br from-secondary-300/10 to-accent-300/10 rounded-full blur-3xl animate-pulse-slow"></div>
-          <div className="absolute bottom-20 right-1/4 w-80 h-80 bg-gradient-to-br from-primary-300/10 to-secondary-300/10 rounded-full blur-3xl animate-pulse-slow" style={{animationDelay: '3s'}}></div>
-        </div>
-        
-        <div className="relative max-w-7xl mx-auto px-4">
+      <div className="py-32 bg-slate-50">
+        <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-20">
-            <div className="inline-flex items-center gap-3 bg-gradient-primary text-white px-6 py-3 rounded-full font-title font-medium text-sm mb-6 shadow-glass">
-              <Target size={16} />
-              Why Choose Us
-            </div>
-            <h2 className="text-5xl md:text-6xl font-title font-bold text-neutral-900 mb-6 leading-tight">
-              <span className="font-accent italic text-gradient-reverse">Powerful</span>{' '}
-              AI Technology
+            <h2 className="text-4xl md:text-5xl font-light text-slate-900 mb-6 tracking-tight">
+              Why Choose <em className="italic">Pixel Perfect</em>
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            <div className="text-center group animate-fade-in">
-              <div className="relative mb-8">
-                <div className="w-24 h-24 glass rounded-3xl flex items-center justify-center mx-auto shadow-glass border border-primary-300/30 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary-400/20 to-secondary-400/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-                  <Zap className="text-primary-600 relative z-10" size={36} />
+            {features.map((feature) => (
+              <div 
+                key={feature.title}
+                className="text-center group"
+              >
+                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+                  <feature.icon className="text-slate-700" size={28} />
                 </div>
+                <h3 className="text-xl font-medium text-slate-900 mb-4">
+                  {feature.title}
+                </h3>
+                <p className="text-slate-600 leading-relaxed">
+                  {feature.description}
+                </p>
               </div>
-              <h3 className="text-2xl font-title font-bold text-neutral-900 mb-4 group-hover:text-primary-700 transition-colors duration-300">
-                Lightning Fast
-              </h3>
-              <p className="text-neutral-600 leading-relaxed font-title">
-                Advanced AI models optimized for speed without compromising quality. Process images in seconds, not minutes.
-              </p>
-            </div>
-
-            <div className="text-center group animate-fade-in" style={{animationDelay: '100ms'}}>
-              <div className="relative mb-8">
-                <div className="w-24 h-24 glass rounded-3xl flex items-center justify-center mx-auto shadow-glass border border-secondary-300/30 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">
-                  <div className="absolute inset-0 bg-gradient-to-br from-secondary-400/20 to-accent-400/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-                  <Target className="text-secondary-600 relative z-10" size={36} />
-                </div>
-              </div>
-              <h3 className="text-2xl font-title font-bold text-neutral-900 mb-4 group-hover:text-secondary-700 transition-colors duration-300">
-                Precise Results
-              </h3>
-              <p className="text-neutral-600 leading-relaxed font-title">
-                Professional-grade results with pixel-perfect accuracy. Our AI understands context and detail like never before.
-              </p>
-            </div>
-
-            <div className="text-center group animate-fade-in" style={{animationDelay: '200ms'}}>
-              <div className="relative mb-8">
-                <div className="w-24 h-24 glass rounded-3xl flex items-center justify-center mx-auto shadow-glass border border-accent-300/30 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">
-                  <div className="absolute inset-0 bg-gradient-to-br from-accent-400/20 to-primary-400/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
-                  <Settings className="text-accent-600 relative z-10" size={36} />
-                </div>
-              </div>
-              <h3 className="text-2xl font-title font-bold text-neutral-900 mb-4 group-hover:text-accent-700 transition-colors duration-300">
-                Easy to Use
-              </h3>
-              <p className="text-neutral-600 leading-relaxed font-title">
-                Simple interface designed for both beginners and professionals. Drag, drop, and watch the magic happen.
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </div>

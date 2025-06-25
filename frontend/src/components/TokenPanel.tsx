@@ -30,7 +30,7 @@ const TokenPanel: React.FC<TokenPanelProps> = ({ onTokenChange }) => {
 
   const handleWatchAd = () => {
     setIsWatchingAd(true);
-    setAdCountdown(3); // 15 second mock ad
+    setAdCountdown(3);
 
     const countdown = setInterval(() => {
       setAdCountdown(prev => {
@@ -62,7 +62,6 @@ const TokenPanel: React.FC<TokenPanelProps> = ({ onTokenChange }) => {
   };
 
   const handleMockPurchase = (amount: number) => {
-    // Mock purchase - in real app this would integrate with payment processor
     const newBalance = tokenBalance + amount;
     setTokenBalance(newBalance);
     localStorage.setItem('tokenBalance', newBalance.toString());
@@ -74,156 +73,145 @@ const TokenPanel: React.FC<TokenPanelProps> = ({ onTokenChange }) => {
   };
 
   return (
-    <div className="glass border border-white/40 rounded-2xl p-6 shadow-glass-lg backdrop-blur-2xl">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-white/95 backdrop-blur-xl border border-slate-200/50 rounded-2xl p-6 shadow-xl">
+      <div className="flex items-center justify-between mb-6">
         <div className="flex items-center">
-          <div className="w-12 h-12 bg-gradient-to-br from-secondary-400 to-secondary-600 rounded-2xl flex items-center justify-center mr-4 shadow-glass group-hover:scale-110 transition-transform duration-300">
-            <Coins className="text-white" size={24} />
+          <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mr-4">
+            <Coins className="text-slate-700" size={24} />
           </div>
           <div>
-            <h3 className="font-title font-bold text-neutral-900 text-xl">Token Balance</h3>
-            <p className="text-sm text-neutral-700 font-title">{tokenBalance} tokens available</p>
+            <h3 className="font-medium text-slate-900 text-lg">Token Balance</h3>
+            <p className="text-sm text-slate-600">{tokenBalance} tokens available</p>
           </div>
         </div>
-        <div className="text-4xl font-title font-bold text-gradient-primary">
+        <div className="text-3xl font-medium text-slate-900">
           {tokenBalance}
         </div>
       </div>
 
       <div className="space-y-3">
-        {/* Free Token - Watch Ad */}
         <button
           onClick={handleWatchAd}
           disabled={isWatchingAd}
-          className="w-full bg-gradient-to-r from-success-500 to-success-600 hover:from-success-600 hover:to-success-700 text-white py-4 px-6 rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-glass hover:shadow-glass-lg group font-title font-semibold transform hover:scale-105"
+          className="w-full bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 font-medium"
         >
           {isWatchingAd ? (
-            <span className="flex items-center justify-center gap-3">
-              <Loader2 className="animate-spin" size={20} />
+            <span className="flex items-center justify-center gap-2">
+              <Loader2 className="animate-spin" size={18} />
               <span>Watching Ad... {adCountdown}s</span>
             </span>
           ) : (
-            <span className="flex items-center justify-center gap-3">
-              <Play className="group-hover:scale-110 transition-transform duration-300" size={20} />
+            <span className="flex items-center justify-center gap-2">
+              <Play size={18} />
               <span>Watch Ad (+1 Token)</span>
             </span>
           )}
         </button>
 
-        {/* Purchase Tokens */}
         <button
           onClick={() => setShowPurchaseModal(true)}
-          className="w-full bg-gradient-primary text-white py-4 px-6 rounded-2xl transition-all duration-300 shadow-glass hover:shadow-glass-lg group font-title font-semibold transform hover:scale-105"
+          className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3 px-4 rounded-xl transition-colors duration-200 font-medium"
         >
-          <span className="flex items-center justify-center gap-3">
-            <CreditCard className="group-hover:scale-110 transition-transform duration-300" size={20} />
+          <span className="flex items-center justify-center gap-2">
+            <CreditCard size={18} />
             <span>Buy Tokens</span>
           </span>
         </button>
       </div>
 
-      {/* Mock Purchase Modal */}
+      {/* Purchase Modal */}
       {showPurchaseModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-lg flex items-center justify-center z-50 animate-fade-in">
-          <div className="glass rounded-3xl p-10 max-w-lg w-full mx-4 shadow-glass-lg backdrop-blur-2xl border border-white/40 animate-scale-in">
-            <div className="flex justify-between items-center mb-8">
-              <h3 className="text-2xl font-title font-bold text-gradient-primary">Token Packages</h3>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-medium text-slate-900">Token Packages</h3>
               <button 
                 onClick={() => setShowPurchaseModal(false)}
-                className="text-neutral-400 hover:text-neutral-600 p-2 rounded-xl hover:glass-dark transition-all duration-300 group"
+                className="text-slate-400 hover:text-slate-600 p-2 rounded-xl hover:bg-slate-100 transition-colors duration-200"
               >
-                <X size={24} className="group-hover:rotate-90 transition-transform duration-300" />
+                <X size={20} />
               </button>
             </div>
-            <p className="text-neutral-700 mb-8 font-title font-light text-lg text-center">
+            <p className="text-slate-600 mb-6 text-center">
               Choose the perfect package for your needs
             </p>
             
             <div className="space-y-3 mb-6">
               <button
                 onClick={() => handleMockPurchase(5)}
-                className="w-full p-6 glass border border-primary-300/40 rounded-2xl hover:border-primary-400/60 hover:bg-gradient-glass-orange transition-all duration-500 text-left group shadow-glass hover:shadow-glass-lg transform hover:scale-105"
+                className="w-full p-4 border border-slate-200 rounded-2xl hover:border-slate-300 hover:bg-slate-50 transition-all duration-200 text-left"
               >
                 <div className="flex justify-between items-center">
                   <div>
-                    <div className="font-title font-bold text-neutral-900 group-hover:text-primary-800 text-lg">Starter Pack</div>
-                    <div className="text-sm text-neutral-600 group-hover:text-primary-700 font-title">5 tokens • Perfect for testing</div>
+                    <div className="font-medium text-slate-900">Starter Pack</div>
+                    <div className="text-sm text-slate-600">5 tokens • Perfect for testing</div>
                   </div>
-                  <div className="text-primary-700 font-title font-bold text-2xl group-hover:text-primary-800">$2.99</div>
+                  <div className="text-slate-900 font-medium text-xl">$2.99</div>
                 </div>
               </button>
 
               <button
                 onClick={() => handleMockPurchase(15)}
-                className="w-full p-6 glass border border-secondary-300/40 rounded-2xl hover:border-secondary-400/60 hover:bg-gradient-glass-blue transition-all duration-500 text-left group shadow-glass hover:shadow-glass-lg transform hover:scale-105 relative overflow-hidden"
+                className="w-full p-4 border-2 border-blue-200 bg-blue-50 rounded-2xl hover:border-blue-300 hover:bg-blue-100 transition-all duration-200 text-left relative"
               >
                 <div className="absolute top-2 right-2">
-                  <div className="bg-gradient-to-r from-secondary-500 to-accent-500 text-white px-3 py-1 rounded-full text-xs font-title font-bold">Most Popular</div>
+                  <div className="bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-medium">Most Popular</div>
                 </div>
                 <div className="flex justify-between items-center">
                   <div>
-                    <div className="font-title font-bold text-neutral-900 group-hover:text-secondary-800 text-lg">
-                      Popular Pack
-                    </div>
-                    <div className="text-sm text-neutral-600 group-hover:text-secondary-700 font-title">15 tokens • Great value</div>
+                    <div className="font-medium text-slate-900">Popular Pack</div>
+                    <div className="text-sm text-slate-600">15 tokens • Great value</div>
                   </div>
-                  <div className="text-secondary-700 font-title font-bold text-2xl group-hover:text-secondary-800">$7.99</div>
+                  <div className="text-slate-900 font-medium text-xl">$7.99</div>
                 </div>
               </button>
 
               <button
                 onClick={() => handleMockPurchase(50)}
-                className="w-full p-6 glass border border-accent-300/40 rounded-2xl hover:border-accent-400/60 hover:bg-gradient-glass-purple transition-all duration-500 text-left group shadow-glass hover:shadow-glass-lg transform hover:scale-105 relative overflow-hidden"
+                className="w-full p-4 border border-slate-200 rounded-2xl hover:border-slate-300 hover:bg-slate-50 transition-all duration-200 text-left relative"
               >
                 <div className="absolute top-2 right-2">
-                  <div className="bg-gradient-to-r from-accent-500 to-primary-500 text-white px-3 py-1 rounded-full text-xs font-title font-bold">Best Value</div>
+                  <div className="bg-purple-500 text-white px-2 py-1 rounded-full text-xs font-medium">Best Value</div>
                 </div>
                 <div className="flex justify-between items-center">
                   <div>
-                    <div className="font-title font-bold text-neutral-900 group-hover:text-accent-800 text-lg">
-                      Pro Pack
-                    </div>
-                    <div className="text-sm text-neutral-600 group-hover:text-accent-700 font-title">50 tokens • For professionals</div>
+                    <div className="font-medium text-slate-900">Pro Pack</div>
+                    <div className="text-sm text-slate-600">50 tokens • For professionals</div>
                   </div>
-                  <div className="text-accent-700 font-title font-bold text-2xl group-hover:text-accent-800">$19.99</div>
+                  <div className="text-slate-900 font-medium text-xl">$19.99</div>
                 </div>
               </button>
             </div>
 
-            <div className="flex gap-4 mt-8">
-              <button
-                onClick={() => setShowPurchaseModal(false)}
-                className="flex-1 glass-dark text-neutral-700 py-4 px-6 rounded-2xl hover:bg-neutral-400/20 transition-all duration-300 border border-neutral-400/30 hover:border-neutral-400/50 font-title font-semibold transform hover:scale-105"
-              >
-                Cancel
-              </button>
-            </div>
+            <button
+              onClick={() => setShowPurchaseModal(false)}
+              className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 px-4 rounded-xl transition-colors duration-200 font-medium"
+            >
+              Cancel
+            </button>
 
-            <div className="mt-8 text-sm text-neutral-600 text-center glass rounded-2xl p-4 border border-neutral-300/40 font-title font-light">
+            <div className="mt-4 text-sm text-slate-500 text-center bg-slate-50 rounded-xl p-3">
               💡 Mock purchase for testing • No real charges will be made
             </div>
           </div>
         </div>
       )}
 
-      {/* Mock Ad Video Modal */}
+      {/* Ad Modal */}
       {isWatchingAd && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center z-50 animate-fade-in">
-          <div className="glass rounded-3xl p-10 max-w-lg w-full mx-4 text-center shadow-glass-lg backdrop-blur-2xl border border-white/40 animate-scale-in">
-            <h3 className="text-2xl font-title font-bold mb-8 text-gradient-primary">Mock Advertisement</h3>
-            <div className="bg-gradient-to-br from-primary-500/20 to-secondary-500/20 h-64 rounded-2xl flex items-center justify-center mb-8 border border-primary-400/40 shadow-glass backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full mx-4 text-center shadow-2xl">
+            <h3 className="text-2xl font-medium mb-6 text-slate-900">Mock Advertisement</h3>
+            <div className="bg-slate-100 h-48 rounded-2xl flex items-center justify-center mb-6">
               <div className="text-center">
-                <div className="relative mb-8">
-                  <Play className="mx-auto text-primary-600 animate-pulse-slow" size={80} />
-                  <div className="absolute inset-0 bg-gradient-primary rounded-full blur-2xl opacity-30 animate-pulse"></div>
-                </div>
-                <div className="text-3xl font-title font-bold mb-4 text-neutral-900">Fake Ad Playing...</div>
-                <div className="text-2xl font-title font-bold text-gradient-primary">
+                <Play className="mx-auto text-slate-600 mb-4" size={60} />
+                <div className="text-xl font-medium mb-2 text-slate-900">Fake Ad Playing...</div>
+                <div className="text-2xl font-medium text-slate-900">
                   {adCountdown}s remaining
                 </div>
               </div>
             </div>
-            <p className="text-neutral-700 font-title font-light glass rounded-2xl p-4 border border-neutral-300/40">
+            <p className="text-slate-600 bg-slate-50 rounded-xl p-3 text-sm">
               📺 Mock advertisement • Real ads would appear here in production
             </p>
           </div>
