@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { gsap } from 'gsap';
 
 interface AnimatedNetMeshProps {
   className?: string;
@@ -11,165 +10,275 @@ const AnimatedNetMesh: React.FC<AnimatedNetMeshProps> = ({
   intensity = 'subtle'
 }) => {
   const meshRef = useRef<HTMLDivElement>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationRef = useRef<number | null>(null);
+
   const [isLowPowerMode, setIsLowPowerMode] = useState(false);
 
   useEffect(() => {
-    // Detect low-power devices and user preferences
+    // Detect low-power devices
     const detectLowPowerMode = () => {
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       const hasReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const hasLowMemory = (navigator as any).deviceMemory && (navigator as any).deviceMemory < 4;
-      const hasSlowConnection = (navigator as any).connection && ((navigator as any).connection.effectiveType === 'slow-2g' || (navigator as any).connection?.effectiveType === '2g');
       
-      return isMobile || hasReducedMotion || hasLowMemory || hasSlowConnection;
+      return isMobile || hasReducedMotion || hasLowMemory;
     };
 
     setIsLowPowerMode(detectLowPowerMode());
 
-    if (!meshRef.current || !svgRef.current) return;
+    if (!canvasRef.current) return;
 
-    // Performance optimization: Larger grid size = fewer elements
-    const gridSize = isLowPowerMode ? 120 : 60; // Double grid size for low-power devices
-    // Reduce coverage slightly for better performance
-    const minRows = Math.max(Math.ceil(window.innerHeight / gridSize), Math.ceil(window.innerWidth / gridSize)) + (isLowPowerMode ? 2 : 4);
-    const minCols = Math.max(Math.ceil(window.innerWidth / gridSize), Math.ceil(window.innerHeight / gridSize)) + (isLowPowerMode ? 2 : 4);
-    const rows = minRows;
-    const cols = minCols;
-    const svgWidth = cols * gridSize;
-    const svgHeight = rows * gridSize;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-    // Clear existing paths
-    svgRef.current.innerHTML = '';
-
-    // Create grid paths
-    const paths: SVGPathElement[] = [];
-
-    // Horizontal lines
-    for (let i = 0; i <= rows; i++) {
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      const y = i * gridSize;
-      path.setAttribute('d', `M 0 ${y} L ${svgWidth} ${y}`);
-      path.setAttribute('stroke', 'currentColor');
-      path.setAttribute('stroke-width', '0.8');
-      path.setAttribute('fill', 'none');
-      path.setAttribute('opacity', '0.23');
-      path.setAttribute('class', `mesh-line mesh-horizontal mesh-row-${i}`);
-      svgRef.current.appendChild(path);
-      paths.push(path);
-    }
-
-    // Vertical lines
-    for (let i = 0; i <= cols; i++) {
-      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      const x = i * gridSize;
-      path.setAttribute('d', `M ${x} 0 L ${x} ${svgHeight}`);
-      path.setAttribute('stroke', 'currentColor');
-      path.setAttribute('stroke-width', '0.8');
-      path.setAttribute('fill', 'none');
-      path.setAttribute('opacity', '0.23');
-      path.setAttribute('class', `mesh-line mesh-vertical mesh-col-${i}`);
-      svgRef.current.appendChild(path);
-      paths.push(path);
-    }
-
-    // Performance optimized wave animation
-    const createWaveAnimation = () => {
-      // Skip animations entirely for reduced motion or low-power devices
-      if (isLowPowerMode) return;
-
-      const horizontalLines = svgRef.current?.querySelectorAll('.mesh-horizontal');
-      const verticalLines = svgRef.current?.querySelectorAll('.mesh-vertical');
-
-      if (!horizontalLines || !verticalLines) return;
-
-      // Only animate every 3rd line for better performance (or 6th for very low power)
-      const animateEveryNth = isLowPowerMode ? 6 : 3;
-      
-      // Animate selected horizontal lines
-      Array.from(horizontalLines).forEach((line, index) => {
-        if (index % animateEveryNth !== 0) return; // Skip most lines
-        
-        const y = index * gridSize;
-        const amplitude = intensity === 'subtle' ? 4 : intensity === 'medium' ? 6 : 8;
-        const baseDelay = (index / animateEveryNth) * 0.3;
-
-        gsap.to(line, {
-          attr: {
-            d: `M 0 ${y} Q ${svgWidth * 0.33} ${y + amplitude} ${svgWidth * 0.66} ${y - amplitude} T ${svgWidth} ${y}`
-          },
-          duration: isLowPowerMode ? 25 : 15, // Slower animations for low-power devices
-          ease: "power1.inOut",
-          repeat: -1,
-          yoyo: true,
-          delay: baseDelay
-        });
-      });
-
-      // Animate selected vertical lines
-      Array.from(verticalLines).forEach((line, index) => {
-        if (index % animateEveryNth !== 0) return; // Skip most lines
-        
-        const x = index * gridSize;
-        const amplitude = intensity === 'subtle' ? 3 : intensity === 'medium' ? 5 : 7;
-        const baseDelay = (index / animateEveryNth) * 0.25;
-
-        gsap.to(line, {
-          attr: {
-            d: `M ${x} 0 Q ${x + amplitude} ${svgHeight * 0.33} ${x - amplitude} ${svgHeight * 0.66} T ${x} ${svgHeight}`
-          },
-          duration: isLowPowerMode ? 30 : 18, // Slower animations for low-power devices
-          ease: "power1.inOut",
-          repeat: -1,
-          yoyo: true,
-          delay: baseDelay
-        });
-      });
-
-      // Reduced opacity animation - only on some paths
-      const selectedPaths = paths.filter((_, index) => index % (animateEveryNth * 2) === 0);
-      gsap.to(selectedPaths, {
-        opacity: 0.35,
-        duration: isLowPowerMode ? 12 : 8,
-        ease: "power2.inOut",
-        stagger: isLowPowerMode ? 0.2 : 0.1,
-        repeat: -1,
-        yoyo: true
-      });
+    // Set canvas size
+    const updateCanvasSize = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2); // Limit DPR for better performance
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      ctx.scale(dpr, dpr);
     };
 
-    createWaveAnimation();
+    updateCanvasSize();
 
-    // Set initial viewBox
-    svgRef.current.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
-    svgRef.current.setAttribute('width', '100%');
-    svgRef.current.setAttribute('height', '100%');
+    // Grid configuration - adjust for low power mode
+    const gridSize = isLowPowerMode ? 200 : 50; // Larger grid for low power
+    const cols = Math.ceil(window.innerWidth / gridSize) + 2;
+    const rows = Math.ceil(window.innerHeight / gridSize) + 2;
 
-    // Throttled resize handler for better performance
+    // Animation parameters for wave-like motion
+    const intensityConfig = {
+      subtle: { 
+        amplitude: isLowPowerMode ? 15 : 8, 
+        speed: isLowPowerMode ? 0.04 : 0.03, 
+        opacity: isLowPowerMode ? 0.25 : 0.2,
+        waveLength: isLowPowerMode ? 3 : 2
+      },
+      medium: { 
+        amplitude: isLowPowerMode ? 25 : 12, 
+        speed: isLowPowerMode ? 0.05 : 0.04, 
+        opacity: isLowPowerMode ? 0.35 : 0.3,
+        waveLength: isLowPowerMode ? 2.5 : 1.8
+      },
+      bold: { 
+        amplitude: isLowPowerMode ? 35 : 18, 
+        speed: isLowPowerMode ? 0.06 : 0.05, 
+        opacity: isLowPowerMode ? 0.45 : 0.4,
+        waveLength: isLowPowerMode ? 2 : 1.5
+      }
+    };
+
+    const config = intensityConfig[intensity];
+    let time = 0;
+    let cooldownTimer = 0;
+    let isWaveActive = false;
+    let waveIntensity = 0;
+    
+    // Cooldown configuration
+    const cooldownConfig = {
+      activeTime: isLowPowerMode ? 3000 : 4000,    // Duration of wave effect (ms)
+      restTime: isLowPowerMode ? 2000 : 1500,      // Cooldown duration (ms)
+      fadeInTime: isLowPowerMode ? 800 : 600,      // Fade in duration (ms)
+      fadeOutTime: isLowPowerMode ? 1000 : 800     // Fade out duration (ms)
+    };
+
+    // Animation function
+    const animate = () => {
+      if (!ctx) return;
+
+      // Always increment time for continuous movement
+      time += config.speed;
+      cooldownTimer += 16; // Approximate ms per frame (assuming ~60fps base)
+
+      // Cooldown logic
+      const totalCycleTime = cooldownConfig.activeTime + cooldownConfig.restTime;
+      const currentCycleTime = cooldownTimer % totalCycleTime;
+      
+      if (currentCycleTime < cooldownConfig.activeTime) {
+        // Wave is active or transitioning
+        isWaveActive = true;
+        
+        // Calculate fade in/out
+        if (currentCycleTime < cooldownConfig.fadeInTime) {
+          // Fade in
+          waveIntensity = currentCycleTime / cooldownConfig.fadeInTime;
+        } else if (currentCycleTime > (cooldownConfig.activeTime - cooldownConfig.fadeOutTime)) {
+          // Fade out
+          const fadeOutProgress = (cooldownConfig.activeTime - currentCycleTime) / cooldownConfig.fadeOutTime;
+          waveIntensity = Math.max(0, fadeOutProgress);
+        } else {
+          // Full intensity
+          waveIntensity = 1;
+        }
+      } else {
+        // Wave is in cooldown
+        isWaveActive = false;
+        waveIntensity = 0;
+      }
+
+      // Clear canvas
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+      // Calculate current amplitude based on wave intensity
+      const currentAmplitude = config.amplitude * waveIntensity;
+      const baseAmplitude = config.amplitude * 0.1; // Subtle movement during cooldown
+
+      // Set line style with dynamic opacity
+      const currentOpacity = config.opacity * (0.3 + (waveIntensity * 0.7));
+      ctx.strokeStyle = `rgba(99, 102, 241, ${currentOpacity})`;
+      ctx.lineWidth = isLowPowerMode ? 0.6 : 0.8;
+
+      if (isLowPowerMode) {
+        // Wave-like animation for low power mode with cooldown
+        const waveTime = time * (isWaveActive ? 2 : 0.5); // Slower during cooldown
+        const effectiveAmplitude = isWaveActive ? currentAmplitude : baseAmplitude;
+        
+        // Create flowing wave effect across horizontal lines
+        for (let i = 0; i <= rows; i++) {
+          const y = i * gridSize;
+          // Multiple wave layers for more fluid motion
+          const primaryWave = Math.sin(waveTime + i * 0.3) * effectiveAmplitude;
+          const secondaryWave = isWaveActive ? 
+            Math.sin(waveTime * 0.7 + i * 0.5) * (effectiveAmplitude * 0.6) : 0;
+          const waveOffset = primaryWave + secondaryWave;
+          
+          ctx.beginPath();
+          ctx.moveTo(0, y + waveOffset);
+          
+          if (isWaveActive) {
+            // Add intermediate points for smoother wave motion during active phase
+            for (let x = 0; x <= window.innerWidth; x += gridSize / 2) {
+              const localTime = waveTime + (x * 0.005);
+              const localWave = Math.sin(localTime + i * 0.2) * (effectiveAmplitude * 0.4);
+              ctx.lineTo(x, y + waveOffset + localWave);
+            }
+          } else {
+            // Simple line during cooldown
+            ctx.lineTo(window.innerWidth, y + waveOffset);
+          }
+          
+          ctx.stroke();
+        }
+
+        // Create flowing wave effect across vertical lines
+        for (let i = 0; i <= cols; i++) {
+          const x = i * gridSize;
+          // Perpendicular wave motion
+          const primaryWave = Math.cos(waveTime * 0.8 + i * 0.4) * effectiveAmplitude;
+          const secondaryWave = isWaveActive ?
+            Math.cos(waveTime * 1.2 + i * 0.3) * (effectiveAmplitude * 0.5) : 0;
+          const waveOffset = primaryWave + secondaryWave;
+          
+          ctx.beginPath();
+          ctx.moveTo(x + waveOffset, 0);
+          
+          if (isWaveActive) {
+            // Add intermediate points for smoother wave motion during active phase
+            for (let y = 0; y <= window.innerHeight; y += gridSize / 2) {
+              const localTime = waveTime * 0.9 + (y * 0.004);
+              const localWave = Math.cos(localTime + i * 0.25) * (effectiveAmplitude * 0.3);
+              ctx.lineTo(x + waveOffset + localWave, y);
+            }
+          } else {
+            // Simple line during cooldown
+            ctx.lineTo(x + waveOffset, window.innerHeight);
+          }
+          
+          ctx.stroke();
+        }
+      } else {
+        // Enhanced wave animation for normal devices with cooldown
+        const waveTime = time * (isWaveActive ? 1.5 : 0.3);
+        const effectiveAmplitude = isWaveActive ? currentAmplitude : baseAmplitude;
+        
+        // Draw horizontal lines with complex wave patterns
+        for (let i = 0; i <= rows; i++) {
+          const y = i * gridSize;
+          const primaryWave = Math.sin(waveTime + i * 0.4) * effectiveAmplitude;
+          const secondaryWave = isWaveActive ?
+            Math.sin(waveTime * 0.6 + i * 0.7) * (effectiveAmplitude * 0.7) : 0;
+          
+          ctx.beginPath();
+          ctx.moveTo(0, y + primaryWave + secondaryWave);
+          
+          if (isWaveActive) {
+            for (let x = 0; x <= window.innerWidth; x += gridSize / 4) {
+              const localTime = waveTime + (x * 0.008);
+              const localPrimary = Math.sin(localTime + i * 0.3) * (effectiveAmplitude * 0.6);
+              const localSecondary = Math.sin(localTime * 1.3 + i * 0.5) * (effectiveAmplitude * 0.4);
+              const tertiaryWave = Math.sin(localTime * 2 + i * 0.2) * (effectiveAmplitude * 0.2);
+              
+              ctx.lineTo(x, y + primaryWave + secondaryWave + localPrimary + localSecondary + tertiaryWave);
+            }
+          } else {
+            // Simple wave during cooldown
+            for (let x = 0; x <= window.innerWidth; x += gridSize / 2) {
+              const localWave = Math.sin(waveTime + (x * 0.003) + i * 0.3) * (effectiveAmplitude * 0.5);
+              ctx.lineTo(x, y + primaryWave + localWave);
+            }
+          }
+          
+          ctx.stroke();
+        }
+
+        // Draw vertical lines with complex wave patterns
+        for (let i = 0; i <= cols; i++) {
+          const x = i * gridSize;
+          const primaryWave = Math.cos(waveTime * 0.9 + i * 0.5) * effectiveAmplitude;
+          const secondaryWave = isWaveActive ?
+            Math.cos(waveTime * 1.1 + i * 0.3) * (effectiveAmplitude * 0.6) : 0;
+          
+          ctx.beginPath();
+          ctx.moveTo(x + primaryWave + secondaryWave, 0);
+          
+          if (isWaveActive) {
+            for (let y = 0; y <= window.innerHeight; y += gridSize / 4) {
+              const localTime = waveTime * 0.8 + (y * 0.006);
+              const localPrimary = Math.cos(localTime + i * 0.4) * (effectiveAmplitude * 0.5);
+              const localSecondary = Math.cos(localTime * 1.4 + i * 0.6) * (effectiveAmplitude * 0.3);
+              const tertiaryWave = Math.cos(localTime * 1.8 + i * 0.25) * (effectiveAmplitude * 0.15);
+              
+              ctx.lineTo(x + primaryWave + secondaryWave + localPrimary + localSecondary + tertiaryWave, y);
+            }
+          } else {
+            // Simple wave during cooldown
+            for (let y = 0; y <= window.innerHeight; y += gridSize / 2) {
+              const localWave = Math.cos(waveTime * 0.7 + (y * 0.004) + i * 0.4) * (effectiveAmplitude * 0.4);
+              ctx.lineTo(x + primaryWave + localWave, y);
+            }
+          }
+          
+          ctx.stroke();
+        }
+      }
+
+      // Continue animation with appropriate frame rate
+      const targetFPS = isLowPowerMode ? 25 : 35; // Slightly higher FPS for smoother waves
+      setTimeout(() => {
+        animationRef.current = requestAnimationFrame(animate);
+      }, 1000 / targetFPS);
+    };
+
+    // Start animation
+    animate();
+
+    // Throttled resize handler
     let resizeTimeout: NodeJS.Timeout;
     const handleResize = () => {
       clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(() => {
-        if (!svgRef.current) return;
-        const newMinRows = Math.max(Math.ceil(window.innerHeight / gridSize), Math.ceil(window.innerWidth / gridSize)) + 4;
-        const newMinCols = Math.max(Math.ceil(window.innerWidth / gridSize), Math.ceil(window.innerHeight / gridSize)) + 4;
-        const newSvgWidth = newMinCols * gridSize;
-        const newSvgHeight = newMinRows * gridSize;
-        
-        svgRef.current.setAttribute('viewBox', `0 0 ${newSvgWidth} ${newSvgHeight}`);
-      }, 150); // Throttle resize events
+      resizeTimeout = setTimeout(updateCanvasSize, 150);
     };
 
     window.addEventListener('resize', handleResize);
-    handleResize();
 
     return () => {
-      // Clean up all GSAP animations
-      if (svgRef.current) {
-        const meshLines = svgRef.current.querySelectorAll('.mesh-line');
-        gsap.killTweensOf(meshLines);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
       }
-      gsap.killTweensOf(paths);
       window.removeEventListener('resize', handleResize);
       if (resizeTimeout) {
         clearTimeout(resizeTimeout);
@@ -180,16 +289,16 @@ const AnimatedNetMesh: React.FC<AnimatedNetMeshProps> = ({
   const getIntensityStyles = () => {
     const styles = {
       subtle: {
-        color: 'rgb(99 102 241 / 0.4)', // indigo-500 with opacity
-        filter: 'blur(0.3px)',
+        filter: isLowPowerMode ? 'none' : 'blur(0.5px)',
+        opacity: isLowPowerMode ? 0.5 : 0.6
       },
       medium: {
-        color: 'rgb(99 102 241 / 0.6)',
-        filter: 'blur(0.2px)',
+        filter: isLowPowerMode ? 'none' : 'blur(0.3px)',
+        opacity: isLowPowerMode ? 0.7 : 0.8
       },
       bold: {
-        color: 'rgb(99 102 241 / 0.8)',
-        filter: 'blur(0px)',
+        filter: isLowPowerMode ? 'none' : 'blur(0px)',
+        opacity: isLowPowerMode ? 0.9 : 1
       }
     };
     return styles[intensity];
@@ -198,59 +307,38 @@ const AnimatedNetMesh: React.FC<AnimatedNetMeshProps> = ({
   return (
     <div 
       ref={meshRef}
-      className={`fixed inset-0 -z-5 overflow-hidden pointer-events-none ${className}`}
+      className={`fixed inset-0 -z-10 overflow-hidden pointer-events-none ${className}`}
       style={{ 
         perspective: '1500px',
-        transform: 'rotateX(35deg) rotateY(0deg) scale(1.2)',
+        transform: isLowPowerMode ? 'rotateX(15deg) scale(1.05)' : 'rotateX(25deg) scale(1.1)',
         transformOrigin: 'center center',
         transformStyle: 'preserve-3d',
-        width: '120vw',
-        height: '120vh',
-        left: '-10vw',
-        top: '-10vh'
       }}
     >
-      {/* Reverse Vignette - More opacity in corners */}
+      {/* Simplified gradient overlay */}
       <div 
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: `
-            radial-gradient(ellipse at center, transparent 30%, rgba(255,255,255,0.1) 70%, rgba(255,255,255,0.3) 100%),
-            radial-gradient(ellipse 120% 80% at top left, rgba(99,102,241,0.08) 0%, transparent 50%),
-            radial-gradient(ellipse 120% 80% at top right, rgba(139,92,246,0.08) 0%, transparent 50%),
-            radial-gradient(ellipse 120% 80% at bottom left, rgba(236,72,153,0.08) 0%, transparent 50%),
-            radial-gradient(ellipse 120% 80% at bottom right, rgba(59,130,246,0.08) 0%, transparent 50%)
-          `
+          background: isLowPowerMode 
+            ? `radial-gradient(ellipse at center, transparent 50%, rgba(255,255,255,0.05) 100%)`
+            : `
+                radial-gradient(ellipse at center, transparent 40%, rgba(255,255,255,0.1) 100%),
+                radial-gradient(ellipse 100% 60% at top, rgba(99,102,241,0.05) 0%, transparent 50%)
+              `
         }}
       />
       
-      {/* 3D Net Mesh */}
-      <svg
-        ref={svgRef}
+      {/* Canvas for optimized mesh */}
+      <canvas
+        ref={canvasRef}
         className="absolute inset-0 w-full h-full"
         style={{
           ...getIntensityStyles(),
-          transform: 'translateZ(0)',
-          mixBlendMode: 'overlay',
-          willChange: 'transform', // GPU acceleration hint
+          mixBlendMode: isLowPowerMode ? 'normal' : 'overlay',
+          willChange: 'auto',
         }}
-        preserveAspectRatio="none"
-        shapeRendering="optimizeSpeed" // Prioritize speed over quality
-        vectorEffect="non-scaling-stroke"
       />
       
-      {/* Additional depth layers */}
-      <div 
-        className="absolute inset-0 opacity-20"
-        style={{
-          background: `
-            linear-gradient(45deg, transparent 48%, rgba(99,102,241,0.1) 50%, transparent 52%),
-            linear-gradient(-45deg, transparent 48%, rgba(139,92,246,0.1) 50%, transparent 52%)
-          `,
-          backgroundSize: '80px 80px',
-          transform: 'translateZ(-50px) rotateX(10deg)'
-        }}
-      />
       
     </div>
   );

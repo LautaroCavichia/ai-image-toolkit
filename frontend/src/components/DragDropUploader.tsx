@@ -122,12 +122,7 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
                 alt="Preview" 
                 className="max-w-full h-auto max-h-48 rounded-xl border mx-auto shadow-lg"
               />
-              <button
-                onClick={clearPreview}
-                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors duration-200"
-              >
-                <X size={14} />
-              </button>
+             
             </div>
             <div className="text-sm text-green-700 flex items-center justify-center gap-2">
               <CheckCircle size={16} />
