@@ -240,10 +240,7 @@ const UpscalePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Before/After Examples */}
-          <div className="mb-8">
-            <BeforeAfterSlider images={mockImages} />
-          </div>
+
 
           {/* Configuration Section */}
           {selectedFile && (
@@ -264,15 +261,15 @@ const UpscalePage: React.FC = () => {
                       key={option.type}
                       onClick={() => setQuality(option.type)}
                       className={`group p-8 rounded-2xl border-2 text-left transition-all duration-300 ${quality === option.type
-                          ? `border-${option.color}-500 bg-${option.color}-50 shadow-lg`
-                          : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
+                        ? `border-${option.color}-500 bg-${option.color}-50 shadow-lg`
+                        : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
                         }`}
                     >
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
                           <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-300 ${quality === option.type
-                              ? option.color === 'green' ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'
-                              : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                            ? option.color === 'green' ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'
+                            : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
                             }`}>
                             {option.color === 'green' ? <Sparkles size={24} /> : <Star size={24} />}
                           </div>
@@ -282,8 +279,8 @@ const UpscalePage: React.FC = () => {
                           </div>
                         </div>
                         <div className={`px-3 py-1 rounded-full text-xs font-bold ${option.color === 'green'
-                            ? 'bg-green-500 text-white'
-                            : 'bg-orange-500 text-white'
+                          ? 'bg-green-500 text-white'
+                          : 'bg-orange-500 text-white'
                           }`}>
                           {option.cost}
                         </div>
@@ -324,12 +321,18 @@ const UpscalePage: React.FC = () => {
             </div>
           )}
 
+          {/* Before/After Examples */}
+          <div className="mb-8">
+            <BeforeAfterSlider images={mockImages} />
+          </div>
+
           {/* Job Status Section */}
           {currentJobId && (
             <div className="mb-8">
               <JobStatus
                 initialImageUrl={preview || ''}
                 jobId={currentJobId}
+                serviceType="upscale"
                 onJobCompleted={handleJobCompleted}
               />
             </div>

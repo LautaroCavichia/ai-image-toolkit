@@ -245,7 +245,7 @@ const BackgroundRemovalPage: React.FC = () => {
               <JobStatus 
                 jobId={currentJobId} 
                 initialImageUrl={statusPreview || ''} 
-  
+                serviceType="background-removal"
                 onJobCompleted={handleJobCompleted}
               />
             </div>

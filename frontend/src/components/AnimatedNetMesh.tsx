@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 
 interface AnimatedNetMeshProps {
@@ -12,15 +12,28 @@ const AnimatedNetMesh: React.FC<AnimatedNetMeshProps> = ({
 }) => {
   const meshRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const [isLowPowerMode, setIsLowPowerMode] = useState(false);
 
   useEffect(() => {
+    // Detect low-power devices and user preferences
+    const detectLowPowerMode = () => {
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const hasReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const hasLowMemory = (navigator as any).deviceMemory && (navigator as any).deviceMemory < 4;
+      const hasSlowConnection = (navigator as any).connection && ((navigator as any).connection.effectiveType === 'slow-2g' || (navigator as any).connection?.effectiveType === '2g');
+      
+      return isMobile || hasReducedMotion || hasLowMemory || hasSlowConnection;
+    };
+
+    setIsLowPowerMode(detectLowPowerMode());
+
     if (!meshRef.current || !svgRef.current) return;
 
     // Performance optimization: Larger grid size = fewer elements
-    const gridSize = 60; // Increased from 40 to reduce element count
+    const gridSize = isLowPowerMode ? 120 : 60; // Double grid size for low-power devices
     // Reduce coverage slightly for better performance
-    const minRows = Math.max(Math.ceil(window.innerHeight / gridSize), Math.ceil(window.innerWidth / gridSize)) + 4;
-    const minCols = Math.max(Math.ceil(window.innerWidth / gridSize), Math.ceil(window.innerHeight / gridSize)) + 4;
+    const minRows = Math.max(Math.ceil(window.innerHeight / gridSize), Math.ceil(window.innerWidth / gridSize)) + (isLowPowerMode ? 2 : 4);
+    const minCols = Math.max(Math.ceil(window.innerWidth / gridSize), Math.ceil(window.innerHeight / gridSize)) + (isLowPowerMode ? 2 : 4);
     const rows = minRows;
     const cols = minCols;
     const svgWidth = cols * gridSize;
@@ -62,13 +75,16 @@ const AnimatedNetMesh: React.FC<AnimatedNetMeshProps> = ({
 
     // Performance optimized wave animation
     const createWaveAnimation = () => {
+      // Skip animations entirely for reduced motion or low-power devices
+      if (isLowPowerMode) return;
+
       const horizontalLines = svgRef.current?.querySelectorAll('.mesh-horizontal');
       const verticalLines = svgRef.current?.querySelectorAll('.mesh-vertical');
 
       if (!horizontalLines || !verticalLines) return;
 
-      // Only animate every 3rd line for better performance
-      const animateEveryNth = 3;
+      // Only animate every 3rd line for better performance (or 6th for very low power)
+      const animateEveryNth = isLowPowerMode ? 6 : 3;
       
       // Animate selected horizontal lines
       Array.from(horizontalLines).forEach((line, index) => {
@@ -82,7 +98,7 @@ const AnimatedNetMesh: React.FC<AnimatedNetMeshProps> = ({
           attr: {
             d: `M 0 ${y} Q ${svgWidth * 0.33} ${y + amplitude} ${svgWidth * 0.66} ${y - amplitude} T ${svgWidth} ${y}`
           },
-          duration: 15,
+          duration: isLowPowerMode ? 25 : 15, // Slower animations for low-power devices
           ease: "power1.inOut",
           repeat: -1,
           yoyo: true,
@@ -102,7 +118,7 @@ const AnimatedNetMesh: React.FC<AnimatedNetMeshProps> = ({
           attr: {
             d: `M ${x} 0 Q ${x + amplitude} ${svgHeight * 0.33} ${x - amplitude} ${svgHeight * 0.66} T ${x} ${svgHeight}`
           },
-          duration: 18,
+          duration: isLowPowerMode ? 30 : 18, // Slower animations for low-power devices
           ease: "power1.inOut",
           repeat: -1,
           yoyo: true,
@@ -114,9 +130,9 @@ const AnimatedNetMesh: React.FC<AnimatedNetMeshProps> = ({
       const selectedPaths = paths.filter((_, index) => index % (animateEveryNth * 2) === 0);
       gsap.to(selectedPaths, {
         opacity: 0.35,
-        duration: 8,
+        duration: isLowPowerMode ? 12 : 8,
         ease: "power2.inOut",
-        stagger: 0.1,
+        stagger: isLowPowerMode ? 0.2 : 0.1,
         repeat: -1,
         yoyo: true
       });
@@ -159,7 +175,7 @@ const AnimatedNetMesh: React.FC<AnimatedNetMeshProps> = ({
         clearTimeout(resizeTimeout);
       }
     };
-  }, [intensity]);
+  }, [intensity, isLowPowerMode]);
 
   const getIntensityStyles = () => {
     const styles = {

@@ -246,10 +246,6 @@ const EnlargePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Before/After Examples */}
-          <div className="mb-8">
-            <BeforeAfterSlider images={mockImages} />
-          </div>
 
           {/* Configuration Section */}
           {selectedFile && (
@@ -270,13 +266,13 @@ const EnlargePage: React.FC = () => {
                       key={aspect.type}
                       onClick={() => setConfig(prev => ({ ...prev, aspectRatio: aspect.type }))}
                       className={`group p-8 rounded-2xl border-2 text-center transition-all duration-300 ${config.aspectRatio === aspect.type
-                          ? 'border-slate-900 bg-slate-50 shadow-lg'
-                          : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
+                        ? 'border-slate-900 bg-slate-50 shadow-lg'
+                        : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
                         }`}
                     >
                       <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 transition-colors duration-300 ${config.aspectRatio === aspect.type
-                          ? 'bg-slate-900 text-white'
-                          : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                        ? 'bg-slate-900 text-white'
+                        : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
                         }`}>
                         <aspect.icon size={24} />
                       </div>
@@ -297,15 +293,15 @@ const EnlargePage: React.FC = () => {
                   <button
                     onClick={() => setConfig(prev => ({ ...prev, quality: 'FREE' }))}
                     className={`group p-8 rounded-2xl border-2 text-left transition-all duration-300 ${config.quality === 'FREE'
-                        ? 'border-green-500 bg-green-50 shadow-lg'
-                        : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
+                      ? 'border-green-500 bg-green-50 shadow-lg'
+                      : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
                       }`}
                   >
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-300 ${config.quality === 'FREE'
-                            ? 'bg-green-500 text-white'
-                            : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                          ? 'bg-green-500 text-white'
+                          : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
                           }`}>
                           <Sparkles size={24} />
                         </div>
@@ -324,15 +320,15 @@ const EnlargePage: React.FC = () => {
                   <button
                     onClick={() => setConfig(prev => ({ ...prev, quality: 'PREMIUM' }))}
                     className={`group p-8 rounded-2xl border-2 text-left transition-all duration-300 ${config.quality === 'PREMIUM'
-                        ? 'border-orange-500 bg-orange-50 shadow-lg'
-                        : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
+                      ? 'border-orange-500 bg-orange-50 shadow-lg'
+                      : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
                       }`}
                   >
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-300 ${config.quality === 'PREMIUM'
-                            ? 'bg-orange-500 text-white'
-                            : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
                           }`}>
                           <Star size={24} />
                         </div>
@@ -372,12 +368,19 @@ const EnlargePage: React.FC = () => {
             </div>
           )}
 
+          {/* Before/After Examples */}
+          <div className="mb-8">
+            <BeforeAfterSlider images={mockImages} />
+          </div>
+
+
           {/* Job Status Section */}
           {currentJobId && (
             <div className="mb-8">
               <JobStatus
                 initialImageUrl={preview || ''}
                 jobId={currentJobId}
+                serviceType="enlarge"
                 onJobCompleted={handleJobCompleted}
               />
             </div>

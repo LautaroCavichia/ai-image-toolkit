@@ -256,10 +256,7 @@ const ObjectRemovalPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Before/After Examples */}
-          <div className="mb-8">
-            <BeforeAfterSlider images={mockImages} />
-          </div>
+
 
           {/* Configuration Section */}
           {selectedFile && (
@@ -281,10 +278,10 @@ const ObjectRemovalPage: React.FC = () => {
                       onClick={() => setConfig(prev => ({ ...prev, method: method.type }))}
                       disabled={method.badge === 'Coming Soon'}
                       className={`group p-8 rounded-2xl border-2 text-center transition-all duration-300 relative ${config.method === method.type && method.badge !== 'Coming Soon'
-                          ? 'border-slate-900 bg-slate-50 shadow-lg'
-                          : method.badge === 'Coming Soon'
-                            ? 'border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed'
-                            : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
+                        ? 'border-slate-900 bg-slate-50 shadow-lg'
+                        : method.badge === 'Coming Soon'
+                          ? 'border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed'
+                          : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
                         }`}
                     >
                       {method.badge && (
@@ -293,10 +290,10 @@ const ObjectRemovalPage: React.FC = () => {
                         </div>
                       )}
                       <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 transition-colors duration-300 ${config.method === method.type && method.badge !== 'Coming Soon'
-                          ? 'bg-slate-900 text-white'
-                          : method.badge === 'Coming Soon'
-                            ? 'bg-slate-200 text-slate-400'
-                            : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                        ? 'bg-slate-900 text-white'
+                        : method.badge === 'Coming Soon'
+                          ? 'bg-slate-200 text-slate-400'
+                          : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
                         }`}>
                         <method.icon size={24} />
                       </div>
@@ -324,15 +321,15 @@ const ObjectRemovalPage: React.FC = () => {
                       key={option.type}
                       onClick={() => setConfig(prev => ({ ...prev, quality: option.type }))}
                       className={`group p-8 rounded-2xl border-2 text-left transition-all duration-300 ${config.quality === option.type
-                          ? `border-${option.color}-500 bg-${option.color}-50 shadow-lg`
-                          : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
+                        ? `border-${option.color}-500 bg-${option.color}-50 shadow-lg`
+                        : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
                         }`}
                     >
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
                           <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-300 ${config.quality === option.type
-                              ? option.color === 'blue' ? 'bg-blue-500 text-white' : 'bg-purple-500 text-white'
-                              : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                            ? option.color === 'blue' ? 'bg-blue-500 text-white' : 'bg-purple-500 text-white'
+                            : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
                             }`}>
                             {option.color === 'blue' ? <Sparkles size={24} /> : <Star size={24} />}
                           </div>
@@ -342,8 +339,8 @@ const ObjectRemovalPage: React.FC = () => {
                           </div>
                         </div>
                         <div className={`px-3 py-1 rounded-full text-xs font-bold ${option.color === 'blue'
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-purple-500 text-white'
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-purple-500 text-white'
                           }`}>
                           {option.cost}
                         </div>
@@ -380,6 +377,11 @@ const ObjectRemovalPage: React.FC = () => {
               </button>
             </div>
           )}
+          
+          {/* Before/After Examples */}
+          <div className="mb-8">
+            <BeforeAfterSlider images={mockImages} />
+          </div>
 
           {/* Job Status Section */}
           {currentJobId && (
@@ -387,6 +389,7 @@ const ObjectRemovalPage: React.FC = () => {
               <JobStatus
                 initialImageUrl={preview || ''}
                 jobId={currentJobId}
+                serviceType="object-removal"
                 onJobCompleted={handleJobCompleted}
               />
             </div>

@@ -13,8 +13,16 @@ import logo from '../assets/logo.png';
 gsap.registerPlugin(ScrollTrigger);
 
 const HomePage: React.FC = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [showContent, setShowContent] = useState(false);
+  const [isLoading, setIsLoading] = useState(() => {
+    // Only show loading screen on first visit
+    const hasVisited = localStorage.getItem('hasVisitedHomepage');
+    return !hasVisited;
+  });
+  const [showContent, setShowContent] = useState(() => {
+    // Show content immediately if user has visited before
+    const hasVisited = localStorage.getItem('hasVisitedHomepage');
+    return !!hasVisited;
+  });
   const heroRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const subtitleRef = useRef<HTMLParagraphElement>(null);
@@ -24,6 +32,8 @@ const HomePage: React.FC = () => {
   const featuresRef = useRef<HTMLDivElement>(null);
 
   const handleLoadingComplete = () => {
+    // Mark that user has visited the homepage
+    localStorage.setItem('hasVisitedHomepage', 'true');
     setIsLoading(false);
     setTimeout(() => setShowContent(true), 100);
   };
