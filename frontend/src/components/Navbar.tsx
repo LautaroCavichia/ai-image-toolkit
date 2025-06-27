@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { isAuthenticated, getCurrentUser,logout } from '../services/authService';
 
 import { fetchTokenBalance } from '../services/tokenService';
-import { ChevronDown, Home, Coins, Scissors, Maximize, Sparkles, Expand, Palette, Menu, X, User } from 'lucide-react';
+import { ChevronDown, Home, Coins, Scissors, Maximize, Sparkles, Expand, Palette, Menu, X, User, FileImage } from 'lucide-react';
 import { gsap } from 'gsap';
 import TokenPanel from './TokenPanel';
 import UserProfile from './userProfile';
@@ -175,9 +175,14 @@ const Navbar: React.FC = () => {
                   className="w-8 h-8 object-contain"
                 />
               </div>
-              <h1 className="text-xl font-medium text-slate-900 tracking-tight">
-                Pixel Perfect AI
-              </h1>
+              <div className="flex flex-col">
+                <h1 className="text-xl font-medium text-slate-900 tracking-tight">
+                  PixelPerfect
+                </h1>
+                <p className="text-xs text-slate-500 tracking-wide -mt-1 font-brand">
+                  by ZONDA
+                </p>
+              </div>
             </div>
 
             {/* Desktop Navigation */}
@@ -238,6 +243,16 @@ const Navbar: React.FC = () => {
                           <div className="text-slate-500 text-sm">Coming soon</div>
                         </div>
                         <span className="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full font-medium">Soon</span>
+                      </div>
+                      <div className="flex items-center gap-3 p-3 rounded-xl opacity-50 cursor-not-allowed">
+                        <div className="w-10 h-10 bg-gradient-to-br from-slate-400 to-slate-600 rounded-xl flex items-center justify-center">
+                          <FileImage className="text-white" size={18} />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-slate-900">File Conversion</div>
+                          <div className="text-slate-500 text-sm">PNG to JPG and more</div>
+                        </div>
+                        <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full font-medium">Soon</span>
                       </div>
                     </div>
                   </div>
