@@ -3,13 +3,11 @@ import { gsap } from 'gsap';
 
 interface ServiceAnimationOptions {
   serviceType: 'background-removal' | 'upscale' | 'enlarge' | 'object-removal' | 'style-transfer';
-  enablePreloader?: boolean;
   intensity?: 'subtle' | 'medium' | 'intense';
 }
 
 export const useServiceAnimation = ({ 
   serviceType, 
-  enablePreloader = false,
   intensity = 'medium' 
 }: ServiceAnimationOptions) => {
   const heroRef = useRef<HTMLDivElement>(null);
@@ -17,7 +15,6 @@ export const useServiceAnimation = ({
   const configRef = useRef<HTMLDivElement>(null);
   const workflowRef = useRef<HTMLDivElement>(null);
   const featuresRef = useRef<HTMLDivElement>(null);
-  const preloaderRef = useRef<HTMLDivElement>(null);
 
   // Service-specific animation configs
   const getAnimationConfig = (type: string) => {
@@ -71,37 +68,6 @@ export const useServiceAnimation = ({
     return configs[type as keyof typeof configs] || configs['background-removal'];
   };
 
-  const createPreloaderAnimation = () => {
-    if (!preloaderRef.current) return;
-
-    const tl = gsap.timeline();
-    
-    // Preloader entrance
-    tl.fromTo(preloaderRef.current, 
-      { opacity: 0, scale: 0.8 },
-      { opacity: 1, scale: 1, duration: 0.6, ease: "power2.out" }
-    );
-
-    // Spinning animation for 1.5 seconds
-    tl.to(preloaderRef.current.querySelector('.preloader-spinner'), {
-      rotation: 360,
-      duration: 1.5,
-      ease: "none",
-      repeat: -1
-    }, 0.3);
-
-    // Exit animation (faster)
-    tl.to(preloaderRef.current, {
-      opacity: 0,
-      scale: 0.9,
-      y: -20,
-      duration: 0.6,
-      ease: "power3.in",
-      delay: 1.5
-    });
-
-    return tl;
-  };
 
   const createEntranceAnimations = () => {
     const config = getAnimationConfig(serviceType);
@@ -126,7 +92,7 @@ export const useServiceAnimation = ({
       });
     });
 
-    const tl = gsap.timeline({ delay: enablePreloader ? 2.2 : 0.1 });
+    const tl = gsap.timeline({ delay: 0.1 });
 
     // Animate elements in sequence with dynamic properties
     validElements.forEach(({ el, config: elementConfig }, index) => {
@@ -190,31 +156,11 @@ export const useServiceAnimation = ({
           }
         );
       }
-    }, enablePreloader ? 3000 : 1400);
+    }, 1400);
 
     return tl;
   };
 
-  // Set initial states immediately to prevent flash
-  const setInitialStates = () => {
-    const config = getAnimationConfig(serviceType);
-    const elements = [heroRef.current, uploaderRef.current, configRef.current, workflowRef.current, featuresRef.current];
-    const keys = ['hero', 'uploader', 'config', 'workflow', 'features'] as const;
-    
-    elements.forEach((el, index) => {
-      if (el) {
-        const elementConfig = config[keys[index]];
-        gsap.set(el, {
-          opacity: 0,
-          y: elementConfig.y || 40,
-          scale: elementConfig.scale || 0.95,
-          rotation: elementConfig.rotation || 0,
-          filter: 'blur(8px)',
-          transformOrigin: 'center center'
-        });
-      }
-    });
-  };
 
   // Use useLayoutEffect to set initial states immediately (before paint)
   useLayoutEffect(() => {
@@ -239,28 +185,19 @@ export const useServiceAnimation = ({
   }, []); // Run only once when component mounts
 
   useEffect(() => {
-    let preloaderTimeline: gsap.core.Timeline | undefined;
-    let entranceTimeline: gsap.core.Timeline | undefined;
-
-    if (enablePreloader) {
-      preloaderTimeline = createPreloaderAnimation();
-    }
-    
-    entranceTimeline = createEntranceAnimations();
+    const entranceTimeline = createEntranceAnimations();
 
     // Cleanup function
     return () => {
-      preloaderTimeline?.kill();
       entranceTimeline?.kill();
     };
-  }, [serviceType, enablePreloader, intensity, createPreloaderAnimation, createEntranceAnimations]);
+  }, [serviceType, intensity, createEntranceAnimations]);
 
   return {
     heroRef,
     uploaderRef,
     configRef,
     workflowRef,
-    featuresRef,
-    preloaderRef
+    featuresRef
   };
 };

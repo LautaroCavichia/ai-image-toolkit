@@ -6,10 +6,8 @@ import JobStatus from '../components/JobStatus';
 import DragDropUploader from '../components/DragDropUploader';
 import BeforeAfterSlider from '../components/BeforeAfterSlider';
 import AnimatedGradientMesh from '../components/AnimatedGradientMesh';
-import ServicePreloader from '../components/ServicePreloader';
 import { uploadImageAndCreateJob } from '../services/apiService';
 import { useServiceAnimation } from '../hooks/useServiceAnimation';
-import { useFirstVisit } from '../hooks/useFirstVisit';
 
 interface ObjectRemovalConfig {
   method: 'AUTO' | 'MANUAL';
@@ -28,21 +26,11 @@ const ObjectRemovalPage: React.FC = () => {
   });
 
   // Enhanced animation system
-  const { isFirstVisit, isLoading: isCheckingVisit } = useFirstVisit({ serviceType: 'object-removal' });
-  const { heroRef, uploaderRef, configRef, workflowRef, featuresRef, preloaderRef } = useServiceAnimation({
+  const { heroRef, uploaderRef, configRef, workflowRef, featuresRef } = useServiceAnimation({
     serviceType: 'object-removal',
-    enablePreloader: isFirstVisit,
     intensity: 'medium'
   });
 
-  // Show loading state while checking first visit
-  if (isCheckingVisit) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
-      </div>
-    );
-  }
 
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
@@ -138,11 +126,6 @@ const ObjectRemovalPage: React.FC = () => {
 
   return (
     <Layout>
-      {isFirstVisit && (
-        <div ref={preloaderRef}>
-          <ServicePreloader serviceType="object-removal" />
-        </div>
-      )}
       <AnimatedGradientMesh variant="object-removal" intensity="subtle" />
       <Navbar />
       <div className="min-h-screen pt-20">

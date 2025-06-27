@@ -2,8 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { gsap } from 'gsap';
 import { Eye, EyeOff, Mail, Lock, Sparkles, User, ArrowRight, Shield } from 'lucide-react';
 import { login, register, createGuestUser, storeUserData } from '../services/authService';
-import { useFirstVisit } from '../hooks/useFirstVisit';
-import ServicePreloader from '../components/ServicePreloader';
 import AnimatedGradientMesh from '../components/AnimatedGradientMesh';
 import logo from '../assets/logo.png';
 
@@ -20,15 +18,12 @@ const LoginPage: React.FC = () => {
   const heroRef = useRef<HTMLDivElement>(null);
   const uploaderRef = useRef<HTMLDivElement>(null);
   const featuresRef = useRef<HTMLDivElement>(null);
-  const preloaderRef = useRef<HTMLDivElement>(null);
   const formContentRef = useRef<HTMLDivElement>(null);
 
-  // Enhanced animation system for login page
-  const { isFirstVisit, isLoading: isCheckingVisit } = useFirstVisit({ serviceType: 'login' });
 
   // Animation effect that only runs once
   useEffect(() => {
-    if (!hasAnimated && !isCheckingVisit) {
+    if (!hasAnimated) {
       // Set initial states immediately to prevent flash
       if (heroRef.current && uploaderRef.current && featuresRef.current) {
         gsap.set([heroRef.current, uploaderRef.current, featuresRef.current], {
@@ -39,7 +34,7 @@ const LoginPage: React.FC = () => {
         });
 
         // Create entrance animation
-        const tl = gsap.timeline({ delay: isFirstVisit ? 2.2 : 0.1 });
+        const tl = gsap.timeline({ delay: 0.1 });
         
         tl.to(heroRef.current, {
           opacity: 1,
@@ -69,7 +64,7 @@ const LoginPage: React.FC = () => {
         setHasAnimated(true);
       }
     }
-  }, [hasAnimated, isCheckingVisit, isFirstVisit]);
+  }, [hasAnimated]);
 
   // Subtle animation for form content when switching between login/signup
   useEffect(() => {
@@ -81,14 +76,6 @@ const LoginPage: React.FC = () => {
     }
   }, [isLogin, hasAnimated]);
 
-  // Show loading state while checking first visit
-  if (isCheckingVisit) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
-      </div>
-    );
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,11 +114,6 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 relative overflow-hidden">
-      {isFirstVisit && (
-        <div ref={preloaderRef}>
-          <ServicePreloader serviceType="background-removal" />
-        </div>
-      )}
       
       <AnimatedGradientMesh variant="background-removal" intensity="subtle" />
       

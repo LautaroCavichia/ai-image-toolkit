@@ -6,12 +6,10 @@ import JobStatus from '../components/JobStatus';
 import DragDropUploader from '../components/DragDropUploader';
 import BeforeAfterSlider from '../components/BeforeAfterSlider';
 import AnimatedGradientMesh from '../components/AnimatedGradientMesh';
-import ServicePreloader from '../components/ServicePreloader';
 import { JobTypeEnum } from '../types';
 import { uploadImageAndCreateJob } from '../services/apiService';
 import { isAuthenticated } from '../services/authService';
 import { useServiceAnimation } from '../hooks/useServiceAnimation';
-import { useFirstVisit } from '../hooks/useFirstVisit';
 
 const BackgroundRemovalPage: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -22,21 +20,11 @@ const BackgroundRemovalPage: React.FC = () => {
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
 
   // Enhanced animation system
-  const { isFirstVisit, isLoading: isCheckingVisit } = useFirstVisit({ serviceType: 'background-removal' });
-  const { heroRef, uploaderRef, workflowRef, featuresRef, preloaderRef } = useServiceAnimation({
+  const { heroRef, uploaderRef, workflowRef, featuresRef } = useServiceAnimation({
     serviceType: 'background-removal',
-    enablePreloader: isFirstVisit,
     intensity: 'medium'
   });
 
-  // Show loading state while checking first visit
-  if (isCheckingVisit) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
-      </div>
-    );
-  }
 
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
@@ -101,11 +89,6 @@ const BackgroundRemovalPage: React.FC = () => {
 
   return (
     <Layout>
-      {isFirstVisit && (
-        <div ref={preloaderRef}>
-          <ServicePreloader serviceType="background-removal" />
-        </div>
-      )}
       <AnimatedGradientMesh variant="background-removal" intensity="subtle" />
       <Navbar />
       <div className="min-h-screen pt-20">

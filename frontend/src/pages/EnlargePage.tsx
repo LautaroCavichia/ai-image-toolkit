@@ -6,11 +6,9 @@ import JobStatus from '../components/JobStatus';
 import DragDropUploader from '../components/DragDropUploader';
 import BeforeAfterSlider from '../components/BeforeAfterSlider';
 import AnimatedGradientMesh from '../components/AnimatedGradientMesh';
-import ServicePreloader from '../components/ServicePreloader';
 import { JobTypeEnum } from '../types';
 import { uploadImageAndCreateJob } from '../services/apiService';
 import { useServiceAnimation } from '../hooks/useServiceAnimation';
-import { useFirstVisit } from '../hooks/useFirstVisit';
 
 interface EnlargeConfig {
   aspectRatio: 'portrait' | 'landscape' | 'square';
@@ -29,21 +27,11 @@ const EnlargePage: React.FC = () => {
   });
 
   // Enhanced animation system
-  const { isFirstVisit, isLoading: isCheckingVisit } = useFirstVisit({ serviceType: 'enlarge' });
-  const { heroRef, uploaderRef, configRef, workflowRef, featuresRef, preloaderRef } = useServiceAnimation({
+  const { heroRef, uploaderRef, configRef, workflowRef, featuresRef } = useServiceAnimation({
     serviceType: 'enlarge',
-    enablePreloader: isFirstVisit,
     intensity: 'medium'
   });
 
-  // Show loading state while checking first visit
-  if (isCheckingVisit) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
-      </div>
-    );
-  }
 
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
@@ -128,11 +116,6 @@ const EnlargePage: React.FC = () => {
 
   return (
     <Layout>
-      {isFirstVisit && (
-        <div ref={preloaderRef}>
-          <ServicePreloader serviceType="enlarge" />
-        </div>
-      )}
       <AnimatedGradientMesh variant="enlarge" intensity="subtle" />
       <Navbar />
       <div className="min-h-screen pt-20">
