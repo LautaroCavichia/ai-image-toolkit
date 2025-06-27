@@ -42,3 +42,5 @@ replace.txt
 *.bat
 
 microservices/enlarge-service/models/
+
+/zonda-ui-kit/
