@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { gsap } from 'gsap';
+import React, { useState } from 'react';
 import { Sparkles, Upload, CheckCircle, Star, MousePointer, Wand2, Zap, Target, Shield } from 'lucide-react';
 import Layout from '../components/Layout';
 import Navbar from '../components/Navbar';
@@ -7,7 +6,10 @@ import JobStatus from '../components/JobStatus';
 import DragDropUploader from '../components/DragDropUploader';
 import BeforeAfterSlider from '../components/BeforeAfterSlider';
 import AnimatedGradientMesh from '../components/AnimatedGradientMesh';
+import ServicePreloader from '../components/ServicePreloader';
 import { uploadImageAndCreateJob } from '../services/apiService';
+import { useServiceAnimation } from '../hooks/useServiceAnimation';
+import { useFirstVisit } from '../hooks/useFirstVisit';
 
 interface ObjectRemovalConfig {
   method: 'AUTO' | 'MANUAL';
@@ -25,82 +27,22 @@ const ObjectRemovalPage: React.FC = () => {
     quality: 'STANDARD'
   });
 
-  const heroRef = useRef<HTMLDivElement>(null);
-  const uploaderRef = useRef<HTMLDivElement>(null);
-  const configRef = useRef<HTMLDivElement>(null);
-  const workflowRef = useRef<HTMLDivElement>(null);
-  const featuresRef = useRef<HTMLDivElement>(null);
+  // Enhanced animation system
+  const { isFirstVisit, isLoading: isCheckingVisit } = useFirstVisit({ serviceType: 'object-removal' });
+  const { heroRef, uploaderRef, configRef, workflowRef, featuresRef, preloaderRef } = useServiceAnimation({
+    serviceType: 'object-removal',
+    enablePreloader: isFirstVisit,
+    intensity: 'medium'
+  });
 
-  useEffect(() => {
-    const tl = gsap.timeline();
-
-    // Set initial states for vertical layout
-    gsap.set([heroRef.current, uploaderRef.current, configRef.current, workflowRef.current, featuresRef.current], {
-      opacity: 0,
-      y: 40,
-      scale: 0.95
-    });
-
-    // Entrance animations in sequence
-    tl.to(heroRef.current, {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      duration: 1.2,
-      ease: "power3.out"
-    })
-      .to(uploaderRef.current, {
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        duration: 1,
-        ease: "power3.out"
-      }, "-=0.8")
-      .to(configRef.current, {
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        duration: 0.8,
-        ease: "power3.out"
-      }, "-=0.6")
-      .to(workflowRef.current, {
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        duration: 0.8,
-        ease: "power3.out"
-      }, "-=0.4")
-      .to(featuresRef.current, {
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        duration: 0.8,
-        ease: "power3.out"
-      }, "-=0.4");
-
-    // Workflow animation
-    setTimeout(() => {
-      const workflowCards = workflowRef.current?.querySelectorAll('.workflow-card');
-
-      if (workflowCards) {
-        gsap.fromTo(workflowCards,
-          {
-            opacity: 0,
-            y: 30,
-            scale: 0.95
-          },
-          {
-            opacity: 1,
-            y: 0,
-            scale: 1,
-            duration: 0.8,
-            stagger: 0.2,
-            ease: "power3.out"
-          }
-        );
-      }
-    }, 1500);
-  }, []);
+  // Show loading state while checking first visit
+  if (isCheckingVisit) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
+      </div>
+    );
+  }
 
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
@@ -196,6 +138,11 @@ const ObjectRemovalPage: React.FC = () => {
 
   return (
     <Layout>
+      {isFirstVisit && (
+        <div ref={preloaderRef}>
+          <ServicePreloader serviceType="object-removal" />
+        </div>
+      )}
       <AnimatedGradientMesh variant="object-removal" intensity="subtle" />
       <Navbar />
       <div className="min-h-screen pt-20">
