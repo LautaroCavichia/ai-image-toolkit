@@ -48,6 +48,7 @@ public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
             .requestMatchers(AntPathRequestMatcher.antMatcher("/api/v1/jobs/*/status")).permitAll() // Allow job status callbacks
             .requestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")).permitAll() // For development
             .requestMatchers(AntPathRequestMatcher.antMatcher("/health")).permitAll()
+            
             .anyRequest().authenticated()
         )
         .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))

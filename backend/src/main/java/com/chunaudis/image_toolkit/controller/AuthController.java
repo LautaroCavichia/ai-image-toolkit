@@ -151,7 +151,7 @@ public ResponseEntity<?> register(@RequestBody AuthRequestDTO registerRequest) {
         user.setEmail(registerRequest.getEmail());
         user.setPasswordHash(passwordEncoder.encode(registerRequest.getPassword()));
        user.setIsGuest(false);
-        user.setDisplayName("User " + registerRequest.getEmail().split("@")[0]);
+        user.setDisplayName(registerRequest.getDisplayName());
         
 
         User savedUser = userRepository.save(user);

@@ -13,13 +13,17 @@ const LoginPage: React.FC = () => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [hasAnimated, setHasAnimated] = useState(false);
+  const [username, setUsername] = useState('');
 
   // Refs for animation
   const heroRef = useRef<HTMLDivElement>(null);
   const uploaderRef = useRef<HTMLDivElement>(null);
   const featuresRef = useRef<HTMLDivElement>(null);
   const formContentRef = useRef<HTMLDivElement>(null);
-
+  const onForgotPassword = () => {
+    // Aquí puedes redirigir a la página de recuperación de contraseña
+    window.location.href = '/AuthForm';
+  };
 
   // Animation effect that only runs once
   useEffect(() => {
@@ -85,9 +89,9 @@ const LoginPage: React.FC = () => {
     try {
       let response;
       if (isLogin) {
-        response = await login({ email, password });
+        response = await login({email, password });
       } else {
-        response = await register({ email, password });
+        response = await register({displayName: username, email, password });
       }
       
       storeUserData(response);
@@ -168,6 +172,24 @@ const LoginPage: React.FC = () => {
 
               {/* Login Form */}
               <form onSubmit={handleSubmit} className="space-y-6">
+
+               {!isLogin && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-3">Username</label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500" size={20} />
+                    <input
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="w-full pl-12 pr-4 py-4 bg-white/90 backdrop-blur-sm border border-slate-200/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200 text-slate-900 placeholder-slate-400"
+                      placeholder="Choose a username"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-3">Email Address</label>
                   <div className="relative">
@@ -182,6 +204,8 @@ const LoginPage: React.FC = () => {
                     />
                   </div>
                 </div>
+
+               
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-3">Password</label>
@@ -204,6 +228,8 @@ const LoginPage: React.FC = () => {
                     </button>
                   </div>
                 </div>
+
+               
 
                 <button
                   type="submit"
@@ -236,6 +262,14 @@ const LoginPage: React.FC = () => {
                   {isLogin ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
                 </button>
               </div>
+
+              {isLogin && (
+            <div className="mt-8 text-center">
+              <button onClick={onForgotPassword}>
+                Forgot your Password?
+              </button>
+            </div>
+          )}
 
               {/* Guest Login */}
               <div className="mt-8 pt-8 border-t border-slate-200/50">

@@ -17,6 +17,13 @@ export interface AuthRequest {
   password: string;
 }
 
+export interface Register {
+  email: string;
+  password: string;
+  displayName: string;
+}
+
+
 // Modifica tu función login en authService.ts
 // En authService.ts
 export const login = async (credentials: AuthRequest): Promise<AuthResponse> => {
@@ -76,7 +83,7 @@ export const validateToken = async (): Promise<boolean> => {
 
 
 
-export const register = async (credentials: AuthRequest): Promise<AuthResponse> => {
+export const register = async (credentials: Register): Promise<AuthResponse> => {
   const response = await axios.post<AuthResponse>(`${API_BASE_URL}/auth/register`, credentials);
   
 

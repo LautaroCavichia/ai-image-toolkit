@@ -6,6 +6,8 @@ import UpscalePage from './pages/UpscalePage';
 import EnlargePage from './pages/EnlargePage';
 import ObjectRemovalPage from './pages/ObjectRemovalPage';
 import StyleTransferPage from './pages/StyleTransferPage';
+import ResetPasswordPage from './pages/ResetPassword';
+import AuthForm from './pages/AuthForm';
 import { isAuthenticated, setupAxiosInterceptors, createGuestUser } from './services/authService';
 
 function App() {
@@ -111,6 +113,13 @@ function App() {
   if (currentPath === '/style-transfer') {
     return <StyleTransferPage />;
   }
+
+  if (currentPath === '/reset-password') {
+  return <ResetPasswordPage />;
+}
+if (currentPath === '/AuthForm') {
+  return <AuthForm/>;
+}
 
   return <HomePage />;
 }
