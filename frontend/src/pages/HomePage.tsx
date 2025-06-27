@@ -34,6 +34,120 @@ const HomePage: React.FC = () => {
   const techTextRef = useRef<HTMLDivElement>(null);
   const speedQualityRef = useRef<HTMLDivElement>(null);
   const featuresRef = useRef<HTMLDivElement>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const [currentOffset, setCurrentOffset] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [isTransitioning] = useState(false);
+
+   const contentData = [
+    {
+      url: "https://cdn.leonardo.ai/users/7accf579-f61e-438c-80d3-9d45630f0f1b/generations/708616f7-b8be-4ecd-be1e-1349081e1ece/Leonardo_Phoenix_10_A_joyful_dog_its_fur_a_warm_golden_brown_w_0.jpg",
+      alt: "Tecnología moderna",
+      title: "Built for those who need",
+      highlight1: { text: "speed", color: "from-blue-700 to-blue-600" },
+      highlight2: { text: "quality", color: "from-purple-700 to-purple-600" },
+      description: "Advanced AI processing technology that delivers exceptional results in seconds, maintaining the precision and quality your work demands."
+    },
+    {
+      url: "https://cdn.leonardo.ai/users/7accf579-f61e-438c-80d3-9d45630f0f1b/generations/4b498504-637d-4a15-96da-ea0e4864d205/Leonardo_Phoenix_10_A_majestic_cat_with_shimmering_iridescent_1.jpg",
+      alt: "Análisis de datos",
+      title: "Designed for teams that value",
+      highlight1: { text: "precision", color: "from-emerald-700 to-emerald-600" },
+      highlight2: { text: "efficiency", color: "from-orange-700 to-orange-600" },
+      description: "Streamlined workflows and intelligent automation tools that empower your team to achieve more with less effort and maximum accuracy."
+    },
+    {
+      url: "https://cdn.leonardo.ai/users/7accf579-f61e-438c-80d3-9d45630f0f1b/generations/87c1e6f1-e1b2-449a-9214-2381409ec850/Leonardo_Phoenix_10_A_lone_majestic_cactus_donning_trendy_refl_2.jpg",
+      alt: "Innovación empresarial",
+      title: "Perfect for organizations seeking",
+      highlight1: { text: "innovation", color: "from-violet-700 to-violet-600" },
+      highlight2: { text: "growth", color: "from-rose-700 to-rose-600" },
+      description: "Cutting-edge solutions that scale with your business, fostering innovation while driving sustainable growth and competitive advantage."
+    },
+    {
+      url: "https://cdn.leonardo.ai/users/7accf579-f61e-438c-80d3-9d45630f0f1b/generations/4b498504-637d-4a15-96da-ea0e4864d205/Leonardo_Phoenix_10_A_majestic_cat_with_shimmering_iridescent_1.jpg",
+      alt: "Colaboración en equipo",
+      title: "Crafted for professionals who demand",
+      highlight1: { text: "reliability", color: "from-teal-700 to-teal-600" },
+      highlight2: { text: "excellence", color: "from-indigo-700 to-indigo-600" },
+      description: "Enterprise-grade reliability meets intuitive design, delivering consistent excellence that professionals trust for their most critical projects."
+    }
+  ];
+
+  const currentContent = contentData[currentImageIndex];
+  const technologies = [
+    {
+      name: 'Java',
+      icon: (
+        <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M8.851 18.56s-.917.534.653.714c1.902.218 2.874.187 4.969-.211 0 0 .552.346 1.321.646-4.699 2.013-10.633-.118-6.943-1.149M8.276 15.933s-1.028.761.542.924c2.032.209 3.636.227 6.413-.308 0 0 .384.389.987.602-5.679 1.661-12.007.13-7.942-1.218M13.116 11.475c1.158 1.333-.304 2.533-.304 2.533s2.939-1.518 1.589-3.418c-1.261-1.772-2.228-2.652 3.007-5.688 0-.001-8.216 2.051-4.292 6.573M19.33 20.504s.679.559-.747.991c-2.712.822-11.288 1.069-13.669.033-.856-.373.75-.89 1.254-.998.527-.114.828-.093.828-.093-.953-.671-6.156 1.317-2.643 1.887 9.58 1.553 17.462-.7 14.977-1.82M9.292 13.21s-4.362 1.036-1.544 1.412c1.189.159 3.561.123 5.77-.062 1.806-.152 3.618-.477 3.618-.477s-.637.272-1.098.587c-4.429 1.165-12.986.623-10.522-.568 2.082-1.006 3.776-.892 3.776-.892M17.116 17.584c4.503-2.34 2.421-4.589.968-4.285-.355.074-.515.138-.515.138s.132-.207.385-.297c2.875-1.011 5.086 2.981-.928 4.562 0-.001.07-.062.09-.118M14.401 0s2.494 2.494-2.365 6.33c-3.896 3.077-.888 4.832-.001 6.836-2.274-2.053-3.943-3.858-2.824-5.539 1.644-2.469 6.197-3.665 5.19-7.627M9.734 23.924c4.322.277 10.959-.153 11.116-2.198 0 0-.302.775-1.788 1.393-2.83 1.177-6.334 1.042-10.106.283 0 0 .51.425.778.522"/>
+        </svg>
+      )
+    },
+    {
+      name: 'Python',
+      icon: (
+        <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M14.25.18l.9.2.73.26.59.3.45.32.34.34.25.34.16.33.1.3.04.26.02.2-.01.13V8.5l-.05.63-.13.55-.21.46-.26.38-.3.31-.33.25-.35.19-.35.14-.33.1-.3.07-.26.04-.21.02H8.77l-.69.05-.59.14-.5.22-.41.27-.33.32-.27.35-.2.36-.15.37-.1.35-.07.32-.04.27-.02.21v3.06H3.17l-.21-.03-.28-.07-.32-.12-.35-.18-.36-.26-.36-.36-.35-.46-.32-.59-.28-.73-.21-.88-.14-1.05-.05-1.23.06-1.22.16-1.04.24-.87.32-.71.36-.57.4-.44.42-.33.42-.24.4-.16.36-.1.32-.05.24-.01h.16l.06.01h8.16v-.83H6.18l-.01-2.75-.02-.37.05-.34.11-.31.17-.28.25-.26.31-.23.38-.2.44-.18.51-.15.58-.12.64-.1.71-.06.77-.04.84-.02 1.27.05zm-6.3 1.98l-.23.33-.08.41.08.41.23.34.33.22.41.09.41-.09.33-.22.23-.34.08-.41-.08-.41-.23-.33-.33-.22-.41-.09-.41.09zm13.09 3.95l.28.06.32.12.35.18.36.27.36.35.35.47.32.59.28.73.21.88.14 1.04.05 1.23-.06 1.23-.16 1.04-.24.86-.32.71-.36.57-.4.45-.42.33-.42.24-.4.16-.36.09-.32.05-.24.02-.16-.01h-8.22v.82h5.84l.01 2.76.02.36-.05.34-.11.31-.17.29-.25.25-.31.24-.38.2-.44.17-.51.15-.58.13-.64.09-.71.07-.77.04-.84.01-1.27-.04-1.07-.14-.9-.2-.73-.25-.59-.3-.45-.33-.34-.34-.25-.34-.16-.33-.1-.3-.04-.25-.02-.2.01-.13v-5.34l.05-.64.13-.54.21-.46.26-.38.3-.32.33-.24.35-.2.35-.14.33-.1.3-.06.26-.04.21-.02.13-.01h5.84l.69-.05.59-.14.5-.21.41-.28.33-.32.27-.35.2-.36.15-.36.1-.35.07-.32.04-.28.02-.21V6.07h2.09l.14.01zm-6.47 14.25l-.23.33-.08.41.08.41.23.33.33.23.41.08.41-.08.33-.23.23-.33.08-.41-.08-.41-.23-.33-.33-.23-.41-.08-.41.08z"/>
+        </svg>
+      )
+    },
+    {
+      name: 'React',
+      icon: (
+        <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M14.23 12.004a2.236 2.236 0 0 1-2.235 2.236 2.236 2.236 0 0 1-2.236-2.236 2.236 2.236 0 0 1 2.235-2.236 2.236 2.236 0 0 1 2.236 2.236zm2.648-10.69c-1.346 0-3.107.96-4.888 2.622-1.78-1.653-3.542-2.602-4.887-2.602-.41 0-.783.093-1.106.278-1.375.793-1.683 3.264-.973 6.365C1.98 8.917 0 10.42 0 12.004c0 1.59 1.99 3.097 5.043 4.03-.704 3.113-.39 5.588.988 6.38.32.187.69.275 1.102.275 1.345 0 3.107-.96 4.888-2.624 1.78 1.654 3.542 2.603 4.887 2.603.41 0 .783-.09 1.106-.275 1.374-.792 1.683-3.263.973-6.365C22.02 15.096 24 13.59 24 12.004c0-1.59-1.99-3.097-5.043-4.032.704-3.11.39-5.587-.988-6.38-.318-.184-.688-.277-1.092-.278zm-.005 1.09v.006c.225 0 .406.044.558.127.666.382.955 1.835.73 3.704-.054.46-.142.945-.25 1.44-.96-.236-2.006-.417-3.107-.534-.66-.905-1.345-1.727-2.035-2.447 1.592-1.48 3.087-2.292 4.105-2.295zm-9.77.02c1.012 0 2.514.808 4.11 2.28-.686.72-1.37 1.537-2.02 2.442-1.107.117-2.154.298-3.113.538-.112-.49-.195-.964-.254-1.42-.23-1.868.054-3.32.714-3.707.19-.09.4-.127.563-.132zm4.882 3.05c.455.468.91.992 1.36 1.564-.44-.02-.89-.034-1.36-.034-.47 0-.92.014-1.36.034.44-.572.895-1.096 1.36-1.564zM12 8.1c.74 0 1.477.034 2.202.093.406.582.802 1.203 1.183 1.86.372.64.71 1.29 1.018 1.946-.308.655-.646 1.31-1.013 1.95-.38.66-.773 1.288-1.18 1.87-.728.063-1.466.098-2.21.098-.74 0-1.477-.035-2.202-.093-.406-.582-.802-1.204-1.183-1.86-.372-.64-.71-1.29-1.018-1.946.303-.657.646-1.313 1.013-1.954.38-.66.773-1.286 1.18-1.866.728-.064 1.466-.098 2.21-.098zm-3.635.254c-.24.377-.48.763-.704 1.16-.225.39-.435.788-.63 1.18-.265-.506-.504-1.012-.714-1.515-.207-.49-.365-.98-.49-1.463.613-.068 1.315-.116 2.038-.172.115.202.23.418.348.646.11.21.23.418.347.646-.232.38-.476.763-.705 1.161.225.39.435.788.63 1.18zm.318-1.673c.204.425.436.855.67 1.284.47-.637.91-1.278 1.36-1.905-.51-.025-1.02-.044-1.53-.044-.51 0-1.02.019-1.53.044.45.627.89 1.268 1.36 1.905-.234-.429-.466-.859-.67-1.284-.112-.218-.22-.441-.33-.664-.11-.218-.22-.441-.33-.664z"/>
+        </svg>
+      )
+    },
+    {
+      name: 'Node.js',
+      icon: (
+        <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M11.998,24c-0.321,0-0.641-0.084-0.922-0.247l-2.936-1.737c-0.438-0.245-0.224-0.332-0.08-0.383 c0.585-0.203,0.703-0.25,1.328-0.604c0.065-0.037,0.151-0.023,0.218,0.017l2.256,1.339c0.082,0.045,0.197,0.045,0.272,0l8.795-5.076 c0.082-0.047,0.134-0.141,0.134-0.238V6.921c0-0.099-0.053-0.192-0.137-0.242l-8.791-5.072c-0.081-0.047-0.189-0.047-0.271,0 L3.075,6.68C2.99,6.729,2.936,6.825,2.936,6.921v10.15c0,0.097,0.054,0.189,0.139,0.235l2.409,1.392 c1.307,0.654,2.108-0.116,2.108-0.89V7.787c0-0.142,0.114-0.253,0.256-0.253h1.115c0.139,0,0.255,0.112,0.255,0.253v10.021 c0,1.745-0.95,2.745-2.604,2.745c-0.508,0-0.909,0-2.026-0.551L2.28,18.675c-0.57-0.329-0.922-0.945-0.922-1.604V6.921 c0-0.659,0.353-1.275,0.922-1.603l8.795-5.082c0.557-0.315,1.296-0.315,1.848,0l8.794,5.082c0.570,0.329,0.924,0.944,0.924,1.603 v10.15c0,0.659-0.354,1.273-0.924,1.604l-8.794,5.078C12.643,23.916,12.324,24,11.998,24z M19.099,13.993 c0-1.9-1.284-2.406-3.987-2.763c-2.731-0.361-3.009-0.548-3.009-1.187c0-0.528,0.235-1.233,2.258-1.233 c1.807,0,2.473,0.389,2.747,1.607c0.024,0.115,0.129,0.199,0.247,0.199h1.141c0.071,0,0.138-0.031,0.186-0.081 c0.048-0.054,0.074-0.123,0.067-0.196c-0.177-2.098-1.571-3.076-4.388-3.076c-2.508,0-4.004,1.058-4.004,2.833 c0,1.925,1.488,2.457,3.895,2.695c2.88,0.282,3.103,0.703,3.103,1.269c0,0.983-0.789,1.402-2.642,1.402 c-2.327,0-2.839-0.584-3.011-1.742c-0.02-0.124-0.126-0.215-0.253-0.215h-1.137c-0.141,0-0.254,0.112-0.254,0.253 c0,1.482,0.806,3.248,4.655,3.248C17.501,17.007,19.099,15.91,19.099,13.993z"/>
+        </svg>
+      )
+    },
+    {
+      name: 'RabbitMQ',
+      icon: (
+        <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M23.035 9.601h-7.677a.956.956 0 01-.962-.962V.962a.956.956 0 00-.962-.962H10.57a.956.956 0 00-.962.962v7.677a.956.956 0 01-.962.962H.965a.956.956 0 00-.962.962v2.874c0 .531.431.962.962.962h7.681c.531 0 .962.431.962.962v7.677c0 .531.431.962.962.962h2.866c.531 0 .962-.431.962-.962v-7.677a.956.956 0 01.962-.962h7.677c.531 0 .962-.431.962-.962v-2.874a.962.962 0 00-.962-.962zM8.61 6.124a1.922 1.922 0 110-3.844 1.922 1.922 0 010 3.844z"/>
+        </svg>
+      )
+    }
+  ];
+
+  // Duplicated technologies for infinite loop
+  const duplicatedTechnologies = [...technologies, ...technologies, ...technologies];
+ useEffect(() => {
+    const interval = setInterval(() => {
+      setIsAnimating(true);
+      
+      setTimeout(() => {
+        setCurrentOffset(prev => {
+          const nextOffset = prev - 120; 
+          // resets
+          if (nextOffset <= -120 * technologies.length) {
+            return 0;
+          }
+          return nextOffset;
+        });
+      }, 100);
+      
+      setTimeout(() => {
+        setIsAnimating(false);
+      }, 800); 
+      
+    }, 2000); 
+
+    return () => clearInterval(interval);
+  }, [technologies.length]);
+
+
+
+
 
   const handleLoadingComplete = () => {
     // Mark that user has visited the homepage
@@ -41,6 +155,56 @@ const HomePage: React.FC = () => {
     setIsLoading(false);
     setTimeout(() => setShowContent(true), 100);
   };
+
+
+useEffect(() => {
+  const handleScroll = () => {
+    if (!sectionRef.current) return;
+    const rect = sectionRef.current.getBoundingClientRect();
+    const sectionHeight = rect.height;
+    const windowHeight = window.innerHeight;
+    
+    // Calculate scroll progress within the section
+    let scrollProgress = 0;
+    
+    if (rect.top <= 0 && rect.bottom >= windowHeight) {
+      // Section is fully visible and scrolling through it
+      scrollProgress = Math.abs(rect.top) / (sectionHeight - windowHeight);
+    } else if (rect.top > 0) {
+      // Section is below viewport
+      scrollProgress = 0;
+    } else if (rect.bottom < windowHeight) {
+      // Section is above viewport
+      scrollProgress = 1;
+    }
+    // Clamp scroll progress between 0 and 1
+    scrollProgress = Math.max(0, Math.min(1, scrollProgress));
+    // Ultra fast transitions with reduced delay
+    // Use very aggressive exponential curve with minimal adjustment
+    const ultraFastProgress = Math.pow(scrollProgress, 0.17);
+    
+    // Calculate which image should be shown based on ultra accelerated scroll progress
+    let imageIndex;
+    
+    // Special handling for the last image - reduced delay zone
+    if (ultraFastProgress >= 1) {
+      // Last 25% of scroll is dedicated to the final image (reduced from 32%)
+      imageIndex = contentData.length - 1;
+    } else {
+      // First 75% of scroll handles the first images with ultra fast transitions
+      const adjustedProgress = ultraFastProgress / 0.75;
+      // Triple acceleration for maximum sensitivity
+      const hyperFastProgress = Math.pow(adjustedProgress, 0.32);
+      imageIndex = Math.floor(hyperFastProgress * (contentData.length - 1));
+    }
+    
+    setCurrentImageIndex(imageIndex);
+  };
+  window.addEventListener('scroll', handleScroll);
+  handleScroll(); // Initial check
+  return () => window.removeEventListener('scroll', handleScroll);
+}, [contentData.length]);
+  
 
   useEffect(() => {
     if (!showContent) return;
@@ -650,251 +814,329 @@ const HomePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Tech Text Effect Section */}
-      <div
-        ref={techTextRef}
-        className="py-24 mx-6 bg-white/60 backdrop-blur-sm relative overflow-hidden rounded-3xl"
-      >
-        <div className="max-w-6xl mx-auto px-6 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+     {/* Tech Text Effect Section - Mobile Optimized */}
+<div
+  ref={techTextRef}
+  className="py-12 sm:py-16 lg:py-24 mx-3 sm:mx-6 bg-white/60 backdrop-blur-sm relative overflow-hidden rounded-2xl sm:rounded-3xl"
+>
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
 
-            {/* Text on the left */}
-            <div className="space-y-6">
-              {techTexts.map((line, index) => (
-                <div
-                  key={index}
-                  className={`
+      {/* Text on the left */}
+      <div className="space-y-4 sm:space-y-6 order-2 lg:order-1">
+        {techTexts.map((line, index) => (
+          <div
+            key={index}
+            className={`
               superhuman-text-line
-              text-4xl md:text-6xl font-light tracking-tight text-left
+              text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 
+              font-light tracking-tight text-center lg:text-left
               transition-all duration-700 ease-out
               ${activeTextIndex === index
-                      ? 'text-slate-900 opacity-100 scale-100'
-                      : 'text-slate-300 opacity-60 scale-98'
-                    }
+                ? 'text-slate-900 opacity-100 scale-100'
+                : 'text-slate-400 opacity-60 scale-98'
+              }
             `}
-                  style={{
-                    background: activeTextIndex === index
-                      ? 'linear-gradient(135deg,rgb(0, 76, 255) 0%,rgb(84, 71, 105) 50%, #0f172a 100%)'
-                      : 'transparent',
-                    WebkitBackgroundClip: activeTextIndex === index ? 'text' : 'unset',
-                    WebkitTextFillColor: activeTextIndex === index ? 'transparent' : 'inherit',
-                    backgroundClip: activeTextIndex === index ? 'text' : 'unset',
-                    textShadow: activeTextIndex === index
-                      ? '0 0 60px rgba(15, 23, 42, 0.08), 0 0 30px rgba(71, 85, 105, 0.12), 0 4px 20px rgba(15, 23, 42, 0.15)'
-                      : 'none',
-                    filter: activeTextIndex === index
-                      ? 'drop-shadow(0 8px 32px rgba(15, 23, 42, 0.06)) drop-shadow(0 0 24px rgba(71, 85, 105, 0.04))'
-                      : 'none'
-                  }}
-                >
-                  {line}
-                </div>
-              ))}
+            style={{
+              background: activeTextIndex === index
+                ? 'linear-gradient(135deg, #164e63 0%, #0891b2 50%, #06b6d4 100%)'
+                : 'transparent',
+              WebkitBackgroundClip: activeTextIndex === index ? 'text' : 'unset',
+              WebkitTextFillColor: activeTextIndex === index ? 'transparent' : 'inherit',
+              backgroundClip: activeTextIndex === index ? 'text' : 'unset',
+              textShadow: activeTextIndex === index
+                ? '0 0 60px rgba(15, 23, 42, 0.08), 0 0 30px rgba(71, 85, 105, 0.12), 0 4px 20px rgba(15, 23, 42, 0.15)'
+                : 'none',
+              filter: activeTextIndex === index
+                ? 'drop-shadow(0 8px 32px rgba(15, 23, 42, 0.06)) drop-shadow(0 0 24px rgba(71, 85, 105, 0.04))'
+                : 'none'
+            }}
+          >
+            {line}
+          </div>
+        ))}
 
-              {/* Subtle indicators */}
-              <div className="flex space-x-3 pt-8">
-                {[0, 1, 2, 3].map((index) => (
-                  <div
-                    key={index}
-                    className={`
+        {/* Subtle indicators */}
+        <div className="flex justify-center lg:justify-start space-x-3 pt-4 sm:pt-8">
+          {[0, 1, 2, 3].map((index) => (
+            <div
+              key={index}
+              className={`
                 tech-indicator
                 w-2 h-2 rounded-full transition-all duration-500
                 ${activeTextIndex === index ? 'bg-slate-900 scale-125' : 'bg-slate-300'}
               `}
-                  />
-                ))}
-              </div>
-            </div>
+            />
+          ))}
+        </div>
+      </div>
 
-            {/* Image collage on the right */}
-            <div className="relative h-96 lg:h-[500px]">
+      {/* Image collage on the right */}
+      <div className="relative h-64 sm:h-80 lg:h-96 xl:h-[500px] order-1 lg:order-2">
 
-              {/* Original Image - Top left position in collage */}
-              <div
-                className={`
+        {/* Original Image - Adjusted for mobile */}
+        <div
+          className={`
             tech-image
-            absolute top-0 left-0 rotate-2
+            absolute top-0 left-1/2 transform -translate-x-1/2 lg:translate-x-0 lg:left-0 
+            rotate-1 sm:rotate-2
             transition-all duration-1000 ease-out
             ${activeTextIndex === 0 || activeTextIndex === 1
-                    ? 'opacity-100 scale-100 z-20'
-                    : 'opacity-30 scale-95 z-10'
-                  }
+              ? 'opacity-100 scale-100 z-20'
+              : 'opacity-30 scale-95 z-10'
+            }
           `}
-              >
-                <div className="group relative">
-                  {/* Premium glow effect - multiple layers */}
-                  <div className={`
-              absolute -inset-4 rounded-3xl
+        >
+          <div className="group relative">
+            {/* Premium glow effect - reduced for mobile */}
+            <div className={`
+              absolute -inset-2 sm:-inset-4 rounded-2xl sm:rounded-3xl
               transition-all duration-1000 ease-out
               ${activeTextIndex === 0 || activeTextIndex === 1
-                      ? 'opacity-100'
-                      : 'opacity-0'
-                    }
+                ? 'opacity-80 sm:opacity-100'
+                : 'opacity-0'
+              }
             `}>
-                    {/* Outer layer - very subtle glow */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-purple-400/25 to-blue-400/20 rounded-3xl blur-xl"></div>
-                    {/* Middle layer - definition */}
-                    <div className="absolute inset-1 bg-gradient-to-r from-blue-500/30 via-purple-500/35 to-blue-500/30 rounded-3xl blur-lg"></div>
-                    {/* Inner layer - fine shine */}
-                    <div className="absolute inset-2 bg-gradient-to-r from-blue-600/25 via-purple-600/30 to-blue-600/25 rounded-3xl blur-md"></div>
-                  </div>
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-400/15 via-purple-400/20 to-blue-400/15 rounded-2xl sm:rounded-3xl blur-lg sm:blur-xl"></div>
+              <div className="absolute inset-1 bg-gradient-to-r from-blue-500/25 via-purple-500/30 to-blue-500/25 rounded-2xl sm:rounded-3xl blur-md sm:blur-lg"></div>
+              <div className="absolute inset-2 bg-gradient-to-r from-blue-600/20 via-purple-600/25 to-blue-600/20 rounded-2xl sm:rounded-3xl blur-sm sm:blur-md"></div>
+            </div>
 
-                  <img
-                    src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=500&h=600&fit=crop&crop=center"
-                    alt="Original image"
-                    className="relative w-64 h-72 object-cover rounded-3xl shadow-2xl ring-1 ring-white/20 backdrop-blur-sm"
-                  />
-                  {/* Premium overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-white/5 rounded-3xl"></div>
+            <img
+              src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=500&h=600&fit=crop&crop=center"
+              alt="Original image"
+              className="relative w-40 h-48 sm:w-52 sm:h-60 lg:w-64 lg:h-72 object-cover rounded-2xl sm:rounded-3xl shadow-xl sm:shadow-2xl ring-1 ring-white/20 backdrop-blur-sm"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-white/5 rounded-2xl sm:rounded-3xl"></div>
 
-                  {/* Integrated label */}
-                  <div className={`
-              absolute bottom-4 left-4 
-              bg-white/95 backdrop-blur-md text-slate-800 text-sm font-medium px-4 py-2 rounded-xl 
+            {/* Integrated label */}
+            <div className={`
+              absolute bottom-2 left-2 sm:bottom-4 sm:left-4 
+              bg-white/95 backdrop-blur-md text-slate-800 text-xs sm:text-sm font-medium 
+              px-2 py-1 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl 
               shadow-lg shadow-black/5 ring-1 ring-white/20
               transition-all duration-500
               ${activeTextIndex === 0 || activeTextIndex === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
             `}>
-                    Original
-                  </div>
-                </div>
-              </div>
+              Original
+            </div>
+          </div>
+        </div>
 
-              {/* Enhanced Image - Bottom right position in collage */}
-              <div
-                className={`
+        {/* Enhanced Image - Adjusted for mobile */}
+        <div
+          className={`
             tech-image
-            absolute bottom-0 right-0 -rotate-1
+            absolute bottom-0 right-1/2 transform translate-x-1/2 lg:translate-x-0 lg:right-0 
+            -rotate-1 sm:-rotate-1
             transition-all duration-1000 ease-out
             ${activeTextIndex === 2 || activeTextIndex === 3
-                    ? 'opacity-100 scale-100 z-20'
-                    : 'opacity-30 scale-95 z-10'
-                  }
+              ? 'opacity-100 scale-100 z-20'
+              : 'opacity-30 scale-95 z-10'
+            }
           `}
-              >
-                <div className="group relative">
-                  {/* Premium glow effect - multiple layers - SAME BLUE/PURPLE */}
-                  <div className={`
-              absolute -inset-4 rounded-3xl
+        >
+          <div className="group relative">
+            {/* Premium glow effect - reduced for mobile */}
+            <div className={`
+              absolute -inset-2 sm:-inset-4 rounded-2xl sm:rounded-3xl
               transition-all duration-1000 ease-out
               ${activeTextIndex === 2 || activeTextIndex === 3
-                      ? 'opacity-100'
-                      : 'opacity-0'
-                    }
+                ? 'opacity-80 sm:opacity-100'
+                : 'opacity-0'
+              }
             `}>
-                    {/* Outer layer - very subtle glow */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-purple-400/25 to-blue-400/20 rounded-3xl blur-xl"></div>
-                    {/* Middle layer - definition */}
-                    <div className="absolute inset-1 bg-gradient-to-r from-blue-500/30 via-purple-500/35 to-blue-500/30 rounded-3xl blur-lg"></div>
-                    {/* Inner layer - fine shine */}
-                    <div className="absolute inset-2 bg-gradient-to-r from-blue-600/25 via-purple-600/30 to-blue-600/25 rounded-3xl blur-md"></div>
-                  </div>
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-400/15 via-purple-400/20 to-blue-400/15 rounded-2xl sm:rounded-3xl blur-lg sm:blur-xl"></div>
+              <div className="absolute inset-1 bg-gradient-to-r from-blue-500/25 via-purple-500/30 to-blue-500/25 rounded-2xl sm:rounded-3xl blur-md sm:blur-lg"></div>
+              <div className="absolute inset-2 bg-gradient-to-r from-blue-600/20 via-purple-600/25 to-blue-600/20 rounded-2xl sm:rounded-3xl blur-sm sm:blur-md"></div>
+            </div>
 
-                  <img
-                    src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=500&h=600&fit=crop&crop=center"
-                    alt="AI enhanced image"
-                    className="relative w-72 h-80 object-cover rounded-3xl shadow-2xl ring-1 ring-white/20 backdrop-blur-sm"
-                  />
-                  {/* Premium overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-white/5 rounded-3xl"></div>
+            <img
+              src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=500&h=600&fit=crop&crop=center"
+              alt="AI enhanced image"
+              className="relative w-44 h-52 sm:w-56 sm:h-64 lg:w-72 lg:h-80 object-cover rounded-2xl sm:rounded-3xl shadow-xl sm:shadow-2xl ring-1 ring-white/20 backdrop-blur-sm"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-white/5 rounded-2xl sm:rounded-3xl"></div>
 
-                  {/* Integrated label */}
-                  <div className={`
-              absolute bottom-4 left-4 
-              bg-white/95 backdrop-blur-md text-slate-800 text-sm font-medium px-4 py-2 rounded-xl 
+            {/* Integrated label */}
+            <div className={`
+              absolute bottom-2 left-2 sm:bottom-4 sm:left-4 
+              bg-white/95 backdrop-blur-md text-slate-800 text-xs sm:text-sm font-medium 
+              px-2 py-1 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl 
               shadow-lg shadow-black/5 ring-1 ring-white/20
               transition-all duration-500
               ${activeTextIndex === 2 || activeTextIndex === 3 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
             `}>
-                    AI Enhanced
-                  </div>
-                </div>
-              </div>
+              AI Enhanced
             </div>
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
 
-      <div
-        ref={speedQualityRef}
-        className="py-32 mx-6 bg-gradient-to-br from-slate-50/95 via-white/90 to-slate-50/95 backdrop-blur-2xl relative overflow-hidden rounded-[2rem] shadow-xl shadow-slate-900/5 border border-slate-200/50">
 
-        {/* Subtle background elements */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(59,130,246,0.08),transparent_50%)] opacity-60"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(147,51,234,0.06),transparent_50%)] opacity-50"></div>
+<div className="py-12 sm:py-16 lg:py-24 mx-3 sm:mx-6 bg-white/60 backdrop-blur-sm relative overflow-hidden rounded-2xl sm:rounded-3xl">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
+        
+        {/* Title */}
+        <div className="text-center mb-8 sm:mb-12">
+          <h2 className="italic text text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-light tracking-tight text-slate-900 mb-2">
+            Powered by
+          </h2>
+          <div className="text-lg sm:text-xl md:text-2xl font-light text-slate-600">
+            Top Technologies
+          </div>
+        </div>
 
-        {/* Refined floating elements */}
-        <div className="absolute top-1/4 right-1/4 w-px h-24 bg-gradient-to-b from-transparent via-slate-300/40 to-transparent rotate-12 opacity-60"></div>
-        <div className="absolute bottom-1/3 left-1/4 w-16 h-px bg-gradient-to-r from-transparent via-slate-300/30 to-transparent opacity-40"></div>
-
-        <div className="max-w-6xl mx-auto px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-
-            {/* Premium image container */}
-            <div className="relative h-96 lg:h-[500px] flex items-center justify-center">
-              <div className="relative group">
-                {/* Refined glow effect */}
-                <div className="absolute -inset-8 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5 rounded-[3rem] blur-3xl opacity-0 group-hover:opacity-100 transition-all duration-1000"></div>
-
-                <div className="w-full max-w-md h-85 rounded-2xl overflow-hidden shadow-2xl shadow-slate-900/10 ring-1 ring-slate-200/60 group-hover:shadow-slate-900/15 group-hover:ring-slate-300/80 transform transition-all duration-700 hover:scale-[1.02] bg-white/60 backdrop-blur-sm">
-                  <img
-                    src="https://images.unsplash.com/photo-1552053831-71594a27632d?w=500&h=600&fit=crop&crop=center"
-                    alt="Premium AI Technology"
-                    className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
-                  />
-
-                  {/* Subtle overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 via-transparent to-white/10 group-hover:from-slate-900/10 transition-all duration-500"></div>
-
-                  {/* Minimal corner accents */}
-                  <div className="absolute top-4 left-4 w-4 h-4 border-l border-t border-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <div className="absolute bottom-4 right-4 w-4 h-4 border-r border-b border-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+        {/* Carrousel container */}
+        <div className="relative overflow-hidden">
+    
+          <div className="absolute left-0 top-0 bottom-0 w-16 sm:w-24 lg:w-32 bg-gradient-to-r from-white/80 via-white/40 to-transparent z-10 pointer-events-none"></div>
+          <div className="absolute right-0 top-0 bottom-0 w-16 sm:w-24 lg:w-32 bg-gradient-to-l from-white/80 via-white/40 to-transparent z-10 pointer-events-none"></div>
+          
+          {/* Infinite Carrousel */}
+          <div 
+          className="flex"
+          style={{
+            transform: `translateX(${currentOffset}px)`,
+            transition: isAnimating ? 'transform 0.5s ease-in-out' : 'none'
+          }}
+>
+            {duplicatedTechnologies.map((tech, index) => (
+              <div
+                key={`${tech.name}-${index}`}
+                className="flex-shrink-0 mx-4 sm:mx-6 lg:mx-8 flex flex-col items-center group transition-all duration-300 hover:transform hover:scale-110"
+              >
+                {/* Icon */}
+                <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 flex items-center justify-center text-slate-700 group-hover:text-slate-900 transition-colors duration-300 bg-white/50 rounded-2xl shadow-lg group-hover:shadow-xl backdrop-blur-sm border border-white/20">
+                  {tech.icon}
                 </div>
+                
+                {/* Technology name */}
+                <span className="mt-2 sm:mt-3 text-xs sm:text-sm font-medium text-slate-600 group-hover:text-slate-800 transition-colors duration-300">
+                  {tech.name}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      
+      </div>
+</div>
+     
+
+{/* Main section scroll sticky - Mobile Optimized */}
+<div
+  ref={sectionRef}
+  className="relative"
+  style={{ height: `${contentData.length * 50}vh` }}
+>
+  <div className="sticky top-0 h-screen flex flex-col">
+    <div className="py-4 sm:py-6 lg:py-8 mx-3 sm:mx-6 bg-gradient-to-br from-slate-50/95 via-white/90 to-slate-50/95 backdrop-blur-2xl relative overflow-hidden rounded-xl sm:rounded-2xl lg:rounded-[2rem] shadow-lg sm:shadow-xl shadow-slate-900/5 border border-slate-200/50 h-full">
+      
+      {/* Subtle background elements */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(59,130,246,0.06),transparent_50%)] sm:bg-[radial-gradient(circle_at_30%_20%,rgba(59,130,246,0.08),transparent_50%)] opacity-60"></div>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(147,51,234,0.04),transparent_50%)] sm:bg-[radial-gradient(circle_at_70%_80%,rgba(147,51,234,0.06),transparent_50%)] opacity-50"></div>
+
+      {/* Floating refined elements - hidden on mobile */}
+      <div className="hidden sm:block absolute top-1/4 right-1/4 w-px h-24 bg-gradient-to-b from-transparent via-slate-300/40 to-transparent rotate-12 opacity-60"></div>
+      <div className="hidden sm:block absolute bottom-1/3 left-1/4 w-16 h-px bg-gradient-to-r from-transparent via-slate-300/30 to-transparent opacity-40"></div>
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 h-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 lg:gap-20 items-center h-full">
+          
+          {/* Premium image container */}
+          <div className="relative w-full h-64 sm:h-80 lg:h-[500px] xl:h-[40rem] flex items-center justify-center order-1 mb-0 sm:mb-0">
+            <div className="relative group">
+              {/* Glow effect */}
+              <div className="absolute -inset-4 sm:-inset-8 bg-gradient-to-br from-blue-500/3 via-transparent to-purple-500/3 sm:from-blue-500/5 sm:to-purple-500/5 rounded-2xl sm:rounded-[3rem] blur-2xl sm:blur-3xl opacity-0 group-hover:opacity-100 transition-all duration-1000"></div>
+              
+              <div className="w-64 h-72 sm:w-72 sm:h-80 lg:w-80 lg:h-96 rounded-xl sm:rounded-2xl overflow-hidden shadow-xl sm:shadow-2xl shadow-slate-900/10 ring-1 ring-slate-200/60 group-hover:shadow-slate-900/15 group-hover:ring-slate-300/80 transform transition-all duration-700 hover:scale-[1.02] bg-white/60 backdrop-blur-sm relative">
+                
+                {/* Images with transition */}
+                {contentData.map((content, index) => (
+                  <img
+                    key={index}
+                    src={content.url}
+                    alt={content.alt}
+                    className={`absolute top-0 left-0 w-full h-full object-cover transition-all duration-1000 group-hover:scale-105 ${
+                      index === currentImageIndex
+                        ? 'opacity-100 z-10'
+                        : 'opacity-0 z-0'
+                    }`}
+                  />
+                ))}
+
+                {/* Subtle overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 via-transparent to-white/10 group-hover:from-slate-900/10 transition-all duration-500 z-20"></div>
+
+                {/* Minimal corner accents */}
+                <div className="absolute top-2 left-2 sm:top-4 sm:left-4 w-3 h-3 sm:w-4 sm:h-4 border-l border-t border-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-30"></div>
+                <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 w-3 h-3 sm:w-4 sm:h-4 border-r border-b border-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-30"></div>
               </div>
             </div>
+          </div>
 
-            {/* Premium typography */}
-            <div className="space-y-10">
-              <h2 className="text-4xl md:text-5xl lg:text-6xl font-extralight tracking-tight text-slate-900 leading-[1.1] relative">
-                <span className="block mb-2">Built for those who need</span>
+          {/* Premium typography with dynamic content */}
+          <div
+            className={`space-y-4 sm:space-y-6 lg:space-y-10 order-2 text-center lg:text-left -mt-4 sm:mt-0 transition-all duration-500 ${
+              isTransitioning
+                ? 'opacity-0 transform translate-y-4'
+                : 'opacity-100 transform translate-y-0'
+            }`}
+          >
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-extralight tracking-tight text-slate-900 leading-[1.1] relative">
+              <span className="block mb-1 sm:mb-2">{currentContent.title}</span>
 
-                <span className="relative inline-block mr-4">
-                  <span className="bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent font-light">
-                    speed
+              <div className="flex flex-wrap justify-center lg:justify-start items-center gap-2 sm:gap-4">
+                <span className="relative inline-block">
+                  <span
+                    className={`italic bg-gradient-to-r ${currentContent.highlight1.color} bg-clip-text text-transparent font-light`}
+                  >
+                    {currentContent.highlight1.text}
                   </span>
-                  <div className="absolute -bottom-1 left-0 w-full h-[1px] bg-gradient-to-r from-blue-600/60 to-transparent"></div>
+                  <div
+                    className={`absolute -bottom-1 left-0 w-full h-[1px] bg-gradient-to-r ${currentContent.highlight1.color
+                      .replace('to-', 'to-transparent from-')
+                      .replace('from-', 'from-')}/60`}
+                  ></div>
                 </span>
 
-                <span className="text-slate-900 font-extralight mr-4">and</span>
+                <span className="text-slate-900 font-extralight">and</span>
 
                 <span className="relative inline-block">
-                  <span className="bg-gradient-to-r from-purple-700 to-purple-600 bg-clip-text text-transparent font-light">
-                    quality
+                  <span
+                    className={`italic bg-gradient-to-r ${currentContent.highlight2.color} bg-clip-text text-transparent font-light`}
+                  >
+                    {currentContent.highlight2.text}
                   </span>
-                  <div className="absolute -bottom-1 left-0 w-full h-[1px] bg-gradient-to-r from-purple-600/60 to-transparent"></div>
+                  <div
+                    className={`absolute -bottom-1 left-0 w-full h-[1px] bg-gradient-to-r ${currentContent.highlight2.color
+                      .replace('to-', 'to-transparent from-')
+                      .replace('from-', 'from-')}/60`}
+                  ></div>
                 </span>
-              </h2>
-
-              {/* Refined description */}
-              <div className="relative">
-                <p className="text-xl text-slate-600 leading-relaxed max-w-xl font-light tracking-wide">
-                  Advanced AI processing technology that delivers exceptional results
-                  in seconds, maintaining the precision and quality your work demands.
-                </p>
-
-                {/* Subtle side indicator */}
-                <div className="absolute left-0 top-0 w-[2px] h-full bg-gradient-to-b from-transparent via-slate-300/50 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-700"></div>
               </div>
+            </h2>
 
-              {/* Minimal stats */}
+            {/* Description */}
+            <div className="relative">
+              <p className="text-base sm:text-lg lg:text-xl text-slate-600 leading-relaxed max-w-xl mx-auto lg:mx-0 font-light tracking-wide">
+                {currentContent.description}
+              </p>
 
-
+              {/* Side indicator - hidden on mobile */}
+              <div className="hidden lg:block absolute left-0 top-0 w-[2px] h-full bg-gradient-to-b from-transparent via-slate-300/50 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-700"></div>
             </div>
           </div>
+
         </div>
       </div>
-
-
+    </div>
+  </div>
+</div>
 
       {/* Privacy Section */}
       <div ref={featuresRef} className="py-32 bg-slate-50/60 backdrop-blur-sm">
