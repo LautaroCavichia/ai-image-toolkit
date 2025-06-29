@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { gsap } from 'gsap';
 import { Eye, EyeOff, Mail, Lock, Sparkles, User, ArrowRight, Shield } from 'lucide-react';
-import { login, register, createGuestUser, storeUserData } from '../services/authService';
+import { login, register, createGuestUser, storeUserData, resendVerificationEmail } from '../services/authService';
 import AnimatedGradientMesh from '../components/AnimatedGradientMesh';
 import logo from '../assets/logo.png';
 
@@ -14,6 +14,9 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [hasAnimated, setHasAnimated] = useState(false);
   const [username, setUsername] = useState('');
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [registrationEmail, setRegistrationEmail] = useState('');
+  const [emailVerificationPending, setEmailVerificationPending] = useState(false);
 
   // Refs for animation
   const heroRef = useRef<HTMLDivElement>(null);
@@ -85,19 +88,42 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setRegistrationSuccess(false);
+    setEmailVerificationPending(false);
 
     try {
-      let response;
       if (isLogin) {
-        response = await login({email, password });
+        const response = await login({email, password });
+        storeUserData(response);
+        window.location.href = '/';
       } else {
-        response = await register({displayName: username, email, password });
+        const response = await register({displayName: username, email, password });
+        setRegistrationSuccess(true);
+        setRegistrationEmail(email);
       }
-      
-      storeUserData(response);
-      window.location.href = '/';
     } catch (err: any) {
-      setError(err.message || 'An error occurred');
+      // Handle email verification error specifically
+      if (err.type === 'EMAIL_NOT_VERIFIED') {
+        setEmailVerificationPending(true);
+        setRegistrationEmail(err.email);
+        setError(err.message);
+      } else {
+        setError(err.message || 'An error occurred');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      await resendVerificationEmail(registrationEmail);
+      setError('Verification email sent! Please check your inbox.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend verification email');
     } finally {
       setLoading(false);
     }
@@ -164,9 +190,45 @@ const LoginPage: React.FC = () => {
               </div>
 
               {/* Error Message */}
-              {error && (
+              {error && !registrationSuccess && !emailVerificationPending && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-2xl mb-8 text-center">
                   {error}
+                </div>
+              )}
+
+              {/* Registration Success Message */}
+              {registrationSuccess && (
+                <div className="bg-green-50 border border-green-200 text-green-700 px-6 py-4 rounded-2xl mb-8 text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Mail size={20} />
+                    <span className="font-medium">Registration Successful!</span>
+                  </div>
+                  <p>Please check your email ({registrationEmail}) and click the verification link to activate your account.</p>
+                  <button
+                    onClick={handleResendVerification}
+                    disabled={loading}
+                    className="mt-3 text-green-600 hover:text-green-800 font-medium text-sm underline"
+                  >
+                    Didn't receive email? Resend verification
+                  </button>
+                </div>
+              )}
+
+              {/* Email Verification Pending Message */}
+              {emailVerificationPending && (
+                <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-6 py-4 rounded-2xl mb-8 text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Mail size={20} />
+                    <span className="font-medium">Email Verification Required</span>
+                  </div>
+                  <p>Please verify your email address ({registrationEmail}) before signing in.</p>
+                  <button
+                    onClick={handleResendVerification}
+                    disabled={loading}
+                    className="mt-3 text-yellow-600 hover:text-yellow-800 font-medium text-sm underline"
+                  >
+                    Resend verification email
+                  </button>
                 </div>
               )}
 

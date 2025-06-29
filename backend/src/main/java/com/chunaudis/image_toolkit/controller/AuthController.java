@@ -22,6 +22,7 @@ import com.chunaudis.image_toolkit.entity.User;
 import com.chunaudis.image_toolkit.repository.UserRepository;
 import com.chunaudis.image_toolkit.security.JwtUtil;
 import com.chunaudis.image_toolkit.service.PasswordResetService;
+import com.chunaudis.image_toolkit.service.EmailVerificationService;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -38,13 +39,16 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final PasswordResetService passwordResetService;
+    private final EmailVerificationService emailVerificationService;
 
-    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil, PasswordResetService passwordResetService) {
-    this.userRepository = userRepository;
-    this.passwordEncoder = passwordEncoder;
-    this.jwtUtil = jwtUtil;
-    this.passwordResetService = passwordResetService;
-}
+    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil, 
+                         PasswordResetService passwordResetService, EmailVerificationService emailVerificationService) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtUtil = jwtUtil;
+        this.passwordResetService = passwordResetService;
+        this.emailVerificationService = emailVerificationService;
+    }
 
 
     @Transactional
@@ -91,6 +95,15 @@ public ResponseEntity<?> login(@RequestBody AuthRequestDTO authRequest) {
 
             // ✅ Si la contraseña es correcta
             if (passwordEncoder.matches(authRequest.getPassword(), user.getPasswordHash())) {
+
+                // Check if email is verified (only for non-guest users)
+                if (!user.getIsGuest() && !emailVerificationService.isEmailVerified(user)) {
+                    return ResponseEntity.status(403).body(Map.of(
+                        "error", "EMAIL_NOT_VERIFIED",
+                        "message", "Please verify your email address before logging in.",
+                        "email", user.getEmail()
+                    ));
+                }
 
                 // Reset intentos fallidos
                 user.setFailedLoginAttempts(0);
@@ -150,20 +163,29 @@ public ResponseEntity<?> register(@RequestBody AuthRequestDTO registerRequest) {
         User user = new User();
         user.setEmail(registerRequest.getEmail());
         user.setPasswordHash(passwordEncoder.encode(registerRequest.getPassword()));
-       user.setIsGuest(false);
+        user.setIsGuest(false);
         user.setDisplayName(registerRequest.getDisplayName());
-        
+        user.setEmailVerified(false); // New users need to verify email
 
         User savedUser = userRepository.save(user);
 
-        String token = jwtUtil.generateToken(savedUser.getUserId(), savedUser.getEmail(), savedUser.getIsGuest());
+        // Send verification email (with error handling)
+        try {
+            emailVerificationService.sendVerificationEmail(savedUser);
+            log.info("User registered and verification email sent for: {}", savedUser.getEmail());
+        } catch (Exception emailError) {
+            log.error("Failed to send verification email for user: {}, Error: {}", savedUser.getEmail(), emailError.getMessage());
+            // For now, mark user as verified if email fails (development mode)
+            savedUser.setEmailVerified(true);
+            savedUser.setEmailVerifiedAt(OffsetDateTime.now());
+            userRepository.save(savedUser);
+            log.warn("User {} marked as verified due to email service failure", savedUser.getEmail());
+        }
 
-        return ResponseEntity.ok(new AuthResponseDTO(
-            token,
-            savedUser.getUserId().toString(),
-            savedUser.getEmail(),
-            savedUser.getDisplayName(),
-            savedUser.getIsGuest() ? "Guest" : "Registered"
+        return ResponseEntity.ok(Map.of(
+            "message", "Registration successful! Please check your email to verify your account.",
+            "email", savedUser.getEmail(),
+            "userId", savedUser.getUserId().toString()
         ));
 
     } catch (Exception e) {

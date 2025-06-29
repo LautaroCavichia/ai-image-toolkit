@@ -47,6 +47,12 @@ public class User {
     @Column(nullable = false)
     private Integer tokenBalance = 0;
 
+    // Email verification fields
+    @Column(nullable = false)
+    private Boolean emailVerified = false;
+
+    private OffsetDateTime emailVerifiedAt;
+
     @CreationTimestamp 
     @Column(nullable = false, updatable = false) 
     private OffsetDateTime createdAt;

@@ -55,6 +55,16 @@ export const login = async (credentials: AuthRequest): Promise<AuthResponse> => 
     } else if (error.response?.status === 401) {
       errorMessage = 'Invalid email or password';
     } else if (error.response?.status === 403) {
+      // Handle email verification and account lockout errors
+      if (error.response.data?.error === 'EMAIL_NOT_VERIFIED') {
+        // Return structured error data for email verification
+        const errorData = {
+          type: 'EMAIL_NOT_VERIFIED',
+          message: error.response.data.message,
+          email: error.response.data.email
+        };
+        throw errorData;
+      }
       // 👇 Ahora mostramos el mensaje real del backend
       errorMessage = error.response.data || 'Your account is locked.';
     } else if (!error.response) {
@@ -83,13 +93,50 @@ export const validateToken = async (): Promise<boolean> => {
 
 
 
-export const register = async (credentials: Register): Promise<AuthResponse> => {
-  const response = await axios.post<AuthResponse>(`${API_BASE_URL}/auth/register`, credentials);
-  
+export interface RegisterResponse {
+  message: string;
+  email: string;
+  userId: string;
+}
 
-  storeUserData(response.data);
-  
+export const register = async (credentials: Register): Promise<RegisterResponse> => {
+  const response = await axios.post<RegisterResponse>(`${API_BASE_URL}/auth/register`, credentials);
   return response.data;
+};
+
+export interface EmailVerificationResponse {
+  success: boolean;
+  message: string;
+}
+
+export const verifyEmail = async (token: string): Promise<EmailVerificationResponse> => {
+  try {
+    const response = await axios.post<EmailVerificationResponse>(
+      `${API_BASE_URL}/email-verification/verify`, 
+      { token }
+    );
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.data) {
+      throw new Error(error.response.data.message || 'Verification failed');
+    }
+    throw new Error('An error occurred during email verification');
+  }
+};
+
+export const resendVerificationEmail = async (email: string): Promise<EmailVerificationResponse> => {
+  try {
+    const response = await axios.post<EmailVerificationResponse>(
+      `${API_BASE_URL}/email-verification/resend`, 
+      { email }
+    );
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.data) {
+      throw new Error(error.response.data.message || 'Failed to resend verification email');
+    }
+    throw new Error('An error occurred while sending verification email');
+  }
 };
 
 export const createGuestUser = async (): Promise<AuthResponse> => {

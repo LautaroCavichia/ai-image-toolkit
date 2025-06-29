@@ -8,6 +8,7 @@ import ObjectRemovalPage from './pages/ObjectRemovalPage';
 import StyleTransferPage from './pages/StyleTransferPage';
 import ResetPasswordPage from './pages/ResetPassword';
 import AuthForm from './pages/AuthForm';
+import EmailVerificationPage from './pages/EmailVerificationPage';
 import { isAuthenticated, setupAxiosInterceptors, createGuestUser } from './services/authService';
 
 function App() {
@@ -61,6 +62,11 @@ function App() {
   // Show login page only if explicitly requested
   if (currentPath === '/login') {
     return <LoginPage />;
+  }
+
+  // Show email verification page
+  if (currentPath === '/verify-email') {
+    return <EmailVerificationPage />;
   }
 
   // Show loading during guest user creation
