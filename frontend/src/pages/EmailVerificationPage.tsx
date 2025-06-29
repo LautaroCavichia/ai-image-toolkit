@@ -11,17 +11,16 @@ const EmailVerificationPage: React.FC = () => {
   const [status, setStatus] = useState<'verifying' | 'success' | 'error' | 'expired'>('verifying');
   const [message, setMessage] = useState<string>('');
   const [loading, setLoading] = useState(false);
-
+  const [hasVerified, setHasVerified] = useState(false);
   const token = searchParams.get('token');
 
   useEffect(() => {
-    if (token) {
-      handleVerification();
-    } else {
-      setStatus('error');
-      setMessage('Invalid verification link. No token provided.');
-    }
-  }, [token]);
+  if (!token || hasVerified) return;
+
+  setHasVerified(true); 
+
+  handleVerification();
+}, [token, hasVerified]);
 
   const handleVerification = async () => {
     if (!token) return;

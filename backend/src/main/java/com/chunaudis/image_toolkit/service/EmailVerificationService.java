@@ -49,32 +49,33 @@ public class EmailVerificationService {
     }
 
     @Transactional
-    public boolean verifyEmail(String token) {
-        Optional<EmailVerificationToken> optionalToken = tokenRepository.findByTokenAndUsedFalse(token);
-        
-        if (optionalToken.isEmpty()) {
-            return false;
-        }
-
-        EmailVerificationToken verificationToken = optionalToken.get();
-        
-        // Check if token has expired
-        if (verificationToken.getExpiration().isBefore(OffsetDateTime.now())) {
-            return false;
-        }
-
-        // Mark token as used
-        verificationToken.setUsed(true);
-        tokenRepository.save(verificationToken);
-
-        // Mark user as email verified
-        User user = verificationToken.getUser();
-        user.setEmailVerified(true);
-        user.setEmailVerifiedAt(OffsetDateTime.now());
-        userRepository.save(user);
-
-        return true;
+public boolean verifyEmail(String token) {
+    Optional<EmailVerificationToken> optionalToken = tokenRepository.findByTokenAndUsedFalse(token);
+    
+    if (optionalToken.isEmpty()) {
+        return false;
     }
+
+    EmailVerificationToken verificationToken = optionalToken.get();
+    
+    // Check if token has expired
+    if (verificationToken.getExpiration().isBefore(OffsetDateTime.now())) {
+        return false;
+    }
+
+    // Mark token as used
+    verificationToken.setUsed(true);
+    tokenRepository.save(verificationToken);
+
+
+    // Mark user as email verified
+    User user = verificationToken.getUser();
+    user.setEmailVerified(true);
+    user.setEmailVerifiedAt(OffsetDateTime.now());
+    userRepository.save(user);
+
+    return true;
+}
 
     @Transactional
     public void cleanupExpiredTokens() {

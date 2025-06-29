@@ -817,38 +817,42 @@ useEffect(() => {
      {/* Tech Text Effect Section - Mobile Optimized */}
 <div
   ref={techTextRef}
-  className="py-12 sm:py-16 lg:py-24 mx-3 sm:mx-6 bg-white/60 backdrop-blur-sm relative overflow-hidden rounded-2xl sm:rounded-3xl"
+  className="py-16 sm:py-20 lg:py-32 mx-3 sm:mx-6 bg-white/60 backdrop-blur-sm relative overflow-hidden rounded-2xl sm:rounded-3xl"
 >
   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 sm:gap-16 lg:gap-20 items-center">
 
-      {/* Text on the left */}
-      <div className="space-y-4 sm:space-y-6 order-2 lg:order-1">
+      {/* Text on the left - Apple Typography */}
+      <div className="space-y-6 sm:space-y-8 order-2 lg:order-1">
         {techTexts.map((line, index) => (
           <div
             key={index}
             className={`
               superhuman-text-line
-              text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 
-              font-light tracking-tight text-center lg:text-left
+              italic text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-6xl 
+              font-extralight tracking-tighter text-center lg:text-left
               transition-all duration-700 ease-out
               ${activeTextIndex === index
                 ? 'text-slate-900 opacity-100 scale-100'
-                : 'text-slate-400 opacity-60 scale-98'
+                : 'text-slate-400 opacity-50 scale-98'
               }
             `}
             style={{
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif',
+              fontWeight: activeTextIndex === index ? '200' : '100',
+              letterSpacing: '-0.02em',
+              lineHeight: '1.1',
               background: activeTextIndex === index
-                ? 'linear-gradient(135deg, #164e63 0%, #0891b2 50%, #06b6d4 100%)'
+                ? 'linear-gradient(135deg, #1a1a1a 0%, #2c2c2c 50%, #1a1a1a 100%)'
                 : 'transparent',
               WebkitBackgroundClip: activeTextIndex === index ? 'text' : 'unset',
               WebkitTextFillColor: activeTextIndex === index ? 'transparent' : 'inherit',
               backgroundClip: activeTextIndex === index ? 'text' : 'unset',
               textShadow: activeTextIndex === index
-                ? '0 0 60px rgba(15, 23, 42, 0.08), 0 0 30px rgba(71, 85, 105, 0.12), 0 4px 20px rgba(15, 23, 42, 0.15)'
+                ? '0 0 80px rgba(0, 0, 0, 0.05), 0 0 40px rgba(0, 0, 0, 0.08), 0 6px 24px rgba(0, 0, 0, 0.12)'
                 : 'none',
               filter: activeTextIndex === index
-                ? 'drop-shadow(0 8px 32px rgba(15, 23, 42, 0.06)) drop-shadow(0 0 24px rgba(71, 85, 105, 0.04))'
+                ? 'drop-shadow(0 10px 40px rgba(0, 0, 0, 0.04)) drop-shadow(0 0 32px rgba(0, 0, 0, 0.02))'
                 : 'none'
             }}
           >
@@ -856,25 +860,28 @@ useEffect(() => {
           </div>
         ))}
 
-        {/* Subtle indicators */}
-        <div className="flex justify-center lg:justify-start space-x-3 pt-4 sm:pt-8">
+        {/* Apple-style indicators */}
+        <div className="flex justify-center lg:justify-start space-x-4 pt-6 sm:pt-10">
           {[0, 1, 2, 3].map((index) => (
             <div
               key={index}
               className={`
                 tech-indicator
-                w-2 h-2 rounded-full transition-all duration-500
-                ${activeTextIndex === index ? 'bg-slate-900 scale-125' : 'bg-slate-300'}
+                w-3 h-3 rounded-full transition-all duration-600 ease-out
+                ${activeTextIndex === index 
+                  ? 'bg-slate-900 scale-125 shadow-lg' 
+                  : 'bg-slate-300/60 hover:bg-slate-400/80'
+                }
               `}
             />
           ))}
         </div>
       </div>
 
-      {/* Image collage on the right */}
-      <div className="relative h-64 sm:h-80 lg:h-96 xl:h-[500px] order-1 lg:order-2">
+      {/* Enhanced Image collage - Bigger Images */}
+      <div className="relative h-80 sm:h-96 lg:h-[600px] xl:h-[700px] order-1 lg:order-2">
 
-        {/* Original Image - Adjusted for mobile */}
+        {/* Original Image - Much Bigger */}
         <div
           className={`
             tech-image
@@ -883,47 +890,52 @@ useEffect(() => {
             transition-all duration-1000 ease-out
             ${activeTextIndex === 0 || activeTextIndex === 1
               ? 'opacity-100 scale-100 z-20'
-              : 'opacity-30 scale-95 z-10'
+              : 'opacity-25 scale-95 z-10'
             }
           `}
         >
           <div className="group relative">
-            {/* Premium glow effect - reduced for mobile */}
+            {/* Enhanced glow effect */}
             <div className={`
-              absolute -inset-2 sm:-inset-4 rounded-2xl sm:rounded-3xl
+              absolute -inset-4 sm:-inset-6 rounded-3xl sm:rounded-4xl
               transition-all duration-1000 ease-out
               ${activeTextIndex === 0 || activeTextIndex === 1
-                ? 'opacity-80 sm:opacity-100'
+                ? 'opacity-90 sm:opacity-100'
                 : 'opacity-0'
               }
             `}>
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-400/15 via-purple-400/20 to-blue-400/15 rounded-2xl sm:rounded-3xl blur-lg sm:blur-xl"></div>
-              <div className="absolute inset-1 bg-gradient-to-r from-blue-500/25 via-purple-500/30 to-blue-500/25 rounded-2xl sm:rounded-3xl blur-md sm:blur-lg"></div>
-              <div className="absolute inset-2 bg-gradient-to-r from-blue-600/20 via-purple-600/25 to-blue-600/20 rounded-2xl sm:rounded-3xl blur-sm sm:blur-md"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-slate-400/10 via-slate-500/15 to-slate-400/10 rounded-3xl sm:rounded-4xl blur-2xl"></div>
+              <div className="absolute inset-2 bg-gradient-to-r from-slate-500/20 via-slate-600/25 to-slate-500/20 rounded-3xl sm:rounded-4xl blur-xl"></div>
+              <div className="absolute inset-4 bg-gradient-to-r from-slate-600/15 via-slate-700/20 to-slate-600/15 rounded-3xl sm:rounded-4xl blur-lg"></div>
             </div>
 
             <img
-              src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=500&h=600&fit=crop&crop=center"
+              src="https://cdn.leonardo.ai/users/7accf579-f61e-438c-80d3-9d45630f0f1b/generations/b3c51790-9aa6-4ad9-b517-918bb6fe37ea/Leonardo_Phoenix_10_A_vibrant_whimsical_and_highly_detailed_di_3.jpg"
               alt="Original image"
-              className="relative w-40 h-48 sm:w-52 sm:h-60 lg:w-64 lg:h-72 object-cover rounded-2xl sm:rounded-3xl shadow-xl sm:shadow-2xl ring-1 ring-white/20 backdrop-blur-sm"
+              className="relative w-56 h-72 sm:w-72 sm:h-88 lg:w-80 lg:h-96 xl:w-96 xl:h-[480px] object-cover rounded-3xl sm:rounded-4xl shadow-2xl sm:shadow-3xl ring-1 ring-white/30 backdrop-blur-sm"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-white/5 rounded-2xl sm:rounded-3xl"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/5 via-transparent to-white/3 rounded-3xl sm:rounded-4xl"></div>
 
-            {/* Integrated label */}
+            {/* Apple-style label */}
             <div className={`
-              absolute bottom-2 left-2 sm:bottom-4 sm:left-4 
-              bg-white/95 backdrop-blur-md text-slate-800 text-xs sm:text-sm font-medium 
-              px-2 py-1 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl 
-              shadow-lg shadow-black/5 ring-1 ring-white/20
+              absolute bottom-4 left-4 sm:bottom-6 sm:left-6 
+              bg-white/90 backdrop-blur-xl text-slate-900 text-sm sm:text-base font-medium 
+              px-4 py-2 sm:px-6 sm:py-3 rounded-2xl 
+              shadow-xl shadow-black/10 ring-1 ring-white/30
               transition-all duration-500
-              ${activeTextIndex === 0 || activeTextIndex === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
-            `}>
+              ${activeTextIndex === 0 || activeTextIndex === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}
+            `}
+            style={{
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
+              fontWeight: '500',
+              letterSpacing: '-0.01em'
+            }}>
               Original
             </div>
           </div>
         </div>
 
-        {/* Enhanced Image - Adjusted for mobile */}
+        {/* Enhanced Image - Much Bigger */}
         <div
           className={`
             tech-image
@@ -932,41 +944,47 @@ useEffect(() => {
             transition-all duration-1000 ease-out
             ${activeTextIndex === 2 || activeTextIndex === 3
               ? 'opacity-100 scale-100 z-20'
-              : 'opacity-30 scale-95 z-10'
+              : 'opacity-25 scale-95 z-10'
             }
           `}
         >
           <div className="group relative">
-            {/* Premium glow effect - reduced for mobile */}
+            {/* Enhanced glow effect */}
             <div className={`
-              absolute -inset-2 sm:-inset-4 rounded-2xl sm:rounded-3xl
+              absolute -inset-4 sm:-inset-6 rounded-3xl sm:rounded-4xl
               transition-all duration-1000 ease-out
               ${activeTextIndex === 2 || activeTextIndex === 3
-                ? 'opacity-80 sm:opacity-100'
+                ? 'opacity-90 sm:opacity-100'
                 : 'opacity-0'
               }
             `}>
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-400/15 via-purple-400/20 to-blue-400/15 rounded-2xl sm:rounded-3xl blur-lg sm:blur-xl"></div>
-              <div className="absolute inset-1 bg-gradient-to-r from-blue-500/25 via-purple-500/30 to-blue-500/25 rounded-2xl sm:rounded-3xl blur-md sm:blur-lg"></div>
-              <div className="absolute inset-2 bg-gradient-to-r from-blue-600/20 via-purple-600/25 to-blue-600/20 rounded-2xl sm:rounded-3xl blur-sm sm:blur-md"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-slate-400/10 via-slate-500/15 to-slate-400/10 rounded-3xl sm:rounded-4xl blur-2xl"></div>
+              <div className="absolute inset-2 bg-gradient-to-r from-slate-500/20 via-slate-600/25 to-slate-500/20 rounded-3xl sm:rounded-4xl blur-xl"></div>
+              <div className="absolute inset-4 bg-gradient-to-r from-slate-600/15 via-slate-700/20 to-slate-600/15 rounded-3xl sm:rounded-4xl blur-lg"></div>
             </div>
 
-            <img
-              src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=500&h=600&fit=crop&crop=center"
-              alt="AI enhanced image"
-              className="relative w-44 h-52 sm:w-56 sm:h-64 lg:w-72 lg:h-80 object-cover rounded-2xl sm:rounded-3xl shadow-xl sm:shadow-2xl ring-1 ring-white/20 backdrop-blur-sm"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-white/5 rounded-2xl sm:rounded-3xl"></div>
+           <img
+            src="https://res.cloudinary.com/drzokg7bb/image/upload/v1751223979/pixelperfect/processed/a51fb4d4-fe57-4326-9c8e-8f3a604e4a33_upscaled.png"
+            alt="AI enhanced image"
+            className="relative w-96 h-64 sm:w-[520px] sm:h-80 lg:w-[600px] lg:h-[384px] object-cover rounded-3xl sm:rounded-4xl shadow-2xl sm:shadow-3xl ring-1 ring-white/30 backdrop-blur-sm"
+          />
 
-            {/* Integrated label */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/5 via-transparent to-white/3 rounded-3xl sm:rounded-4xl"></div>
+
+            {/* Apple-style label */}
             <div className={`
-              absolute bottom-2 left-2 sm:bottom-4 sm:left-4 
-              bg-white/95 backdrop-blur-md text-slate-800 text-xs sm:text-sm font-medium 
-              px-2 py-1 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl 
-              shadow-lg shadow-black/5 ring-1 ring-white/20
+              absolute bottom-4 left-4 sm:bottom-6 sm:left-6 
+              bg-white/90 backdrop-blur-xl text-slate-900 text-sm sm:text-base font-medium 
+              px-4 py-2 sm:px-6 sm:py-3 rounded-2xl 
+              shadow-xl shadow-black/10 ring-1 ring-white/30
               transition-all duration-500
-              ${activeTextIndex === 2 || activeTextIndex === 3 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
-            `}>
+              ${activeTextIndex === 2 || activeTextIndex === 3 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}
+            `}
+            style={{
+              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
+              fontWeight: '500',
+              letterSpacing: '-0.01em'
+            }}>
               AI Enhanced
             </div>
           </div>

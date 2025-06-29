@@ -18,9 +18,9 @@ public class PasswordResetController {
     private static final Logger log = LoggerFactory.getLogger(PasswordResetController.class);
 
     private final PasswordResetService passwordResetService;
-    private final EmailService emailService;  // Servicio de email inyectado
+    private final EmailService emailService;  
 
-    // Constructor que inyecta ambos servicios
+  
     public PasswordResetController(
         PasswordResetService passwordResetService,
         EmailService emailService
