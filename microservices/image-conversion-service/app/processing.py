@@ -21,6 +21,7 @@ except ImportError:
     HEIF_SUPPORTED = False
 
 from app.cloudinary_service import CloudinaryService
+from app.local_image_processing import LocalImageProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -381,13 +382,18 @@ async def perform_image_conversion(
         thumbnail_image.save(thumbnail_buffer, format="JPEG", optimize=True, quality=70)
         thumbnail_bytes = thumbnail_buffer.getvalue()
         
-        # Upload converted image to Cloudinary
-        logger.info(f"☁️ Uploading converted image to Cloudinary for {job_id}")
+        logger.info(f"🖼️ Generating thumbnail locally for {job_id}")
+        # Create thumbnail locally for better quality control
+        thumbnail_bytes = LocalImageProcessor.create_thumbnail(converted_bytes)
+        
+        # Optimize premium image
+        optimized_premium_bytes = LocalImageProcessor.optimize_premium_image(converted_bytes)
+        
+        logger.info(f"☁️ Uploading premium optimized image to Cloudinary for {job_id}")
         processed_url, processed_public_id = CloudinaryService.upload_processed_image(
-            converted_bytes, job_id, f"converted_{target_format.lower()}"
+            optimized_premium_bytes, job_id, f"converted_{target_format.lower()}"
         )
         
-        # Upload thumbnail
         logger.info(f"☁️ Uploading thumbnail to Cloudinary for {job_id}")
         thumbnail_url, thumbnail_public_id = CloudinaryService.upload_thumbnail(
             thumbnail_bytes, job_id
@@ -400,13 +406,17 @@ async def perform_image_conversion(
             'full_quality_public_id': processed_public_id,
             'thumbnail_public_id': thumbnail_public_id,
             'thumbnail_url': thumbnail_url,
+            'local_thumbnail_generated': True,
+            'thumbnail_size_bytes': len(thumbnail_bytes),
+            'premium_size_bytes': len(optimized_premium_bytes),
+            'mode': 'hybrid_secure_integration',
             'job_id': job_id,
             'timestamp': time.time(),
             'conversion_successful': True
         }
         
         logger.info(f"✅ Image conversion job {job_id} completed successfully")
-        logger.info(f"🔗 Converted image URL: {processed_url}")
+        logger.info(f"🔗 Premium quality URL: {processed_url}")
         logger.info(f"🔗 Thumbnail URL: {thumbnail_url}")
         logger.info(f"📊 Size reduction: {processing_info['compression_ratio_percent']}%")
         

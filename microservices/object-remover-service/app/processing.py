@@ -7,6 +7,7 @@ from typing import Dict, Tuple, Any, List, Union
 import os
 import urllib.request
 from pathlib import Path
+from app.local_image_processing import LocalImageProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -1029,11 +1030,19 @@ async def perform_object_removal(
         is_success, thumb_buffer = cv2.imencode('.png', thumbnail)
         thumbnail_bytes = thumb_buffer.tobytes()
         
-        # Upload to Cloudinary
+        logger.info(f"🖼️ Generating thumbnail locally for {job_id}")
+        # Create thumbnail locally for better quality control
+        thumbnail_bytes = LocalImageProcessor.create_thumbnail(output_bytes)
+        
+        # Optimize premium image
+        optimized_premium_bytes = LocalImageProcessor.optimize_premium_image(output_bytes)
+        
+        logger.info(f"☁️ Uploading premium optimized image to Cloudinary for {job_id}")
         processed_url, processed_public_id = CloudinaryService.upload_processed_image(
-            output_bytes, job_id, "object_removal"
+            optimized_premium_bytes, job_id, "object_removal"
         )
         
+        logger.info(f"☁️ Uploading thumbnail to Cloudinary for {job_id}")
         thumbnail_url, thumbnail_public_id = CloudinaryService.upload_thumbnail(
             thumbnail_bytes, job_id
         )
@@ -1051,6 +1060,10 @@ async def perform_object_removal(
             "full_quality_public_id": processed_public_id,
             "thumbnail_public_id": thumbnail_public_id,
             "thumbnail_url": thumbnail_url,
+            "local_thumbnail_generated": True,
+            "thumbnail_size_bytes": len(thumbnail_bytes),
+            "premium_size_bytes": len(optimized_premium_bytes),
+            "mode": "hybrid_secure_integration",
             "device_used": "cpu",
             "processing_method": processing_method,
             "config_used": enhanced_config

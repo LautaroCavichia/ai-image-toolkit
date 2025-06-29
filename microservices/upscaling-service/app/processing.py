@@ -14,6 +14,7 @@ from basicsr.archs.rrdbnet_arch import RRDBNet
 import torch
 from app.cloudinary_service import CloudinaryService
 from app.config import MODELS_DIR
+from app.local_image_processing import LocalImageProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -200,41 +201,26 @@ async def perform_upscaling(
         
         output_bytes = buffer.tobytes()
         
-        # Create thumbnail
-        height, width = output_image.shape[:2]
-        if is_premium:
-            thumb_scale = min(800/width, 600/height, 1.0)
-        else:
-            thumb_scale = min(600/width, 450/height, 1.0)
+        logger.info(f"🖼️ Generating thumbnail locally for {job_id}")
+        # Create thumbnail locally for better quality control
+        thumbnail_bytes = LocalImageProcessor.create_thumbnail(output_bytes)
         
-        if thumb_scale < 1.0:
-            new_width = int(width * thumb_scale)
-            new_height = int(height * thumb_scale)
-            thumbnail_image = cv2.resize(output_image, (new_width, new_height), interpolation=cv2.INTER_AREA)
-        else:
-            thumbnail_image = output_image.copy()
+        # Optimize premium image
+        optimized_premium_bytes = LocalImageProcessor.optimize_premium_image(output_bytes)
         
-        # Encode thumbnail with lower quality
-        encode_params = [cv2.IMWRITE_PNG_COMPRESSION, 7]
-        is_success, thumb_buffer = cv2.imencode('.png', thumbnail_image, encode_params)
-        if not is_success:
-            raise RuntimeError("Failed to encode thumbnail image")
-        
-        thumbnail_bytes = thumb_buffer.tobytes()
-        
-        # Upload full-quality result to Cloudinary
+        logger.info(f"☁️ Uploading premium optimized image to Cloudinary for {job_id}")
         processed_url, processed_public_id = CloudinaryService.upload_processed_image(
-            output_bytes, job_id, "upscaled"
+            optimized_premium_bytes, job_id, "upscaled"
         )
         
-        # Upload thumbnail to Cloudinary  
+        logger.info(f"☁️ Uploading thumbnail to Cloudinary for {job_id}")
         thumbnail_url, thumbnail_public_id = CloudinaryService.upload_thumbnail(
             thumbnail_bytes, job_id
         )
 
-        logger.info(f"Successfully processed upscaling job {job_id}")
-        logger.info(f"Full quality URL: {processed_url}")
-        logger.info(f"Thumbnail URL: {thumbnail_url}")
+        logger.info(f"✅ Successfully processed upscaling job {job_id}")
+        logger.info(f"🔗 Premium quality URL: {processed_url}")
+        logger.info(f"🔗 Thumbnail URL: {thumbnail_url}")
 
         # Calculate scale factor
         original_height, original_width = input_image.shape[:2]
@@ -251,6 +237,10 @@ async def perform_upscaling(
             "full_quality_public_id": processed_public_id,
             "thumbnail_public_id": thumbnail_public_id,
             "thumbnail_url": thumbnail_url,
+            "local_thumbnail_generated": True,
+            "thumbnail_size_bytes": len(thumbnail_bytes),
+            "premium_size_bytes": len(optimized_premium_bytes),
+            "mode": "hybrid_secure_integration",
             "is_premium": is_premium
         }
 

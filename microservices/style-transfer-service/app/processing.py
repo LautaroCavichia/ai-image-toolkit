@@ -28,6 +28,7 @@ import gc
 from app.cloudinary_service import CloudinaryService
 from app.config import DEVICE, MODELS_DIR, AVAILABLE_STYLES
 from app.dto import StyleTransferConfigDTO, StyleQuality
+from app.local_image_processing import LocalImageProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -284,11 +285,19 @@ async def perform_style_transfer(
         thumbnail_bytes = thumbnail_buffer.getvalue()
         
         # Upload
-        logger.info("☁️ Uploading results...")
+        logger.info(f"🖼️ Generating thumbnail locally for {job_id}")
+        # Create thumbnail locally for better quality control
+        thumbnail_bytes = LocalImageProcessor.create_thumbnail(output_bytes)
+        
+        # Optimize premium image
+        optimized_premium_bytes = LocalImageProcessor.optimize_premium_image(output_bytes)
+        
+        logger.info(f"☁️ Uploading premium optimized image to Cloudinary for {job_id}")
         processed_url, processed_public_id = CloudinaryService.upload_processed_image(
-            output_bytes, job_id, f"styled_{style_config.style.value.lower()}"
+            optimized_premium_bytes, job_id, f"styled_{style_config.style.value.lower()}"
         )
         
+        logger.info(f"☁️ Uploading thumbnail to Cloudinary for {job_id}")
         thumbnail_url, thumbnail_public_id = CloudinaryService.upload_thumbnail(
             thumbnail_bytes, job_id
         )
@@ -310,9 +319,13 @@ async def perform_style_transfer(
             "processing_time_seconds": round(processing_time, 3),
             "device": "cpu",
             "cpu_threads": torch.get_num_threads(),
-            "thumbnail_url": thumbnail_url,
-            "thumbnail_public_id": thumbnail_public_id,
+            "local_thumbnail_generated": True,
+            "thumbnail_size_bytes": len(thumbnail_bytes),
+            "premium_size_bytes": len(optimized_premium_bytes),
             "processed_public_id": processed_public_id,
+            "thumbnail_public_id": thumbnail_public_id,
+            "thumbnail_url": thumbnail_url,
+            "mode": "hybrid_secure_integration",
             "is_premium": style_config.quality == StyleQuality.PREMIUM,
             "job_id": job_id,
             "timestamp": time.time(),

@@ -17,6 +17,7 @@ import pytesseract
 import numpy as np
 
 from app.cloudinary_service import CloudinaryService
+from app.local_image_processing import LocalImageProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -189,18 +190,16 @@ async def perform_background_removal(
         output_bytes = remove(input_image_bytes, session=session)
         elapsed = time.perf_counter() - start_time
 
-        logger.info(f"🖼️ Generando thumbnail para {job_id}")
-        output_image = Image.open(io.BytesIO(output_bytes)).convert("RGBA")
-        thumbnail = output_image.copy()
-        thumbnail.thumbnail((400, 300), Image.Resampling.LANCZOS)
+        logger.info(f"🖼️ Generando thumbnail localmente para {job_id}")
+        # Create thumbnail locally for better quality control
+        thumbnail_bytes = LocalImageProcessor.create_thumbnail(output_bytes)
+        
+        # Optimize premium image
+        optimized_premium_bytes = LocalImageProcessor.optimize_premium_image(output_bytes)
 
-        thumbnail_buffer = io.BytesIO()
-        thumbnail.save(thumbnail_buffer, format="PNG", optimize=True, quality=70)
-        thumbnail_bytes = thumbnail_buffer.getvalue()
-
-        logger.info(f"☁️ Subiendo imagen procesada a Cloudinary para {job_id}")
+        logger.info(f"☁️ Subiendo imagen premium optimizada a Cloudinary para {job_id}")
         processed_url, processed_public_id = CloudinaryService.upload_processed_image(
-            output_bytes, job_id, "bg_removed"
+            optimized_premium_bytes, job_id, "bg_removed"
         )
 
         logger.info(f"☁️ Subiendo thumbnail a Cloudinary para {job_id}")
@@ -209,19 +208,22 @@ async def perform_background_removal(
         )
 
         logger.info(f"✅ Trabajo {job_id} completado con éxito")
-        logger.info(f"🔗 URL calidad completa: {processed_url}")
+        logger.info(f"🔗 URL calidad premium: {processed_url}")
         logger.info(f"🔗 URL thumbnail: {thumbnail_url}")
 
         processing_info = {
             "model_version": model_to_use,
-            "mode": "cloudinary_integration",
+            "mode": "hybrid_secure_integration",
             "processing_time_seconds": round(elapsed, 3),
             "signature_detection_threshold": ocr_confidence_threshold,
             "full_quality_public_id": processed_public_id,
             "thumbnail_public_id": thumbnail_public_id,
             "thumbnail_url": thumbnail_url,
-            "job_id": job_id,  # Agregar job_id para tracking
-            "timestamp": time.time()  # Timestamp para debugging
+            "local_thumbnail_generated": True,
+            "thumbnail_size_bytes": len(thumbnail_bytes),
+            "premium_size_bytes": len(optimized_premium_bytes),
+            "job_id": job_id,
+            "timestamp": time.time()
         }
 
         return processed_url, processing_info

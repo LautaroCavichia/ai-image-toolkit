@@ -230,7 +230,7 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
   if (error) {
     return (
       <div ref={containerRef} className="w-full max-w-lg mx-auto">
-        <div className="bg-white/90 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-black/5">
+        <div className="bg-white/95 backdrop-blur-3xl rounded-3xl p-8 shadow-2xl border border-white/30 ring-1 ring-slate-900/5 transition-all duration-300">
           <div className="text-center space-y-4">
             <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto">
               <XCircle className="text-red-600" size={32} />
@@ -248,11 +248,11 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
 
   return (
     <div ref={containerRef} className="w-full max-w-lg mx-auto">
-      <div className="bg-white/90 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-black/5">
+      <div className="bg-white/95 backdrop-blur-3xl rounded-3xl p-8 shadow-2xl border border-white/30 ring-1 ring-slate-900/5 transition-all duration-300 hover:shadow-3xl">
         
         {/* Image Container */}
         <div ref={imageRef} className="relative mb-8">
-          <div className="aspect-[4/3] bg-slate-100 rounded-2xl overflow-hidden relative">
+          <div className="aspect-[4/3] bg-slate-50 rounded-2xl overflow-hidden relative ring-1 ring-slate-900/5 shadow-inner">
             {/* Original Image */}
             <img
               src={initialImageUrl}
@@ -323,7 +323,7 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
                     <button
                       onClick={handleUnlockPremium}
                       disabled={unlocking}
-                      className={`flex items-center gap-2 bg-gradient-to-r ${serviceConfig.accentColor} text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-60`}
+                      className={`flex items-center gap-2 bg-gradient-to-r ${serviceConfig.accentColor} text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-60 hover:scale-[1.02] active:scale-[0.98] ring-1 ring-white/20`}
                     >
                       {unlocking ? (
                         <Loader2 className="animate-spin" size={16} />
@@ -338,18 +338,33 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
                 </div>
               )}
 
-              {/* Download Button */}
-              {job.processedImageUrl && (
-                <a
-                  href={job.processedImageUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-3 bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02]"
-                >
-                  <Download size={20} />
-                  <span>Download Your Creation</span>
-                </a>
-              )}
+              {/* Download Buttons */}
+              <div className="space-y-3">
+                {/* Thumbnail Download Button - Always Available */}
+                {job.thumbnailUrl && (
+                  <a
+                    href={job.thumbnailUrl}
+                    download
+                    className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] ring-1 ring-blue-500/20"
+                  >
+                    <Download size={20} />
+                    <span>Download Preview (Free)</span>
+                  </a>
+                )}
+                
+                {/* Premium Download Button */}
+                {job.processedImageUrl && (
+                  <a
+                    href={job.processedImageUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-900 hover:to-black text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] ring-1 ring-slate-700/20"
+                  >
+                    <Download size={20} />
+                    <span>Download Full Quality</span>
+                  </a>
+                )}
+              </div>
             </div>
           )}
 

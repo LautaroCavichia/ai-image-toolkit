@@ -20,6 +20,7 @@ import com.chunaudis.image_toolkit.entity.Job;
 import com.chunaudis.image_toolkit.service.JobService;
 import com.chunaudis.image_toolkit.service.TokenService;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -127,25 +128,34 @@ public class JobController {
         dto.setTokenCost(tokenCost);
         
         if (job.getProcessedImage() != null) {
-            // For Cloudinary, we'll create thumbnail URLs using URL transformations
             String originalUrl = job.getProcessedImage().getProcessedStoragePath();
-            
-            // Create thumbnail URL using Cloudinary transformations
-            String thumbnailUrl = createThumbnailUrl(originalUrl);
-            dto.setThumbnailUrl(thumbnailUrl);
-            
             log.info("Processed image URL: {}", originalUrl);
-            log.info("Thumbnail URL: {}", thumbnailUrl);
             
             // Check if this user has premium access
             boolean hasPremiumAccess = job.getProcessedImage().getIsPremium();
             dto.setIsPremiumQuality(hasPremiumAccess);
             
-            // Only include the full quality URL if user has premium access
+            // For premium images, provide secure proxy URLs
+            String baseUrl = "/api/v1/images/" + job.getJobId();
+            
             if (hasPremiumAccess) {
-                dto.setProcessedImageUrl(originalUrl);
+                // User has premium access - can access full quality via proxy
+                dto.setProcessedImageUrl(baseUrl + "?premium=true");
             } else {
+                // Free user - only gets thumbnail via proxy  
                 dto.setProcessedImageUrl(null);
+            }
+            
+            // Extract direct Cloudinary thumbnail URL from processing parameters for frontend compatibility
+            String thumbnailUrl = extractThumbnailUrlFromProcessingParams(job.getProcessedImage().getProcessingParams());
+            if (thumbnailUrl != null && !thumbnailUrl.isEmpty()) {
+                // Use direct Cloudinary URL for frontend compatibility
+                dto.setThumbnailUrl(thumbnailUrl);
+                log.info("Direct Cloudinary thumbnail URL: {}", thumbnailUrl);
+            } else {
+                // Fallback to proxy URL if thumbnail_url not found in processing params
+                dto.setThumbnailUrl(baseUrl + "/thumbnail");
+                log.info("Fallback to secure thumbnail URL: {}", baseUrl + "/thumbnail");
             }
         }
         
@@ -160,31 +170,24 @@ public class JobController {
     }
 
     /**
-     * Create thumbnail URL using Cloudinary transformations
-     * This keeps the same image but applies quality reduction
+     * Extract thumbnail_url from processing parameters JSON
      */
-    private String createThumbnailUrl(String originalUrl) {
-        if (originalUrl == null || !originalUrl.contains("cloudinary.com")) {
-            return originalUrl;
+    private String extractThumbnailUrlFromProcessingParams(String processingParams) {
+        if (processingParams == null || processingParams.trim().isEmpty()) {
+            return null;
         }
         
         try {
-            // Insert transformation parameters into Cloudinary URL
-            // Original: https://res.cloudinary.com/cloud/image/upload/v123/folder/image.jpg
-            // Thumbnail: https://res.cloudinary.com/cloud/image/upload/w_400,h_300,c_fit,q_70/v123/folder/image.jpg
-            
-            String[] parts = originalUrl.split("/upload/");
-            if (parts.length == 2) {
-                String baseUrl = parts[0] + "/upload/";
-                String transformation = "w_400,h_300,c_fit,q_70/"; // Low quality transformation
-                String imagePath = parts[1];
-                
-                return baseUrl + transformation + imagePath;
+            JsonNode jsonNode = objectMapper.readTree(processingParams);
+            JsonNode thumbnailUrlNode = jsonNode.get("thumbnail_url");
+            if (thumbnailUrlNode != null && !thumbnailUrlNode.isNull()) {
+                return thumbnailUrlNode.asText();
             }
-        } catch (Exception e) {
-            log.error("Failed to create thumbnail URL from: {}", originalUrl, e);
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to parse processing parameters JSON: {}", e.getMessage());
         }
         
-        return originalUrl; // Fallback to original URL
+        return null;
     }
+
 }
