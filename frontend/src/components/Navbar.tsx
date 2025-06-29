@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { isAuthenticated, getCurrentUser,logout } from '../services/authService';
+import { isAuthenticated, getCurrentUser, logout } from '../services/authService';
 
 import { fetchTokenBalance } from '../services/tokenService';
 import { ChevronDown, Home, Coins, Scissors, Maximize, Sparkles, Expand, Palette, Menu, X, User, FileImage } from 'lucide-react';
@@ -17,7 +17,7 @@ const Navbar: React.FC = () => {
   const [tokenBalance, setTokenBalance] = useState(user?.tokenBalance || 0);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showServicesDropdown, setShowServicesDropdown] = useState(false);
-  
+
   const tokenPanelRef = useRef<HTMLDivElement>(null);
   const userProfileRef = useRef<HTMLDivElement>(null);
   const servicesDropdownRef = useRef<HTMLDivElement>(null);
@@ -56,7 +56,7 @@ const Navbar: React.FC = () => {
   // Animaciones GSAP existentes
   useEffect(() => {
     if (navRef.current) {
-      gsap.fromTo(navRef.current, 
+      gsap.fromTo(navRef.current,
         { y: -20, opacity: 0 },
         { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" }
       );
@@ -105,26 +105,26 @@ const Navbar: React.FC = () => {
     try {
       // 1. Llamar al logout del authService (si existe)
       // await authService.logout();
-      
+
       // 2. Limpiar localStorage/sessionStorage
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('refreshToken');
       sessionStorage.clear();
-      
+
       // 3. Limpiar estado local inmediatamente
       setUser(null);
       setIsAuth(false);
       setTokenBalance(0);
       setShowUserProfile(false);
       setShowTokenPanel(false);
-      
+
       // 4. Emitir evento para que otros componentes se enteren
       window.dispatchEvent(new CustomEvent('userLoggedOut'));
-      
+
       // 5. NO redirigir - el usuario permanece en la página actual
       // window.location.href = '/login'; // Esta línea se elimina
-      
+
     } catch (error) {
       console.error('Error during logout:', error);
       // Limpiar estado local incluso si hay error
@@ -160,7 +160,7 @@ const Navbar: React.FC = () => {
 
   return (
     <>
-      <nav 
+      <nav
         ref={navRef}
         className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/50"
       >
@@ -169,9 +169,9 @@ const Navbar: React.FC = () => {
             {/* Logo and Brand */}
             <div className="flex items-center space-x-3">
               <div className="relative">
-                <img 
-                  src={logo} 
-                  alt="Pixel Perfect AI Logo" 
+                <img
+                  src={logo}
+                  alt="Pixel Perfect AI Logo"
                   className="w-8 h-8 object-contain"
                 />
               </div>
@@ -194,7 +194,7 @@ const Navbar: React.FC = () => {
                 <Home size={16} />
                 Home
               </a>
-              
+
               {/* Services Dropdown - Siempre visible */}
               <div className="relative" ref={servicesDropdownRef}>
                 <button
@@ -202,9 +202,9 @@ const Navbar: React.FC = () => {
                   className="flex items-center gap-1 text-slate-600 hover:text-slate-900 font-medium transition-colors duration-200"
                 >
                   Services
-                  <ChevronDown 
-                    size={16} 
-                    className={`transition-transform duration-200 ${showServicesDropdown ? 'rotate-180' : ''}`} 
+                  <ChevronDown
+                    size={16}
+                    className={`transition-transform duration-200 ${showServicesDropdown ? 'rotate-180' : ''}`}
                   />
                 </button>
 
@@ -273,7 +273,7 @@ const Navbar: React.FC = () => {
                       <Coins size={16} />
                       <span>{tokenBalance}</span>
                     </button>
-                    
+
                     {/* User Profile Button - Solo mostrar si NO es guest user */}
                     {user && !user.isGuest && (
                       <button
@@ -288,14 +288,21 @@ const Navbar: React.FC = () => {
                 </>
               ) : (
                 <div className="hidden md:flex items-center space-x-4">
-                  <a 
-                    href="/login" 
+                  <button
+                    onClick={handleToggleTokenPanel}
+                    className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded-xl font-medium text-slate-700 transition-colors duration-200"
+                  >
+                    <Coins size={16} />
+                    <span>{tokenBalance}</span>
+                  </button>
+                  <a
+                    href="/login"
                     className="text-slate-600 hover:text-slate-900 font-medium transition-colors duration-200"
                   >
                     Sign In
                   </a>
-                  <a 
-                    href="/login" 
+                  <a
+                    href="/login"
                     className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl font-medium transition-colors duration-200"
                   >
                     Get Started
@@ -332,7 +339,7 @@ const Navbar: React.FC = () => {
                 <Home size={18} className="text-slate-600" />
                 <span className="font-medium text-slate-700">Home</span>
               </a>
-              
+
               {isAuth && user ? (
                 <>
                   <div className="px-3 py-2">
@@ -355,7 +362,7 @@ const Navbar: React.FC = () => {
                       ))}
                     </div>
                   </div>
-                  
+
                   <div className="border-t border-slate-200/50 pt-4 mt-4">
                     <button
                       onClick={handleToggleTokenPanel}
@@ -364,7 +371,7 @@ const Navbar: React.FC = () => {
                       <Coins size={18} className="text-slate-600" />
                       <span className="font-medium text-slate-700">{tokenBalance} tokens</span>
                     </button>
-                    
+
                     {/* Solo mostrar info de usuario si NO es guest */}
                     {!user.isGuest && (
                       <>
@@ -375,7 +382,7 @@ const Navbar: React.FC = () => {
                           <div className="font-medium text-slate-900">{user.displayName || 'Usuario'}</div>
                           <div className="text-slate-500 text-sm">{user.email}</div>
                         </button>
-                        
+
                         <button
                           onClick={handleLogout}
                           className="w-full flex items-center justify-center p-3 rounded-xl hover:bg-red-50 text-red-600 font-medium transition-colors duration-200"
@@ -388,14 +395,14 @@ const Navbar: React.FC = () => {
                 </>
               ) : (
                 <div className="border-t border-slate-200/50 pt-4 mt-4 space-y-2">
-                  <a 
-                    href="/login" 
+                  <a
+                    href="/login"
                     className="block w-full text-center p-3 rounded-xl hover:bg-slate-50 text-slate-700 font-medium transition-colors duration-200"
                   >
                     Sign In
                   </a>
-                  <a 
-                    href="/login" 
+                  <a
+                    href="/login"
                     className="block w-full text-center bg-slate-900 hover:bg-slate-800 text-white p-3 rounded-xl font-medium transition-colors duration-200"
                   >
                     Get Started
