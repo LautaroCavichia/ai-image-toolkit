@@ -23,6 +23,7 @@ import com.chunaudis.image_toolkit.repository.UserRepository;
 import com.chunaudis.image_toolkit.security.JwtUtil;
 import com.chunaudis.image_toolkit.service.PasswordResetService;
 import com.chunaudis.image_toolkit.service.EmailVerificationService;
+import jakarta.validation.Valid;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -60,7 +61,7 @@ public void updateLastLoginTime(UUID userId) {
 }
 
 @PostMapping("/login")
-public ResponseEntity<?> login(@RequestBody AuthRequestDTO authRequest) {
+public ResponseEntity<?> login(@Valid @RequestBody AuthRequestDTO authRequest) {
     try {
         log.info("Login attempt for email: {}", authRequest.getEmail());
 
@@ -152,7 +153,7 @@ public ResponseEntity<?> login(@RequestBody AuthRequestDTO authRequest) {
 
 
 @PostMapping("/register")
-public ResponseEntity<?> register(@RequestBody AuthRequestDTO registerRequest) {
+public ResponseEntity<?> register(@Valid @RequestBody AuthRequestDTO registerRequest) {
     try {
         log.info("Registration attempt for email: {}", registerRequest.getEmail());
 
@@ -197,6 +198,10 @@ public ResponseEntity<?> register(@RequestBody AuthRequestDTO registerRequest) {
 @GetMapping("/create-test-user")
 @Transactional
 public ResponseEntity<?> createTestUser() {
+    // TODO: Remove this endpoint in production or secure with proper authentication
+    if (!"development".equals(System.getProperty("spring.profiles.active", "development"))) {
+        return ResponseEntity.status(404).body("Endpoint not available");
+    }
     try {
         String testEmail = "test@example.com";
         String testPassword = "password123";

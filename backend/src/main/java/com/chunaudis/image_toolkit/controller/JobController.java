@@ -43,7 +43,7 @@ public class JobController {
     @PostMapping("/{jobId}/status")
     public ResponseEntity<Void> updateJobStatus(
             @PathVariable UUID jobId,
-            @RequestBody String rawBody) {
+            @RequestBody @jakarta.validation.constraints.Size(max = 10000, message = "Request body too large") String rawBody) {
         log.info("Received RAW status update for job {}: {}", jobId, rawBody);
         try {
             JobStatusUpdateRequestDTO updateRequest = objectMapper.readValue(rawBody, JobStatusUpdateRequestDTO.class);
