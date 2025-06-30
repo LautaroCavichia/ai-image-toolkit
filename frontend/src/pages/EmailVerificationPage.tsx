@@ -20,7 +20,7 @@ const EmailVerificationPage: React.FC = () => {
   setHasVerified(true); 
 
   handleVerification();
-}, [token, hasVerified]);
+}, [token]);
 
   const handleVerification = async () => {
     if (!token) return;

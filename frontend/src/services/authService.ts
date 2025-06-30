@@ -109,7 +109,16 @@ export interface EmailVerificationResponse {
   message: string;
 }
 
+const verificationInProgress = new Set<string>();
+
 export const verifyEmail = async (token: string): Promise<EmailVerificationResponse> => {
+  
+  if (verificationInProgress.has(token)) {
+    throw new Error('Email verification already in progress');
+  }
+
+  verificationInProgress.add(token);
+  
   try {
     const response = await axios.post<EmailVerificationResponse>(
       `${API_BASE_URL}/email-verification/verify`, 
@@ -121,6 +130,9 @@ export const verifyEmail = async (token: string): Promise<EmailVerificationRespo
       throw new Error(error.response.data.message || 'Verification failed');
     }
     throw new Error('An error occurred during email verification');
+  } finally {
+    
+    verificationInProgress.delete(token);
   }
 };
 

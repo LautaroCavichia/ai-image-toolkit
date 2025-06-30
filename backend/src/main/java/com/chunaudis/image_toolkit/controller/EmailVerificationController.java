@@ -70,6 +70,7 @@ public class EmailVerificationController {
 
             emailVerificationService.resendVerificationEmail(email);
             
+            
             log.info("Verification email resent for: {}", email);
             return ResponseEntity.ok(Map.of(
                 "success", true,
