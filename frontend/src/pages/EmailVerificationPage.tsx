@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Mail, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 import { verifyEmail, resendVerificationEmail } from '../services/authService';
@@ -14,39 +14,47 @@ const EmailVerificationPage: React.FC = () => {
   const [hasVerified, setHasVerified] = useState(false);
   const token = searchParams.get('token');
 
-  useEffect(() => {
-  if (!token || hasVerified) return;
+const hasVerifiedRef = useRef(false);
 
-  setHasVerified(true); 
+useEffect(() => {
+  if (!token || hasVerifiedRef.current) return;
 
+  hasVerifiedRef.current = true;
   handleVerification();
 }, [token]);
 
+
   const handleVerification = async () => {
-    if (!token) return;
-    
-    try {
-      setStatus('verifying');
-      const response = await verifyEmail(token);
-      
-      if (response.success) {
-        setStatus('success');
-        setMessage(response.message);
-        
-        // Redirect to login page after 3 seconds
-        setTimeout(() => {
-          navigate('/login');
-        }, 3000);
-      }
-    } catch (error: any) {
-      if (error.message.includes('expired')) {
-        setStatus('expired');
-      } else {
-        setStatus('error');
-      }
-      setMessage(error.message || 'Email verification failed');
+  if (!token) return;
+
+  setStatus('verifying');
+  const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+  
+  try {
+    const start = Date.now();
+    const response = await verifyEmail(token);
+    const elapsed = Date.now() - start;
+
+    // Asegura que al menos se vea 1 segundo de "verifying"
+    if (elapsed < 1000) {
+      await delay(1000 - elapsed);
     }
-  };
+
+    if (response.success) {
+      setStatus('success');
+      setMessage(response.message);
+      setTimeout(() => navigate('/login'), 3000);
+    }
+  } catch (error: any) {
+    await delay(500); // Suaviza transición a error también
+    if (error.message?.includes('expired')) {
+      setStatus('expired');
+    } else {
+      setStatus('error');
+    }
+    setMessage(error.message || 'Email verification failed');
+  }
+};
 
   const handleResendVerification = async () => {
     const email = prompt('Please enter your email address to resend verification:');
@@ -134,8 +142,10 @@ const EmailVerificationPage: React.FC = () => {
               </h2>
               
               <p className="text-slate-700 leading-relaxed">
-                {message}
-              </p>
+            {status === 'verifying'
+              ? 'We are verifying your email, please wait'
+              : message}
+          </p>
             </div>
 
             {/* Action Buttons */}

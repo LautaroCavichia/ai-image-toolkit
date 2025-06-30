@@ -2,16 +2,31 @@ import React, { useState } from 'react';
 import { Sparkles, Upload, CheckCircle, Star, MousePointer, Wand2, Zap, Target, Shield } from 'lucide-react';
 import Layout from '../components/Layout';
 import Navbar from '../components/Navbar';
+import ObjectRemoval from '../components/ObjectRemover';
 import JobStatus from '../components/JobStatus';
+import { JobTypeEnum } from '../types';
 import DragDropUploader from '../components/DragDropUploader';
 import BeforeAfterSlider from '../components/BeforeAfterSlider';
 import AnimatedGradientMesh from '../components/AnimatedGradientMesh';
 import { uploadImageAndCreateJob } from '../services/apiService';
 import { useServiceAnimation } from '../hooks/useServiceAnimation';
 
-interface ObjectRemovalConfig {
-  method: 'AUTO' | 'MANUAL';
-  quality: 'STANDARD' | 'PREMIUM';
+export interface ObjectRemovalConfig {
+  method: 'BOUNDING_BOX' | 'PRECISE_MASK';
+  coordinates?: {x: number, y: number, width: number, height: number};
+  quality?: 'FREE' | 'PREMIUM';
+  mask?: ImageData;
+  detectionSettings?: {
+    sensitivity: number;
+    edgeThreshold: number;
+    smoothing: number;
+  };
+}
+
+// Interfaz para las dimensiones de la imagen
+interface ImageDimensions {
+  original: { width: number; height: number };
+  preview: { width: number; height: number };
 }
 
 const ObjectRemovalPage: React.FC = () => {
@@ -21,9 +36,12 @@ const ObjectRemovalPage: React.FC = () => {
   const [error, setError] = useState('');
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [config, setConfig] = useState<ObjectRemovalConfig>({
-    method: 'AUTO',
-    quality: 'STANDARD'
+    method: 'BOUNDING_BOX',
+    quality: 'FREE'
   });
+  
+  // Estado para las dimensiones de la imagen
+  const [imageDimensions, setImageDimensions] = useState<ImageDimensions | null>(null);
 
   // Enhanced animation system
   const { heroRef, uploaderRef, configRef, workflowRef, featuresRef } = useServiceAnimation({
@@ -31,33 +49,172 @@ const ObjectRemovalPage: React.FC = () => {
     intensity: 'medium'
   });
 
-
   const handleFileSelect = (file: File) => {
+    const isDifferentFile = !selectedFile || selectedFile.name !== file.name || selectedFile.size !== file.size;
+    
     setSelectedFile(file);
     setError('');
+    
+    // Solo resetear config si es un archivo diferente
+    if (isDifferentFile) {
+      setConfig({
+        method: 'BOUNDING_BOX',
+        quality: 'FREE'
+      });
+      setImageDimensions(null);
+    }
 
     const reader = new FileReader();
     reader.onload = () => {
-      setPreview(reader.result as string);
+      const imageUrl = reader.result as string;
+      setPreview(imageUrl);
+      
+      // Obtener las dimensiones originales de la imagen
+      const img = new Image();
+      img.onload = () => {
+        setImageDimensions({
+          original: { width: img.naturalWidth, height: img.naturalHeight },
+          preview: { width: 0, height: 0 } // Se actualizará en ObjectRemoval
+        });
+      };
+      img.src = imageUrl;
     };
     reader.readAsDataURL(file);
   };
 
+  const handleConfigChange = (newConfig: ObjectRemovalConfig, previewDimensions?: { width: number; height: number }) => {
+    console.log('Config updated:', newConfig); // Debug
+    
+    // Actualizar las dimensiones del preview si se proporcionan
+    if (previewDimensions && imageDimensions) {
+      setImageDimensions(prev => prev ? {
+        ...prev,
+        preview: previewDimensions
+      } : null);
+    }
+    
+    setConfig(newConfig);
+  };
+
+  const validateConfig = (): boolean => {
+    if (config.method === 'BOUNDING_BOX' && !config.coordinates) {
+      setError('Please select an area to remove using the bounding box tool');
+      return false;
+    }
+    
+    if (config.method === 'PRECISE_MASK' && !config.mask) {
+      setError('Please draw a mask over the objects you want to remove');
+      return false;
+    }
+
+    return true;
+  };
+
+  // Función para escalar coordenadas del preview a la imagen original
+  const scaleCoordinatesToOriginal = (previewCoords: {x: number, y: number, width: number, height: number}): {x: number, y: number, width: number, height: number} => {
+    if (!imageDimensions) {
+      console.warn('No image dimensions available, returning original coordinates');
+      return previewCoords;
+    }
+
+    const { original, preview } = imageDimensions;
+    
+    if (preview.width === 0 || preview.height === 0) {
+      console.warn('Preview dimensions are 0, returning original coordinates');
+      return previewCoords;
+    }
+
+    const scaleX = original.width / preview.width;
+    const scaleY = original.height / preview.height;
+
+    const scaledCoords = {
+      x: Math.round(previewCoords.x * scaleX),
+      y: Math.round(previewCoords.y * scaleY),
+      width: Math.round(previewCoords.width * scaleX),
+      height: Math.round(previewCoords.height * scaleY)
+    };
+
+    console.log('Coordinate scaling:', {
+      original: previewCoords,
+      scaled: scaledCoords,
+      imageDimensions,
+      scales: { scaleX, scaleY }
+    });
+
+    return scaledCoords;
+  };
+
   const handleUpload = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile) {
+      setError('Please select a file first');
+      return;
+    }
+
+    if (!validateConfig()) {
+      return;
+    }
 
     setLoading(true);
     setError('');
 
     try {
-      const response = await uploadImageAndCreateJob(selectedFile, 'OBJECT_REMOVAL' as any, config);
+      console.log('Uploading with config:', config); // Debug
+      console.log('Image dimensions:', imageDimensions); // Debug
+      
+      // Preparar la configuración para el envío
+      const uploadConfig: any = {
+        method: config.method,
+        quality: config.quality || 'FREE',
+      };
+
+      // Escalar coordenadas si existen
+      if (config.coordinates) {
+        uploadConfig.coordinates = scaleCoordinatesToOriginal(config.coordinates);
+      }
+
+      // Agregar detection settings si existen
+      if (config.detectionSettings) {
+        uploadConfig.detectionSettings = config.detectionSettings;
+      }
+
+      console.log('Final upload config:', {
+        ...uploadConfig,
+        mask: uploadConfig.mask ? `base64 string (${uploadConfig.mask.length} chars)` : undefined
+      }); // Debug sin mostrar toda la base64
+
+      const response = await uploadImageAndCreateJob(
+        selectedFile, 
+        JobTypeEnum.OBJECT_REMOVAL, 
+        uploadConfig
+      );
+      
+      console.log('Upload response:', response); // Debug
       setCurrentJobId(response.jobId);
 
       // Reset form
       setSelectedFile(null);
       setPreview(null);
+      setConfig({
+        method: 'BOUNDING_BOX',
+        quality: 'FREE'
+      });
+      setImageDimensions(null);
     } catch (err: any) {
-      setError(err.message || 'Upload failed');
+      console.error('Upload error:', err); // Debug
+      console.error('Error details:', {
+        message: err.message,
+        status: err.status,
+        response: err.response
+      });
+      
+      // Mostrar error más específico
+      if (err.response) {
+        setError(`Server error: ${err.response.status} - ${err.response.statusText}`);
+      } else if (err.message) {
+        setError(err.message);
+      } else {
+        setError('Upload failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -65,6 +222,7 @@ const ObjectRemovalPage: React.FC = () => {
 
   const handleJobCompleted = () => {
     // Job completed
+    console.log('Job completed');
   };
 
   // Mock images for the slider
@@ -91,14 +249,14 @@ const ObjectRemovalPage: React.FC = () => {
 
   const removalMethods = [
     {
-      type: 'AUTO' as const,
+      type: 'BOUNDING_BOX' as const,
       title: 'Smart Detection',
       description: 'AI automatically identifies and removes unwanted objects',
       icon: Wand2,
       features: ['Automatic object detection', 'One-click removal', 'Fast processing'],
     },
     {
-      type: 'MANUAL' as const,
+      type: 'PRECISE_MASK' as const,
       title: 'Precise Selection',
       description: 'Manual selection for exact control over what gets removed',
       icon: MousePointer,
@@ -109,20 +267,31 @@ const ObjectRemovalPage: React.FC = () => {
 
   const qualityOptions = [
     {
-      type: 'STANDARD' as const,
-      title: 'Standard Quality',
-      description: 'Good quality object removal with natural background fill',
-      cost: '3 TOKENS',
+      type: 'FREE' as const,
+      title: 'Free Quality',
+      description: 'Basic object removal with standard processing',
+      cost: '0 TOKENS',
       color: 'blue'
     },
     {
       type: 'PREMIUM' as const,
-      title: 'Premium Quality',
+      title: 'Premium Quality', 
       description: 'Professional-grade removal with advanced content-aware fill',
       cost: '5 TOKENS',
       color: 'purple'
     }
   ];
+
+  // Verificar si la configuración está completa
+  const isConfigComplete = () => {
+    if (config.method === 'BOUNDING_BOX') {
+      return config.coordinates !== undefined;
+    }
+    if (config.method === 'PRECISE_MASK') {
+      return config.mask !== undefined;
+    }
+    return false;
+  };
 
   return (
     <Layout>
@@ -180,13 +349,29 @@ const ObjectRemovalPage: React.FC = () => {
                     <CheckCircle className="text-green-600" size={20} />
                     <strong className="text-green-800">Image Ready</strong>
                   </div>
-                  <div className="text-slate-600">{selectedFile.name} ({Math.round(selectedFile.size / 1024)} KB)</div>
+                  <div className="text-slate-600">
+                    {selectedFile.name} ({Math.round(selectedFile.size / 1024)} KB)
+                    {imageDimensions && (
+                      <div className="text-xs text-slate-500 mt-1">
+                        Original: {imageDimensions.original.width}×{imageDimensions.original.height}px
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
+
+            {/* Object Removal Component */}
+            {preview && (
+              <div className="mt-8">
+                <ObjectRemoval
+                  config={config}
+                  onChange={handleConfigChange}
+                  imagePreview={preview}
+                />
+              </div>
+            )}
           </div>
-
-
 
           {/* Configuration Section */}
           {selectedFile && (
@@ -207,24 +392,26 @@ const ObjectRemovalPage: React.FC = () => {
                       key={method.type}
                       onClick={() => setConfig(prev => ({ ...prev, method: method.type }))}
                       disabled={method.badge === 'Coming Soon'}
-                      className={`group p-8 rounded-2xl border-2 text-center transition-all duration-300 relative ${config.method === method.type && method.badge !== 'Coming Soon'
-                        ? 'border-slate-900 bg-slate-50 shadow-lg'
-                        : method.badge === 'Coming Soon'
-                          ? 'border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed'
-                          : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
-                        }`}
+                      className={`group p-8 rounded-2xl border-2 text-center transition-all duration-300 relative ${
+                        config.method === method.type && method.badge !== 'Coming Soon'
+                          ? 'border-slate-900 bg-slate-50 shadow-lg'
+                          : method.badge === 'Coming Soon'
+                            ? 'border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed'
+                            : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
+                      }`}
                     >
                       {method.badge && (
                         <div className="absolute top-4 right-4 bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-bold">
                           {method.badge}
                         </div>
                       )}
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 transition-colors duration-300 ${config.method === method.type && method.badge !== 'Coming Soon'
-                        ? 'bg-slate-900 text-white'
-                        : method.badge === 'Coming Soon'
-                          ? 'bg-slate-200 text-slate-400'
-                          : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
-                        }`}>
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 transition-colors duration-300 ${
+                        config.method === method.type && method.badge !== 'Coming Soon'
+                          ? 'bg-slate-900 text-white'
+                          : method.badge === 'Coming Soon'
+                            ? 'bg-slate-200 text-slate-400'
+                            : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                      }`}>
                         <method.icon size={24} />
                       </div>
                       <h5 className="font-medium text-slate-900 mb-2">{method.title}</h5>
@@ -250,17 +437,19 @@ const ObjectRemovalPage: React.FC = () => {
                     <button
                       key={option.type}
                       onClick={() => setConfig(prev => ({ ...prev, quality: option.type }))}
-                      className={`group p-8 rounded-2xl border-2 text-left transition-all duration-300 ${config.quality === option.type
-                        ? `border-${option.color}-500 bg-${option.color}-50 shadow-lg`
-                        : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
-                        }`}
+                      className={`group p-8 rounded-2xl border-2 text-left transition-all duration-300 ${
+                        config.quality === option.type
+                          ? `border-${option.color}-500 bg-${option.color}-50 shadow-lg`
+                          : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
+                      }`}
                     >
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
-                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-300 ${config.quality === option.type
-                            ? option.color === 'blue' ? 'bg-blue-500 text-white' : 'bg-purple-500 text-white'
-                            : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
-                            }`}>
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-300 ${
+                            config.quality === option.type
+                              ? option.color === 'blue' ? 'bg-blue-500 text-white' : 'bg-purple-500 text-white'
+                              : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                          }`}>
                             {option.color === 'blue' ? <Sparkles size={24} /> : <Star size={24} />}
                           </div>
                           <div>
@@ -268,10 +457,11 @@ const ObjectRemovalPage: React.FC = () => {
                             <div className="text-sm text-slate-600">Advanced AI processing</div>
                           </div>
                         </div>
-                        <div className={`px-3 py-1 rounded-full text-xs font-bold ${option.color === 'blue'
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-purple-500 text-white'
-                          }`}>
+                        <div className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          option.color === 'blue'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-purple-500 text-white'
+                        }`}>
                           {option.cost}
                         </div>
                       </div>
@@ -281,9 +471,10 @@ const ObjectRemovalPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Upload Button */}
               <button
                 onClick={handleUpload}
-                disabled={!selectedFile || loading || config.method === 'MANUAL'}
+                disabled={!selectedFile || loading || !isConfigComplete()}
                 className="w-full bg-slate-900 hover:bg-slate-800 text-white py-6 px-8 rounded-2xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] text-lg"
               >
                 <div className="flex items-center justify-center gap-3">
@@ -292,10 +483,10 @@ const ObjectRemovalPage: React.FC = () => {
                       <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       Removing Objects...
                     </>
-                  ) : config.method === 'MANUAL' ? (
+                  ) : !isConfigComplete() ? (
                     <>
-                      <Star size={24} />
-                      Coming Soon
+                      <Target size={24} />
+                      Select Objects First
                     </>
                   ) : (
                     <>
@@ -337,7 +528,6 @@ const ObjectRemovalPage: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-
               {/* Step 1 */}
               <div className="workflow-card text-center group opacity-0">
                 <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-slate-900 transition-colors duration-300 shadow-lg group-hover:shadow-xl">

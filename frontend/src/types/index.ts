@@ -5,6 +5,7 @@ export enum JobTypeEnum {
   UPSCALE = 'UPSCALE',
   ENLARGE = 'ENLARGE',
   STYLE_TRANSFER = 'STYLE_TRANSFER',
+  OBJECT_REMOVAL = 'OBJECT_REMOVAL'
 }
 
 export enum JobStatusEnum {

@@ -5,9 +5,10 @@ import DragDropUploader from './DragDropUploader';
 
 interface ImageUploaderProps {
   onJobCreated: (jobId: string) => void;
+  onImageSelected: (file: File, preview: string | null) => void;
 }
 
-const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
+const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated, onImageSelected }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [jobType, setJobType] = useState<JobTypeEnum>(JobTypeEnum.BG_REMOVAL);
@@ -21,6 +22,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated }) => {
     const reader = new FileReader();
     reader.onload = () => {
       setPreview(reader.result as string);
+      onImageSelected(file, preview);
     };
     reader.readAsDataURL(file);
   };
