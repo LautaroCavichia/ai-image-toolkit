@@ -6,7 +6,7 @@ import JobStatus from '../components/JobStatus';
 import BeforeAfterSlider from '../components/BeforeAfterSlider';
 import AnimatedGradientMesh from '../components/AnimatedGradientMesh';
 import { JobTypeEnum } from '../types';
-import { uploadImageAndCreateJob } from '../services/apiService';
+import { generateImage } from '../services/apiService';
 import { isAuthenticated } from '../services/authService';
 import { useServiceAnimation } from '../hooks/useServiceAnimation';
 
@@ -44,20 +44,14 @@ const ImageGenerationPage: React.FC = () => {
     try {
       console.log('🎨 Calling image generation...');
       
-      // Create a minimal file object for the API since it expects a file upload
-      // For image generation, we don't need an actual image file
-      const mockFile = new File(['prompt'], 'generation-request.txt', { type: 'text/plain' });
-      
-      const config = {
-        prompt: prompt.trim(),
-        negativePrompt: negativePrompt.trim() || undefined,
+      const response = await generateImage(
+        prompt.trim(),
+        negativePrompt.trim() || undefined,
         aspectRatio,
         quality,
         steps,
         guidanceScale
-      };
-
-      const response = await uploadImageAndCreateJob(mockFile, JobTypeEnum.IMAGE_GENERATION, config);
+      );
       console.log('🎨 Generation response received:', response);
       setCurrentJobId(response.jobId);
       

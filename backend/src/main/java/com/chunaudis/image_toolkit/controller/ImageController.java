@@ -12,12 +12,14 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.chunaudis.image_toolkit.dto.ImageUploadRequestDTO;   
+import com.chunaudis.image_toolkit.dto.ImageGenerationRequestDTO;
 import com.chunaudis.image_toolkit.dto.JobResponseDTO;
 import com.chunaudis.image_toolkit.entity.Job;
 import com.chunaudis.image_toolkit.entity.enums.JobTypeEnum;
@@ -125,11 +127,66 @@ public class ImageController {
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
 }
 }
+
+    @PostMapping("/generate")
+    public ResponseEntity<JobResponseDTO> generateImage(
+            @RequestBody ImageGenerationRequestDTO request,
+            HttpServletRequest httpRequest
+    ) {
+        // Get user ID from security context
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        log.info("Authentication object: {}", authentication);
+        log.info("Is authenticated: {}", authentication != null ? authentication.isAuthenticated() : "null");
+        
+        if (authentication == null || !authentication.isAuthenticated()) {
+            log.warn("Authentication failed - authentication: {}", authentication);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        // Get user ID from request attribute set in JwtRequestFilter
+        UUID userId = (UUID) httpRequest.getAttribute("userId");
+        log.info("User ID from request attribute: {}", userId);
+        
+        if (userId == null) {
+            UUID authPrincipalUserId = (UUID) authentication.getPrincipal();
+            log.info("User ID from authentication principal: {}", authPrincipalUserId);
+            // Use authentication principal as fallback
+            userId = authPrincipalUserId;
+        }
+        
+        log.info("Received image generation request for user: {}, prompt: {}", userId, request.getPrompt());
+        
+        request.setUserId(userId.toString());
+        request.setJobType(JobTypeEnum.IMAGE_GENERATION);
+
+        // Build job config from request
+        Map<String, Object> jobConfig = new HashMap<>();
+        jobConfig.put("prompt", request.getPrompt());
+        if (request.getNegativePrompt() != null && !request.getNegativePrompt().trim().isEmpty()) {
+            jobConfig.put("negativePrompt", request.getNegativePrompt());
+        }
+        jobConfig.put("aspectRatio", request.getAspectRatio() != null ? request.getAspectRatio() : "square");
+        jobConfig.put("quality", request.getQuality() != null ? request.getQuality() : "FREE");
+        jobConfig.put("steps", request.getSteps() != null ? request.getSteps() : 20);
+        jobConfig.put("guidanceScale", request.getGuidanceScale() != null ? request.getGuidanceScale() : 7.5);
+
+        try {
+            Job createdJob = imageService.processImageGeneration(request, jobConfig);
+            JobResponseDTO response = mapJobToJobResponseDTO(createdJob);
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+        } catch (Exception e) {
+            log.error("Error processing image generation: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
     // Helper to map Job entity to DTO
     private JobResponseDTO mapJobToJobResponseDTO(Job job) {
         JobResponseDTO dto = new JobResponseDTO();
         dto.setJobId(job.getJobId());
-        dto.setOriginalImageId(job.getOriginalImage().getImageId());
+        if (job.getOriginalImage() != null) {
+            dto.setOriginalImageId(job.getOriginalImage().getImageId());
+        }
         dto.setJobType(job.getJobType());
         dto.setStatus(job.getStatus());
         dto.setCreatedAt(job.getCreatedAt());

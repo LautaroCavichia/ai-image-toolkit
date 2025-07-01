@@ -30,6 +30,34 @@ export const uploadImageAndCreateJob = async (
   return response.data;
 };
 
+export const generateImage = async (
+  prompt: string,
+  negativePrompt?: string,
+  aspectRatio: string = 'square',
+  quality: string = 'FREE',
+  steps: number = 20,
+  guidanceScale: number = 7.5
+): Promise<JobResponseDTO> => {
+  const requestBody = {
+    prompt,
+    negativePrompt,
+    aspectRatio,
+    quality,
+    steps,
+    guidanceScale
+  };
+
+  const token = getToken();
+  
+  const response = await axios.post<JobResponseDTO>(`${API_BASE_URL}/images/generate`, requestBody, {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    },
+  });
+  return response.data;
+};
+
 export const getJobStatus = async (jobId: string): Promise<JobResponseDTO> => {
   const token = getToken();
   

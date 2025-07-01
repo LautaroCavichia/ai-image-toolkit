@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.chunaudis.image_toolkit.dto.ImageUploadRequestDTO;
+import com.chunaudis.image_toolkit.dto.ImageGenerationRequestDTO;
 import com.chunaudis.image_toolkit.entity.Image;
 import com.chunaudis.image_toolkit.entity.Job;
 import com.chunaudis.image_toolkit.entity.User;
@@ -114,6 +115,71 @@ public class ImageService {
             } else {
                 throw new RuntimeException("Failed to process image upload", e);
             }
+        }
+    }
+
+    @Transactional
+    public Job processImageGeneration(ImageGenerationRequestDTO requestDTO, Map<String, Object> jobConfig) {
+        // Get userId from the request DTO
+        UUID userId = UUID.fromString(requestDTO.getUserId());
+    
+        // Find existing user by ID
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
+        
+        log.info("Processing image generation request for user {}, prompt: {}", userId, requestDTO.getPrompt());
+        
+        try {
+            // For image generation, we don't have an original image, so we create a placeholder
+            // The microservice will generate the image and upload it directly
+            Image placeholderImage = new Image();
+            UUID imageId = placeholderImage.getImageId(); // Get the auto-generated UUID
+            
+            // Set minimal metadata for the placeholder
+            placeholderImage.setUser(user);
+            placeholderImage.setOriginalFilename("generated_" + imageId.toString() + ".png");
+            placeholderImage.setOriginalFilesizeBytes(0L); // Will be updated when image is generated
+            placeholderImage.setOriginalFormat("PNG");
+            
+            // Set default dimensions (will be updated by microservice)
+            String aspectRatio = (String) jobConfig.getOrDefault("aspectRatio", "square");
+            int[] dimensions = getDefaultDimensions(aspectRatio);
+            placeholderImage.setOriginalWidth(dimensions[0]);
+            placeholderImage.setOriginalHeight(dimensions[1]);
+            
+            // For image generation, we don't upload an original image to Cloudinary yet
+            // The microservice will handle the upload when generation is complete
+            placeholderImage.setOriginalStoragePath(null);
+            placeholderImage.setCloudinaryPublicId(null);
+
+            // Save the placeholder image entity
+            Image savedImage = imageRepository.save(placeholderImage);
+            log.info("Created placeholder image for generation with ID: {}", savedImage.getImageId());
+
+            // Create and dispatch job - pass null for originalImageUrl since we don't have one
+            return jobService.createAndDispatchJob(savedImage, requestDTO.getJobType(), null, jobConfig, userId);
+            
+        } catch (Exception e) {
+            log.error("Failed to process image generation request for user {}: {}", userId, e.getMessage(), e);
+            
+            // Re-throw the original exception
+            if (e instanceof RuntimeException) {
+                throw (RuntimeException) e;
+            } else {
+                throw new RuntimeException("Failed to process image generation request", e);
+            }
+        }
+    }
+
+    private int[] getDefaultDimensions(String aspectRatio) {
+        switch (aspectRatio.toLowerCase()) {
+            case "portrait":
+                return new int[]{512, 768};
+            case "landscape":
+                return new int[]{768, 512};
+            case "square":
+            default:
+                return new int[]{512, 512};
         }
     }
 

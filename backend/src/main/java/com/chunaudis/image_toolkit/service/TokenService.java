@@ -29,8 +29,10 @@ public class TokenService {
                 return 1;
             case ENLARGE:
                 return 1;
-            case STYLE_TRANSFER:
-                return 2; // Style transfer is more expensive due to AI model complexity
+            case IMAGE_GENERATION:
+                return 2; // Image generation is more expensive due to AI model complexity
+            case OBJECT_REMOVAL:
+                return 1;
             default:
                 return 1;
         }
