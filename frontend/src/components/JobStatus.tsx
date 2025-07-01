@@ -7,7 +7,8 @@ import { gsap } from 'gsap';
 
 interface JobStatusProps {
   jobId: string;
-  initialImageUrl: string;
+  initialImageUrl?: string;
+  variant?: string;
   serviceType?: 'background-removal' | 'upscale' | 'enlarge' | 'object-removal';
   onJobCompleted?: (job: JobResponseDTO) => void;
 }

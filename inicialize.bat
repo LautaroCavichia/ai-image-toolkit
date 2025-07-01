@@ -21,6 +21,10 @@ start cmd /k "cd microservices\enlarge-service && call .venv\Scripts\activate.ba
 echo Iniciando Microservicio object remover...
 start cmd /k "cd microservices\object-remover-service && call .venv\Scripts\activate.bat && uvicorn app.main:app --host 0.0.0.0 --port 8004"
 
+echo Iniciando Microservicio image  generation ...
+start cmd /k "cd microservices\image-generation-service && call .venv\Scripts\activate.bat && uvicorn app.main:app --host 0.0.0.0 --port 8007"
+
+
 
 
 echo Esperando 15 segundos para que el backend arranque...

@@ -66,7 +66,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated, onImageSele
             <option value={JobTypeEnum.BG_REMOVAL}>Background Removal</option>
             <option value={JobTypeEnum.UPSCALE}>Upscale</option>
             <option value={JobTypeEnum.ENLARGE}>Enlarge</option>
-            <option value={JobTypeEnum.STYLE_TRANSFER}>Style Transfer</option>
+          
           </select>
         </div>
 
