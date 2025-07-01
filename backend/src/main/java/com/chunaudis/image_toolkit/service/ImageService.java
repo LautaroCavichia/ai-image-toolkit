@@ -149,7 +149,7 @@ public class ImageService {
             
             // For image generation, we don't upload an original image to Cloudinary yet
             // The microservice will handle the upload when generation is complete
-            placeholderImage.setOriginalStoragePath(null);
+            placeholderImage.setOriginalStoragePath("none");
             placeholderImage.setCloudinaryPublicId(null);
 
             // Save the placeholder image entity

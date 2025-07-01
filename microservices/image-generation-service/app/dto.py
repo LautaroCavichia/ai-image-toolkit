@@ -60,7 +60,7 @@ class JobMessageDTO(BaseModel):
     """
     jobId: str
     originalImageId: str
-    imageStoragePath: str
+    imageStoragePath: Optional[str] = None
     jobType: JobType
     jobConfig: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
