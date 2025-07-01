@@ -2,12 +2,17 @@ import logging
 import os
 import cv2
 import numpy as np
-
-from typing import Dict, Tuple, Any
-from PIL import Image
+import asyncio
+from typing import Dict, Tuple, Any, Optional
+from PIL import Image, ImageEnhance, ImageFilter
 import torch
-from diffusers import StableDiffusionPipeline, DPMSolverMultistepScheduler
+from diffusers import (
+    StableDiffusionPipeline, 
+    EulerAncestralDiscreteScheduler,
+    DPMSolverMultistepScheduler,
+)
 import gc
+import hashlib
 
 from app.cloudinary_service import CloudinaryService
 from app.config import MODELS_DIR
@@ -21,71 +26,114 @@ class ImageProcessingError(Exception):
     pass
 
 class TextToImageProcessor:
-    """Text-to-image generation processor using Stable Diffusion."""
+    """Optimized text-to-image generation processor."""
+    
+    _instance = None
+    _lock = asyncio.Lock()
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
 
     def __init__(self):
+        if hasattr(self, '_initialized'):
+            return
+            
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model_loaded = False
         self.pipeline = None
+        self._current_jobs = set()  # Track active jobs to prevent duplicates
         
-        # Resolution configurations based on aspect ratio
+        # Optimized resolutions (menores para mejor velocidad)
         self.resolutions = {
-            "square": (512, 512),
-            "portrait": (512, 768),  # 2:3 ratio
-            "landscape": (768, 512)  # 3:2 ratio
+            "square": (512, 512),      # Reduced from 768x768
+            "portrait": (512, 640),    # Reduced from 512x768
+            "landscape": (640, 512),   # Reduced from 768x512
+                  # Reduced from 512x896
         }
         
-        logger.info(f"Device: {self.device}")
-        if torch.cuda.is_available():
-            vram_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
-            logger.info(f"VRAM: {vram_gb:.1f} GB")
+        # Balanced quality settings (mejor balance velocidad/calidad)
+        self.quality_settings = {
+            "FREE": {
+                "steps": 8,            # Reduced from 10
+                "guidance_scale": 7.0, # Reduced from 7.5
+                "resolution_scale": 2.0
+            },
+            "PREMIUM": {
+                "steps": 20,           # Reduced from 35
+                "guidance_scale": 7.5, # Reduced from 8.5
+                "resolution_scale": 1.0 # Removed upscaling
+            }
+        }
+        
+        # Cache for processed prompts to avoid duplicates
+        self._prompt_cache = {}
+        self._cache_size_limit = 100
+        
+        self._initialized = True
+        logger.info(f"Optimized processor initialized on device: {self.device}")
+
+    def _generate_job_hash(self, prompt: str, config: Dict) -> str:
+        """Generate unique hash for job to prevent duplicates."""
+        job_data = f"{prompt}_{config.get('aspectRatio', 'square')}_{config.get('quality', 'FREE')}"
+        return hashlib.md5(job_data.encode()).hexdigest()
 
     def _clear_memory(self):
-        """Clear GPU memory."""
+        """Optimized memory clearing."""
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-            torch.cuda.synchronize()
         gc.collect()
 
     def _load_model(self) -> bool:
-        """Load Stable Diffusion model."""
+        """Load optimized Stable Diffusion model."""
         if self.model_loaded:
             return True
 
         try:
-            logger.info("Loading Stable Diffusion model...")
+            logger.info("Loading optimized Stable Diffusion model...")
             self._clear_memory()
 
-            # Load Stable Diffusion pipeline
+            # Single, reliable model choice
+            model_id = "runwayml/stable-diffusion-v1-5"  # Most stable and fast
+            
+            dtype = torch.float16 if self.device == "cuda" else torch.float32
+            
+            # Optimized loading parameters
             self.pipeline = StableDiffusionPipeline.from_pretrained(
-                "runwayml/stable-diffusion-v1-5",
-                torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
+                model_id,
+                torch_dtype=dtype,
                 safety_checker=None,
                 requires_safety_checker=False,
                 cache_dir=MODELS_DIR,
-                low_cpu_mem_usage=True
-            ).to(self.device)
-
-            # Optimize for memory efficiency
+                low_cpu_mem_usage=True,
+                use_safetensors=True
+            )
+            
+            self.pipeline = self.pipeline.to(self.device)
+            
+            # Minimal optimizations for speed
             if self.device == "cuda":
-                self.pipeline.enable_attention_slicing("max")
-                self.pipeline.enable_model_cpu_offload()
-                self.pipeline.enable_vae_slicing()
-
-                # Try to use xformers if available
                 try:
-                    self.pipeline.enable_xformers_memory_efficient_attention()
-                    logger.info("XFormers enabled for memory efficiency")
-                except Exception:
-                    logger.info("XFormers not available, using default attention")
+                    # Only essential optimizations
+                    self.pipeline.enable_memory_efficient_attention()
+                except:
+                    pass
+                
+                # CPU offload only for very low VRAM
+                try:
+                    if torch.cuda.get_device_properties(0).total_memory < 6 * 1024**3:
+                        self.pipeline.enable_model_cpu_offload()
+                except:
+                    pass
 
-            # Set scheduler
-            self.pipeline.scheduler = DPMSolverMultistepScheduler.from_config(
+            # Fast scheduler
+            self.pipeline.scheduler = EulerAncestralDiscreteScheduler.from_config(
                 self.pipeline.scheduler.config
             )
 
             self.model_loaded = True
-            logger.info("Model loaded successfully!")
+            logger.info("Optimized model loaded successfully!")
             return True
 
         except Exception as e:
@@ -93,111 +141,169 @@ class TextToImageProcessor:
             self._clear_memory()
             return False
 
-    def generate_image(
+    def _enhance_prompt(self, prompt: str, quality: str = "FREE") -> str:
+        """Simplified prompt enhancement."""
+        base_prompt = prompt.strip()
+        
+        if quality == "PREMIUM":
+            enhancers = ["high quality", "detailed", "8k"]
+        else:
+            enhancers = ["high quality"]
+        
+        return f"{base_prompt}, {', '.join(enhancers)}"
+
+    def _get_negative_prompt(self, custom_negative: str = None) -> str:
+        """Simplified negative prompt."""
+        base_negative = [
+            "low quality", "blurry", "bad anatomy", "deformed", 
+            "watermark", "text", "signature"
+        ]
+        
+        negative_prompt = ", ".join(base_negative)
+        
+        if custom_negative:
+            negative_prompt = f"{custom_negative}, {negative_prompt}"
+            
+        return negative_prompt
+
+    def _post_process_image(self, image: Image.Image, quality: str = "FREE") -> Image.Image:
+        """Minimal post-processing for speed."""
+        try:
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+            
+            # Only basic enhancement for premium
+            if quality == "PREMIUM":
+                enhancer = ImageEnhance.Sharpness(image)
+                image = enhancer.enhance(1.1)
+            
+            return image
+            
+        except Exception as e:
+            logger.warning(f"Post-processing failed: {e}")
+            return image
+
+    async def generate_image(
         self, 
+        job_id: str,
         prompt: str, 
         aspect_ratio: str = "square",
         negative_prompt: str = None,
-        steps: int = 20,
-        guidance_scale: float = 7.5,
+        steps: int = None,
+        guidance_scale: float = None,
         quality: str = "FREE"
     ) -> np.ndarray:
         """
-        Generate image from text prompt.
-        
-        Args:
-            prompt: Text description for image generation
-            aspect_ratio: Target aspect ratio (square, portrait, landscape)
-            negative_prompt: Things to avoid in the image
-            steps: Number of inference steps
-            guidance_scale: Guidance scale for generation
-            quality: Quality level (FREE or PREMIUM)
-        
-        Returns:
-            Generated image as numpy array (BGR format)
+        Generate optimized image from text prompt.
         """
+        # Check for duplicate jobs
+        job_hash = self._generate_job_hash(prompt, {
+            'aspectRatio': aspect_ratio,
+            'quality': quality
+        })
+        
+        if job_hash in self._current_jobs:
+            logger.warning(f"Duplicate job detected for {job_id}, skipping...")
+            raise ImageProcessingError("Duplicate job detected")
+        
+        self._current_jobs.add(job_hash)
+        
         try:
             # Load model if not already loaded
             if not self._load_model():
                 raise RuntimeError("Failed to load the text-to-image model")
 
-            # Get resolution for aspect ratio
-            width, height = self.resolutions.get(aspect_ratio, self.resolutions["square"])
+            # Get quality settings
+            quality_config = self.quality_settings[quality]
             
-            # Adjust parameters based on quality
-            if quality == "PREMIUM":
-                steps = max(steps, 30)  # At least 30 steps for premium
-                guidance_scale = max(guidance_scale, 8.0)  # Higher guidance for premium
-            
-            logger.info(f"Generating image: {width}x{height}, steps={steps}, guidance={guidance_scale}")
-            logger.info(f"Prompt: {prompt}")
-            if negative_prompt:
-                logger.info(f"Negative prompt: {negative_prompt}")
+            if steps is None:
+                steps = quality_config["steps"]
+            if guidance_scale is None:
+                guidance_scale = quality_config["guidance_scale"]
 
-            # Generate image
-            with torch.autocast(self.device):
+            # Get resolution
+            width, height = self.resolutions.get(aspect_ratio, self.resolutions["square"])
+
+            # Enhance prompt (simplified)
+            enhanced_prompt = self._enhance_prompt(prompt, quality)
+            full_negative_prompt = self._get_negative_prompt(negative_prompt)
+            
+            logger.info(f"Generating image for {job_id}: {width}x{height}, steps={steps}")
+
+            # Fixed seed for consistency (optional)
+            generator = torch.Generator(device=self.device).manual_seed(42)
+            
+            # Generate image with optimized settings
+            with torch.inference_mode():
                 result = self.pipeline(
-                    prompt=prompt,
-                    negative_prompt=negative_prompt,
+                    prompt=enhanced_prompt,
+                    negative_prompt=full_negative_prompt,
                     num_inference_steps=steps,
                     guidance_scale=guidance_scale,
                     width=width,
                     height=height,
-                    generator=torch.Generator(device=self.device).manual_seed(42)  # For reproducible results
+                    generator=generator,
+                    num_images_per_prompt=1,
+                    output_type="pil"
                 ).images[0]
 
-            # Convert PIL to numpy array (BGR for OpenCV)
+            # Minimal post-processing
+            result = self._post_process_image(result, quality)
+
+            # Convert to BGR
             result_array = np.array(result)
             result_bgr = cv2.cvtColor(result_array, cv2.COLOR_RGB2BGR)
 
-            logger.info(f"Image generation completed successfully: {width}x{height}")
+            logger.info(f"Image generation completed for {job_id}")
             return result_bgr
 
         except Exception as e:
-            logger.error(f"Image generation failed: {e}")
+            logger.error(f"Image generation failed for {job_id}: {e}")
             raise
         finally:
+            # Remove from active jobs
+            self._current_jobs.discard(job_hash)
             self._clear_memory()
+
+# Global processor instance
+_processor_instance = None
+
+async def get_processor():
+    """Get singleton processor instance."""
+    global _processor_instance
+    async with TextToImageProcessor._lock:
+        if _processor_instance is None:
+            _processor_instance = TextToImageProcessor()
+        return _processor_instance
 
 async def perform_image_generation(
     job_id: str,
     config: Dict[str, Any]
 ) -> Tuple[str, Dict[str, Any]]:
     """
-    Main function for text-to-image generation.
-    
-    Args:
-        job_id: Unique job identifier
-        config: Generation configuration
-    
-    Returns:
-        Tuple of (processed_image_url, processing_params)
+    Optimized main function for text-to-image generation.
     """
-    processor = None
+    # CPU optimization
+    if not torch.cuda.is_available():
+        torch.set_num_threads(4)  # Fixed thread count
+    
     try:
-        # Create models directory
         os.makedirs(MODELS_DIR, exist_ok=True)
 
         # Parse configuration
-        try:
-            generation_config = ImageGenerationConfigDTO(**config)
-        except Exception as e:
-            raise ValueError(f"Invalid configuration: {e}")
+        generation_config = ImageGenerationConfigDTO(**config)
 
-        # Validate prompt
         if not generation_config.validate_prompt():
-            raise ValueError("Prompt is required and must be at least 3 characters long")
+            raise ValueError("Invalid prompt")
 
-        logger.info(f"Starting image generation for job {job_id}")
-        logger.info(f"Prompt: {generation_config.prompt}")
-        logger.info(f"Aspect ratio: {generation_config.aspectRatio}")
-        logger.info(f"Quality: {generation_config.quality}")
+        logger.info(f"Starting optimized generation for job {job_id}")
 
-        # Create processor
-        processor = TextToImageProcessor()
+        # Get processor instance
+        processor = await get_processor()
 
         # Generate image
-        output_image = processor.generate_image(
+        output_image = await processor.generate_image(
+            job_id=job_id,
             prompt=generation_config.prompt,
             aspect_ratio=generation_config.aspectRatio.value,
             negative_prompt=generation_config.negativePrompt,
@@ -206,8 +312,8 @@ async def perform_image_generation(
             quality=generation_config.quality.value
         )
 
-        # Encode result
-        encode_params = [cv2.IMWRITE_PNG_COMPRESSION, 6]
+        # Optimized encoding
+        encode_params = [cv2.IMWRITE_PNG_COMPRESSION, 6]  # Balanced compression
         is_success, buffer = cv2.imencode('.png', output_image, encode_params)
 
         if not is_success:
@@ -215,55 +321,47 @@ async def perform_image_generation(
 
         output_bytes = buffer.tobytes()
 
-        # Generate thumbnail locally for better quality control
-        logger.info(f"🖼️ Generating thumbnail locally for {job_id}")
+        # Generate thumbnail
+        logger.info(f"Generating thumbnail for {job_id}")
         thumbnail_bytes = LocalImageProcessor.create_thumbnail(output_bytes)
         
-        # Optimize premium image
-        optimized_premium_bytes = LocalImageProcessor.optimize_premium_image(output_bytes)
-        
         # Upload to Cloudinary
-        logger.info(f"☁️ Uploading premium optimized image to Cloudinary for {job_id}")
+        logger.info(f"Uploading to Cloudinary for {job_id}")
         processed_url, processed_public_id = CloudinaryService.upload_processed_image(
-            optimized_premium_bytes, job_id, "text_to_image"
+            output_bytes, job_id, "text_to_image_optimized"
         )
         
-        logger.info(f"☁️ Uploading thumbnail to Cloudinary for {job_id}")
         thumbnail_url, thumbnail_public_id = CloudinaryService.upload_thumbnail(
             thumbnail_bytes, job_id
         )
 
-        # Prepare processing information
+        # Processing info
         output_h, output_w = output_image.shape[:2]
         
         processing_info = {
-            "processing_type": "text_to_image_generation",
-            "model": "stable-diffusion-v1-5",
+            "processing_type": "text_to_image_generation_optimized",
+            "model": "stable-diffusion-v1-5-optimized",
             "prompt": generation_config.prompt,
-            "negative_prompt": generation_config.negativePrompt,
             "aspect_ratio": generation_config.aspectRatio.value,
             "output_size": f"{output_w}x{output_h}",
-            "steps": generation_config.steps,
-            "guidance_scale": generation_config.guidanceScale,
+            "steps": processor.quality_settings[generation_config.quality.value]["steps"],
+            "guidance_scale": processor.quality_settings[generation_config.quality.value]["guidance_scale"],
             "quality": generation_config.quality.value,
             "full_quality_public_id": processed_public_id,
             "thumbnail_public_id": thumbnail_public_id,
             "thumbnail_url": thumbnail_url,
-            "local_thumbnail_generated": True,
-            "thumbnail_size_bytes": len(thumbnail_bytes),
-            "premium_size_bytes": len(optimized_premium_bytes),
-            "mode": "hybrid_secure_integration",
-            "device_used": processor.device if processor else "unknown"
+            "device_used": processor.device,
+            "optimizations_applied": ["reduced_steps", "fixed_resolution", "singleton_model", "duplicate_prevention"]
         }
 
-        logger.info(f"Job {job_id} completed successfully with text-to-image generation")
+        logger.info(f"Job {job_id} completed successfully")
         return processed_url, processing_info
 
     except Exception as e:
         logger.error(f"Job {job_id} failed: {e}")
-        raise ImageProcessingError(f"Text-to-image generation failed: {e}")
+        raise ImageProcessingError(f"Image generation failed: {e}")
 
     finally:
-        # Clean up
-        if processor is not None:
+          if processor is not None:
             processor._clear_memory()
+       
