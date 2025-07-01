@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { isAuthenticated, getCurrentUser, logout } from '../services/authService';
 
 import { fetchTokenBalance } from '../services/tokenService';
-import { ChevronDown, Home, Coins, Scissors, Maximize, Sparkles, Expand, Palette, Menu, X, User, FileImage } from 'lucide-react';
+import { ChevronDown, Home, Coins, Scissors, Maximize, Sparkles, Expand, Wand2, Menu, X, User, FileImage } from 'lucide-react';
 import { gsap } from 'gsap';
 import TokenPanel from './TokenPanel';
 import UserProfile from './userProfile';
@@ -216,6 +216,7 @@ const Navbar: React.FC = () => {
                         { href: "/enlarge", icon: Expand, title: "Image Enlargement", desc: "Expand canvas with AI" },
                         { href: "/upscale", icon: Maximize, title: "Image Upscaling", desc: "Enhance image quality" },
                         { href: "/object-removal", icon: Sparkles, title: "Object Removal", desc: "Remove unwanted objects" },
+                        { href: "/image-generation", icon: Wand2, title: "Image Generation", desc: "Create images from text" },
                       ].map((service) => (
                         <a
                           key={service.href}
@@ -234,16 +235,6 @@ const Navbar: React.FC = () => {
                           )}
                         </a>
                       ))}
-                      <div className="flex items-center gap-3 p-3 rounded-xl opacity-50 cursor-not-allowed">
-                        <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center">
-                          <Palette className="text-white" size={18} />
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-medium text-slate-900">Style Transfer</div>
-                          <div className="text-slate-500 text-sm">Coming soon</div>
-                        </div>
-                        <span className="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full font-medium">Soon</span>
-                      </div>
                       <div className="flex items-center gap-3 p-3 rounded-xl opacity-50 cursor-not-allowed">
                         <div className="w-10 h-10 bg-gradient-to-br from-slate-400 to-slate-600 rounded-xl flex items-center justify-center">
                           <FileImage className="text-white" size={18} />

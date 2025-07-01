@@ -29,8 +29,8 @@ public class JobPublisherService {
     @Value("${app.rabbitmq.queues.enlarge.routing-key}")
     private String enlargeRoutingKey;
 
-    @Value("${app.rabbitmq.queues.style-transfer.routing-key}")
-    private String styleTransferRoutingKey;
+    @Value("${app.rabbitmq.queues.image-generation.routing-key}")
+    private String imageGenerationRoutingKey;
 
     @Value("${app.rabbitmq.queues.object-removal.routing-key}")
 private String objectRemovalRoutingKey;
@@ -58,13 +58,13 @@ private String objectRemovalRoutingKey;
             case ENLARGE:
                 routingKey = enlargeRoutingKey;
                 break;
-            case STYLE_TRANSFER:
-                routingKey = styleTransferRoutingKey;
+            case IMAGE_GENERATION:
+                routingKey = imageGenerationRoutingKey;
                 break;
 
             case OBJECT_REMOVAL:
                 routingKey = objectRemovalRoutingKey;
-        break;
+                break;
             default:
                 log.error("Unsupported job type for routing: {}", jobMessage.getJobType());
                 throw new IllegalArgumentException("Unsupported job type: " + jobMessage.getJobType());

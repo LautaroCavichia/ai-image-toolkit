@@ -7,7 +7,7 @@ import BackgroundRemovalPage from './pages/BackgroundRemovalPage';
 import UpscalePage from './pages/UpscalePage';
 import EnlargePage from './pages/EnlargePage';
 import ObjectRemovalPage from './pages/ObjectRemovalPage';
-import StyleTransferPage from './pages/StyleTransferPage';
+import ImageGenerationPage from './pages/ImageGenerationPage';
 import ResetPasswordPage from './pages/ResetPassword';
 import AuthForm from './pages/AuthForm';
 import EmailVerificationPage from './pages/EmailVerificationPage';
@@ -84,7 +84,7 @@ const AppWrapper = () => {
       <Route path="/upscale" element={<UpscalePage />} />
       <Route path="/enlarge" element={<EnlargePage />} />
       <Route path="/object-removal" element={<ObjectRemovalPage />} />
-      <Route path="/style-transfer" element={<StyleTransferPage />} />
+      <Route path="/image-generation" element={<ImageGenerationPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

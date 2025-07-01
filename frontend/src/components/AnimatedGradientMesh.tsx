@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 
 interface AnimatedGradientMeshProps {
-  variant?: 'default' | 'background-removal' | 'enlarge' | 'upscale' | 'object-removal';
+  variant?: 'default' | 'background-removal' | 'enlarge' | 'upscale' | 'object-removal' | 'image-generation';
   className?: string;
   intensity?: 'subtle' | 'medium' | 'bold';
 }
@@ -96,6 +96,20 @@ const AnimatedGradientMesh: React.FC<AnimatedGradientMeshProps> = ({
         blob1: 'bg-gradient-radial from-violet-300/20 via-purple-300/15 to-transparent',
         blob2: 'bg-gradient-radial from-fuchsia-300/20 via-pink-300/15 to-transparent',
         base: 'from-violet-50/85 via-purple-50/90 to-fuchsia-50/80'
+      },
+      'image-generation': {
+        orb1: 'bg-gradient-to-br from-purple-400/20 via-blue-400/15 to-indigo-400/10',
+        orb2: 'bg-gradient-to-br from-blue-400/15 via-indigo-400/10 to-purple-400/20',
+        orb3: 'bg-gradient-to-br from-indigo-400/10 via-purple-400/15 to-blue-400/20',
+        orb4: 'bg-gradient-to-br from-violet-400/20 via-purple-400/10 to-blue-400/15',
+        worm1: 'bg-gradient-to-r from-purple-300/25 via-blue-300/20 to-indigo-300/15',
+        worm2: 'bg-gradient-to-l from-blue-300/20 via-indigo-300/15 to-purple-300/25',
+        worm3: 'bg-gradient-to-r from-indigo-300/15 via-violet-300/20 to-purple-300/25',
+        pill1: 'bg-gradient-to-br from-purple-300/30 to-blue-300/20',
+        pill2: 'bg-gradient-to-tl from-indigo-300/25 to-violet-300/20',
+        blob1: 'bg-gradient-radial from-purple-300/20 via-blue-300/15 to-transparent',
+        blob2: 'bg-gradient-radial from-indigo-300/20 via-violet-300/15 to-transparent',
+        base: 'from-purple-50/85 via-blue-50/90 to-indigo-50/80'
       }
     };
     return configs[variant];

@@ -7,7 +7,7 @@ import AnimatedNetMesh from '../components/AnimatedNetMesh';
 import { isAuthenticated } from '../services/authService';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Scissors, Maximize, Sparkles, Expand, Zap, Target, Shield, ArrowRight, Star, Palette, FileImage } from 'lucide-react';
+import { Scissors, Maximize, Sparkles, Expand, Zap, Target, Shield, ArrowRight, Star, Wand2, FileImage } from 'lucide-react';
 import logo from '../assets/logo.png';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -645,13 +645,12 @@ useEffect(() => {
       gradient: "bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600"
     },
     {
-      href: "#",
-      icon: Palette,
-      title: "Style Transfer",
-      description: "Transform your images with artistic styles and creative filters using advanced neural networks.",
-      tokens: "Coming Soon",
-      gradient: "bg-gradient-to-r from-pink-600 via-rose-600 to-red-600",
-      comingSoon: true
+      href: "/image-generation",
+      icon: Wand2,
+      title: "Image Generation",
+      description: "Create stunning images from text prompts using advanced AI technology and creative algorithms.",
+      tokens: "1 token",
+      gradient: "bg-gradient-to-r from-pink-600 via-rose-600 to-red-600"
     },
     {
       href: "#",

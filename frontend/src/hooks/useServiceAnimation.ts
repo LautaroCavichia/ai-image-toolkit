@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 
 interface ServiceAnimationOptions {
-  serviceType: 'background-removal' | 'upscale' | 'enlarge' | 'object-removal' | 'style-transfer';
+  serviceType: 'background-removal' | 'upscale' | 'enlarge' | 'object-removal' | 'image-generation';
   intensity?: 'subtle' | 'medium' | 'intense';
 }
 
@@ -55,14 +55,14 @@ export const useServiceAnimation = ({
         workflowStagger: 0.14,
         primaryColor: '#ea580c' // orange
       },
-      'style-transfer': {
-        hero: { duration: 1.7, delay: 0, ease: "power4.out", scale: 0.82, rotation: 3, y: 40 },
-        uploader: { duration: 1.4, delay: -1.1, ease: "power3.out", scale: 0.9, rotation: 0, y: 70 },
-        config: { duration: 1.2, delay: -0.9, ease: "power3.out", scale: 0.95, rotation: 0, y: 50 },
-        workflow: { duration: 1.1, delay: -0.7, ease: "power2.out", scale: 1.04, rotation: 0, y: 30 },
-        features: { duration: 1.0, delay: -0.5, ease: "power2.out", scale: 1.02, rotation: 0, y: 25 },
-        workflowStagger: 0.2,
-        primaryColor: '#db2777' // pink
+      'image-generation': {
+        hero: { duration: 1.6, delay: 0, ease: "power4.out", scale: 0.85, rotation: 2.5, y: 40 },
+        uploader: { duration: 1.3, delay: -1.0, ease: "power3.out", scale: 0.92, rotation: 0, y: 65 },
+        config: { duration: 1.1, delay: -0.8, ease: "power3.out", scale: 0.96, rotation: 0, y: 45 },
+        workflow: { duration: 1.0, delay: -0.6, ease: "power2.out", scale: 1.03, rotation: 0, y: 28 },
+        features: { duration: 0.9, delay: -0.4, ease: "power2.out", scale: 1.01, rotation: 0, y: 22 },
+        workflowStagger: 0.18,
+        primaryColor: '#7c3aed' // purple
       }
     };
     return configs[type as keyof typeof configs] || configs['background-removal'];

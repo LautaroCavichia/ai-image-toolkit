@@ -1,0 +1,23 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+aio-pika==9.3.0
+httpx==0.25.1
+python-dotenv==1.0.0
+pydantic==2.4.2
+cloudinary==1.36.0
+requests==2.31.0
+opencv-python==4.8.1.78
+Pillow==10.0.0
+numpy>=1.21.0
+urllib3>=1.26.0
+scipy>=1.7.0
+scikit-image>=0.18.0
+onnxruntime>=1.10.0
+pathlib2>=2.3.0
+# Text-to-image generation dependencies
+torch>=2.0.0
+diffusers>=0.21.0
+transformers>=4.21.0
+accelerate>=0.20.0
+safetensors>=0.3.0
+xformers>=0.0.20 

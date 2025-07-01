@@ -37,11 +37,11 @@ public class RabbitMQConfig {
     @Value("${app.rabbitmq.queues.enlarge.routing-key}")
     private String enlargeRoutingKey;
 
-    @Value("${app.rabbitmq.queues.style-transfer.name}")
-    private String styleTransferQueueName;
+    @Value("${app.rabbitmq.queues.image-generation.name}")
+    private String imageGenerationQueueName;
 
-    @Value("${app.rabbitmq.queues.style-transfer.routing-key}")
-    private String styleTransferRoutingKey;
+    @Value("${app.rabbitmq.queues.image-generation.routing-key}")
+    private String imageGenerationRoutingKey;
 
     // --- Queue, Exchange, Binding ---
 
@@ -66,8 +66,8 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    Queue styleTransferQueue() {
-        return QueueBuilder.durable(styleTransferQueueName).build();
+    Queue imageGenerationQueue() {
+        return QueueBuilder.durable(imageGenerationQueueName).build();
     }
 
     @Bean
@@ -92,10 +92,10 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    Binding styleTransferBinding(Queue styleTransferQueue, TopicExchange imageProcessingExchange) {
-        return BindingBuilder.bind(styleTransferQueue)
+    Binding imageGenerationBinding(Queue imageGenerationQueue, TopicExchange imageProcessingExchange) {
+        return BindingBuilder.bind(imageGenerationQueue)
                 .to(imageProcessingExchange)
-                .with(styleTransferRoutingKey);
+                .with(imageGenerationRoutingKey);
     }
 
     // --- Message converter (JSON) ---

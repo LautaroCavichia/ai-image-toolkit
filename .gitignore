@@ -44,3 +44,4 @@ replace.txt
 microservices/enlarge-service/models/
 
 /zonda-ui-kit/
+microservices/image-generation-service/app/__pycache__

@@ -4,6 +4,6 @@ public enum JobTypeEnum {
     BG_REMOVAL,
     UPSCALE,
     ENLARGE,
-    STYLE_TRANSFER,
+    IMAGE_GENERATION,
     OBJECT_REMOVAL;
 }

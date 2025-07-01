@@ -106,6 +106,11 @@ public class ImageController {
             jobConfig.putIfAbsent("scale", 2); // Default scale factor
         } else if (jobType == JobTypeEnum.ENLARGE) {
             jobConfig.putIfAbsent("scaleFactor", 2); // Default scale factor for enlarge
+        } else if (jobType == JobTypeEnum.IMAGE_GENERATION) {
+            jobConfig.putIfAbsent("aspectRatio", "square"); // Default aspect ratio
+            jobConfig.putIfAbsent("quality", "FREE"); // Default quality
+            jobConfig.putIfAbsent("steps", 20); // Default inference steps
+            jobConfig.putIfAbsent("guidanceScale", 7.5); // Default guidance scale
         }
 
        try {
