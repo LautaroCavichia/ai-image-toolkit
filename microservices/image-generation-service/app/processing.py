@@ -47,23 +47,22 @@ class TextToImageProcessor:
         
         # Optimized resolutions (menores para mejor velocidad)
         self.resolutions = {
-            "square": (512, 512),      # Reduced from 768x768
-            "portrait": (512, 640),    # Reduced from 512x768
-            "landscape": (640, 512),   # Reduced from 768x512
-                  # Reduced from 512x896
-        }
+        "square": (512, 512),      # Resolución estándar
+        "portrait": (512, 768),    # Mejor para retratos
+        "landscape": (768, 512),   # Mejor para paisajes
+}
         
         # Balanced quality settings (mejor balance velocidad/calidad)
         self.quality_settings = {
             "FREE": {
-                "steps": 8,            # Reduced from 10
-                "guidance_scale": 7.0, # Reduced from 7.5
-                "resolution_scale": 2.0
+                "steps": 20,            # Reduced from 10
+                "guidance_scale": 7.5, # Reduced from 7.5
+                
             },
             "PREMIUM": {
-                "steps": 20,           # Reduced from 35
+                "steps": 30,           # Reduced from 35
                 "guidance_scale": 7.5, # Reduced from 8.5
-                "resolution_scale": 1.0 # Removed upscaling
+                # Removed upscaling
             }
         }
         
@@ -95,7 +94,8 @@ class TextToImageProcessor:
             self._clear_memory()
 
             # Single, reliable model choice
-            model_id = "runwayml/stable-diffusion-v1-5"  # Most stable and fast
+            model_id = "stabilityai/stable-diffusion-2-base"
+  # Most stable and fast
             
             dtype = torch.float16 if self.device == "cuda" else torch.float32
             
@@ -142,21 +142,39 @@ class TextToImageProcessor:
             return False
 
     def _enhance_prompt(self, prompt: str, quality: str = "FREE") -> str:
-        """Simplified prompt enhancement."""
+        """Enhanced prompt with better framing."""
         base_prompt = prompt.strip()
         
+        # Agregar términos de encuadre y composición
+        framing_terms = [
+            "full view",
+            "complete subject", 
+            "well framed",
+            "centered composition",
+            "wide shot"
+        ]
+        
         if quality == "PREMIUM":
-            enhancers = ["high quality", "detailed", "8k"]
+            enhancers = [
+                "high quality", "detailed", "8k", "professional photography",
+                "full view", "complete subject", "well composed", "centered"
+            ]
         else:
-            enhancers = ["high quality"]
+            enhancers = [
+                "high quality", "full view", "complete subject", 
+                "well framed", "centered"
+            ]
         
         return f"{base_prompt}, {', '.join(enhancers)}"
 
     def _get_negative_prompt(self, custom_negative: str = None) -> str:
-        """Simplified negative prompt."""
+        """Enhanced negative prompt to avoid cropping."""
         base_negative = [
             "low quality", "blurry", "bad anatomy", "deformed", 
-            "watermark", "text", "signature"
+            "watermark", "text", "signature",
+            
+            "cropped", "cut off", "partial view", "cropped out",
+            "incomplete", "cut", "truncated", "border crop"
         ]
         
         negative_prompt = ", ".join(base_negative)
@@ -166,22 +184,6 @@ class TextToImageProcessor:
             
         return negative_prompt
 
-    def _post_process_image(self, image: Image.Image, quality: str = "FREE") -> Image.Image:
-        """Minimal post-processing for speed."""
-        try:
-            if image.mode != 'RGB':
-                image = image.convert('RGB')
-            
-            # Only basic enhancement for premium
-            if quality == "PREMIUM":
-                enhancer = ImageEnhance.Sharpness(image)
-                image = enhancer.enhance(1.1)
-            
-            return image
-            
-        except Exception as e:
-            logger.warning(f"Post-processing failed: {e}")
-            return image
 
     async def generate_image(
         self, 
@@ -248,7 +250,7 @@ class TextToImageProcessor:
                 ).images[0]
 
             # Minimal post-processing
-            result = self._post_process_image(result, quality)
+           
 
             # Convert to BGR
             result_array = np.array(result)
@@ -284,8 +286,7 @@ async def perform_image_generation(
     Optimized main function for text-to-image generation.
     """
     # CPU optimization
-    if not torch.cuda.is_available():
-        torch.set_num_threads(4)  # Fixed thread count
+      # Fixed thread count
     
     try:
         os.makedirs(MODELS_DIR, exist_ok=True)
@@ -328,7 +329,7 @@ async def perform_image_generation(
         # Upload to Cloudinary
         logger.info(f"Uploading to Cloudinary for {job_id}")
         processed_url, processed_public_id = CloudinaryService.upload_processed_image(
-            output_bytes, job_id, "text_to_image_optimized"
+            output_bytes, job_id, "pixel_perfect"
         )
         
         thumbnail_url, thumbnail_public_id = CloudinaryService.upload_thumbnail(
