@@ -32,8 +32,7 @@ export const login = async (credentials: AuthRequest): Promise<AuthResponse> => 
     
     const response = await axios.post<AuthResponse>(
       `${API_BASE_URL}/auth/login`, 
-      credentials,
-      { timeout: 10000 }
+      credentials
     );
 
     console.log('✅ Response recibida:', response.status);
@@ -65,7 +64,7 @@ export const login = async (credentials: AuthRequest): Promise<AuthResponse> => 
         };
         throw errorData;
       }
-      // 👇 Ahora mostramos el mensaje real del backend
+     
       errorMessage = error.response.data || 'Your account is locked.';
     } else if (!error.response) {
       errorMessage = 'Network error. Please check your connection.';
