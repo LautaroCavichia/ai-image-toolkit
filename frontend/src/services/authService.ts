@@ -32,7 +32,8 @@ export const login = async (credentials: AuthRequest): Promise<AuthResponse> => 
     
     const response = await axios.post<AuthResponse>(
       `${API_BASE_URL}/auth/login`, 
-      credentials
+      credentials,
+      { timeout: 10000 }
     );
 
     console.log('✅ Response recibida:', response.status);

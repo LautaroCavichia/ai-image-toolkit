@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Layout from '../components/Layout';
 import Navbar from '../components/Navbar';
-import LoadingScreen from '../components/LoadingScreen';
+//import LoadingScreen from '../components/LoadingScreen';
 import AnimatedGradientMesh from '../components/AnimatedGradientMesh';
 import AnimatedNetMesh from '../components/AnimatedNetMesh';
 import { isAuthenticated } from '../services/authService';
@@ -13,16 +13,8 @@ import logo from '../assets/logo.png';
 gsap.registerPlugin(ScrollTrigger);
 
 const HomePage: React.FC = () => {
-  const [isLoading, setIsLoading] = useState(() => {
-    // Only show loading screen on first visit
-    const hasVisited = localStorage.getItem('hasVisitedHomepage');
-    return !hasVisited;
-  });
-  const [showContent, setShowContent] = useState(() => {
-    // Show content immediately if user has visited before
-    const hasVisited = localStorage.getItem('hasVisitedHomepage');
-    return !!hasVisited;
-  });
+   const [showContent, setShowContent] = useState(true);
+ 
   const [activeTextIndex, setActiveTextIndex] = useState(0);
 
   const heroRef = useRef<HTMLDivElement>(null);
@@ -146,15 +138,6 @@ const HomePage: React.FC = () => {
   }, [technologies.length]);
 
 
-
-
-
-  const handleLoadingComplete = () => {
-    // Mark that user has visited the homepage
-    localStorage.setItem('hasVisitedHomepage', 'true');
-    setIsLoading(false);
-    setTimeout(() => setShowContent(true), 100);
-  };
 
 
 useEffect(() => {
@@ -688,9 +671,7 @@ useEffect(() => {
     "FUTURE READY"
   ];
 
-  if (isLoading) {
-    return <LoadingScreen onComplete={handleLoadingComplete} />;
-  }
+  
 
   return (
     <Layout>
