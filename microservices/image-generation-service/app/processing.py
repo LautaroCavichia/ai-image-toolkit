@@ -47,10 +47,10 @@ class TextToImageProcessor:
         
         # Optimized resolutions (menores para mejor velocidad)
         self.resolutions = {
-        "square": (512, 512),      # Resolución estándar
-        "portrait": (512, 768),    # Mejor para retratos
-        "landscape": (768, 512),   # Mejor para paisajes
-}
+            "square": (640, 480),      # Mantener cuadrado para generación inicial
+            "portrait": (512, 704),    
+            "landscape": (704, 512),   
+        }
         
         # Balanced quality settings (mejor balance velocidad/calidad)
         self.quality_settings = {
@@ -94,7 +94,7 @@ class TextToImageProcessor:
             self._clear_memory()
 
             # Single, reliable model choice
-            model_id = "stabilityai/stable-diffusion-2-base"
+            model_id = "SG161222/Realistic_Vision_V5.1_noVAE"
   # Most stable and fast
             
             dtype = torch.float16 if self.device == "cuda" else torch.float32
