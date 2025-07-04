@@ -1,6 +1,6 @@
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
+dockerfilePath = "/microservices/bg-removal-service/Dockerfile"
 
 [deploy]
 healthcheckPath = "/health"
