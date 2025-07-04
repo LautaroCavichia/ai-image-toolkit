@@ -1,0 +1,35 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+[env]
+# RabbitMQ Configuration
+RABBITMQ_URL = "${{RABBITMQ_URL}}"
+CONSUME_QUEUE_NAME = "q_bg_removal"
+CONSUME_EXCHANGE_NAME = "image_processing_exchange"
+CONSUME_ROUTING_KEY = "job.bg_removal"
+
+# Spring Boot Backend Callback URL (Render deployment)
+SPRING_BOOT_CALLBACK_URL_TEMPLATE = "${{BACKEND_URL}}/api/v1/jobs/{job_id}/status"
+
+# Service Configuration
+PORT = "8001"
+HOST = "0.0.0.0"
+
+# Cloudinary Configuration
+CLOUDINARY_CLOUD_NAME = "${{CLOUDINARY_CLOUD_NAME}}"
+CLOUDINARY_API_KEY = "${{CLOUDINARY_API_KEY}}"
+CLOUDINARY_API_SECRET = "${{CLOUDINARY_API_SECRET}}"
+
+# Logging
+LOG_LEVEL = "INFO"
+
+# Python Environment
+PYTHONDONTWRITEBYTECODE = "1"
+PYTHONUNBUFFERED = "1"
