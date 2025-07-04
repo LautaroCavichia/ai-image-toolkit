@@ -45,3 +45,5 @@ microservices/enlarge-service/models/
 
 /zonda-ui-kit/
 microservices/image-generation-service/app/__pycache__
+.env.template
+.env.*
