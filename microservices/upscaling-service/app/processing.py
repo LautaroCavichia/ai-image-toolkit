@@ -1,140 +1,188 @@
 """
-Image processing module for upscaling with Real-ESRGAN integration.
+Memory-optimized image processing module for upscaling with Real-ESRGAN integration.
+Designed to use <512MB RAM with faster processing.
 """
 
 import logging
 import os
 import cv2
 import numpy as np
-from typing import Dict, Tuple, Any
+from typing import Dict, Tuple, Any, Optional
 import urllib.request
 from pathlib import Path
 from realesrgan import RealESRGANer
 from basicsr.archs.rrdbnet_arch import RRDBNet
 import torch
+import gc
 from app.cloudinary_service import CloudinaryService
 from app.config import MODELS_DIR
 from app.local_image_processing import LocalImageProcessor
 
 logger = logging.getLogger(__name__)
 
+# Global model cache - only one model at a time
+_current_model = None
+_current_model_name = None
 
+# Check GPU availability once
+CUDA_AVAILABLE = torch.cuda.is_available()
+if CUDA_AVAILABLE:
+    logger.info(f"GPU available: {torch.cuda.get_device_name(0)}")
+else:
+    logger.info("Using CPU for processing")
 
-#Checking dedicated graphics availability
-print("CUDA available:", torch.cuda.is_available())
-if torch.cuda.is_available():
-    print("GPU:", torch.cuda.get_device_name(0))
-
-class UpscalingProcessor:
-    def __init__(self):
-        self.models = {}
-        self.model_configs = {
-            'RealESRGAN_x2plus': {
-                'url': 'https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.1/RealESRGAN_x2plus.pth',
-                'scale': 2,
-                'filename': 'RealESRGAN_x2plus.pth'
-            },
-            'RealESRGAN_x4plus': {
-                'url': 'https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth',
-                'scale': 4,
-                'filename': 'RealESRGAN_x4plus.pth'
-            }
-        }
-        self._initialize_models()
+class OptimizedUpscalingProcessor:
+    """Memory-efficient upscaling processor that loads models on-demand."""
     
-    def _download_model(self, model_name: str) -> str:
-        """Download model if it doesn't exist."""
-        if model_name not in self.model_configs:
-            raise ValueError(f"Unknown model: {model_name}")
+    MODEL_CONFIGS = {
+        'free': {
+            'url': 'https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.1/RealESRGAN_x2plus.pth',
+            'scale': 2,
+            'filename': 'RealESRGAN_x2plus.pth',
+            'blocks': 23
+        },
+        'premium': {
+            'url': 'https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth',
+            'scale': 4,
+            'filename': 'RealESRGAN_x4plus.pth',
+            'blocks': 23
+        }
+    }
+    
+    def __init__(self):
+        """Initialize without loading any models to save memory."""
+        os.makedirs(MODELS_DIR, exist_ok=True)
+        self._ensure_models_downloaded()
+    
+    def _ensure_models_downloaded(self):
+        """Pre-download models if needed, but don't load them."""
+        for model_key, config in self.MODEL_CONFIGS.items():
+            model_path = os.path.join(MODELS_DIR, config['filename'])
+            if not os.path.exists(model_path):
+                logger.info(f"Downloading {model_key} model...")
+                try:
+                    urllib.request.urlretrieve(config['url'], model_path)
+                    logger.info(f"Downloaded {config['filename']}")
+                except Exception as e:
+                    logger.error(f"Failed to download {model_key}: {e}")
+                    raise RuntimeError(f"Model download failed: {e}")
+    
+    def _load_model_on_demand(self, model_type: str) -> RealESRGANer:
+        """Load model only when needed and cache it globally."""
+        global _current_model, _current_model_name
         
-        config = self.model_configs[model_name]
+        if _current_model_name == model_type and _current_model is not None:
+            return _current_model
+        
+        # Clear previous model to free memory
+        if _current_model is not None:
+            del _current_model
+            _current_model = None
+            gc.collect()
+            if CUDA_AVAILABLE:
+                torch.cuda.empty_cache()
+        
+        config = self.MODEL_CONFIGS[model_type]
         model_path = os.path.join(MODELS_DIR, config['filename'])
         
-        if not os.path.exists(model_path):
-            logger.info(f"Downloading {model_name} from {config['url']}")
-            try:
-                # Create directory if it doesn't exist
-                os.makedirs(MODELS_DIR, exist_ok=True)
-                
-                # Download the model
-                urllib.request.urlretrieve(config['url'], model_path)
-                logger.info(f"Successfully downloaded {model_name} to {model_path}")
-            except Exception as e:
-                logger.error(f"Failed to download {model_name}: {e}")
-                raise RuntimeError(f"Could not download model {model_name}: {e}")
-        else:
-            logger.info(f"Model {model_name} already exists at {model_path}")
+        logger.info(f"Loading {model_type} model...")
         
-        return model_path
+        # Create lightweight model
+        model = RRDBNet(
+            num_in_ch=3, 
+            num_out_ch=3, 
+            num_feat=64, 
+            num_block=config['blocks'], 
+            num_grow_ch=32, 
+            scale=config['scale']
+        )
+        
+        # Use half precision on GPU to save memory
+        use_half = CUDA_AVAILABLE
+        gpu_id = 0 if CUDA_AVAILABLE else None
+        
+        upsampler = RealESRGANer(
+            scale=config['scale'],
+            model_path=model_path,
+            dni_weight=None,
+            model=model,
+            tile=512,  # Use tiling to reduce memory usage
+            tile_pad=10,
+            pre_pad=0,
+            half=use_half,
+            gpu_id=gpu_id
+        )
+        
+        _current_model = upsampler
+        _current_model_name = model_type
+        
+        logger.info(f"Model {model_type} loaded successfully")
+        return upsampler
     
-    def _initialize_models(self):
-        """Initialize Real-ESRGAN models for different quality levels."""
+    def process_image(self, image_data: bytes, is_premium: bool = False) -> Tuple[bytes, Dict[str, Any]]:
+        """Process image with memory optimization."""
+        model_type = 'premium' if is_premium else 'free'
+        
+        # Load model on demand
+        upsampler = self._load_model_on_demand(model_type)
+        
+        # Decode image efficiently
+        nparr = np.frombuffer(image_data, np.uint8)
+        input_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if input_image is None:
+            raise ValueError("Failed to decode input image")
+        
+        original_shape = input_image.shape[:2]
+        
+        # Resize if image is too large to prevent memory issues
+        max_dimension = 2048 if is_premium else 1024
+        h, w = original_shape
+        if max(h, w) > max_dimension:
+            scale_factor = max_dimension / max(h, w)
+            new_h, new_w = int(h * scale_factor), int(w * scale_factor)
+            input_image = cv2.resize(input_image, (new_w, new_h), interpolation=cv2.INTER_AREA)
+            logger.info(f"Resized input from {w}x{h} to {new_w}x{new_h}")
+        
+        # Process with upsampler
         try:
-            logger.info(f"Initializing models in directory: {MODELS_DIR}")
-            
-            # Free model: RealESRGAN_x2plus
-            self.models['free'] = self._load_model('RealESRGAN_x2plus')
-            
-            # Premium model: RealESRGAN_x4plus  
-            self.models['premium'] = self._load_model('RealESRGAN_x4plus')
-            
-            logger.info("Successfully initialized all upscaling models")
-            
+            output_image, _ = upsampler.enhance(input_image, outscale=None)
         except Exception as e:
-            logger.error(f"Failed to initialize models: {e}")
-            raise RuntimeError(f"Model initialization failed: {e}")
-    
-    def _load_model(self, model_name: str):
-        """Load a Real-ESRGAN model with automatic download."""
-        try:
-            logger.info(f"Loading model: {model_name}")
-            
-            # Download model if needed
-            model_path = self._download_model(model_name)
-            config = self.model_configs[model_name]
-            scale = config['scale']
-            
-            # Define model architecture based on scale
-            if scale == 2:
-                model = RRDBNet(
-                    num_in_ch=3, 
-                    num_out_ch=3, 
-                    num_feat=64, 
-                    num_block=23, 
-                    num_grow_ch=32, 
-                    scale=2
-                )
-            elif scale == 4:
-                model = RRDBNet(
-                    num_in_ch=3, 
-                    num_out_ch=3, 
-                    num_feat=64, 
-                    num_block=23, 
-                    num_grow_ch=32, 
-                    scale=4
-                )
-            else:
-                raise ValueError(f"Unsupported scale: {scale}")
-            
-            # Initialize upsampler with downloaded model
-            upsampler = RealESRGANer(
-                scale=scale,
-                model_path=model_path,  # Use the downloaded model path
-                dni_weight=None,
-                model=model,
-                tile=0,
-                tile_pad=10,
-                pre_pad=0,
-                half=False,  # Use FP32 for better compatibility
-                gpu_id=False # Auto-detect GPU
-            )
-            
-            logger.info(f"Successfully loaded model: {model_name} from {model_path}")
-            return upsampler
-            
-        except Exception as e:
-            logger.error(f"Failed to load model {model_name}: {str(e)}")
-            raise RuntimeError(f"Could not initialize {model_name}: {e}")
+            logger.error(f"Enhancement failed: {e}")
+            raise RuntimeError(f"Upscaling failed: {e}")
+        
+        # Convert and encode efficiently
+        if output_image.dtype != np.uint8:
+            output_image = np.clip(output_image, 0, 255).astype(np.uint8)
+        
+        # Use JPEG for better compression and speed
+        encode_params = [cv2.IMWRITE_JPEG_QUALITY, 95]
+        success, buffer = cv2.imencode('.jpg', output_image, encode_params)
+        
+        if not success:
+            raise RuntimeError("Failed to encode output image")
+        
+        output_bytes = buffer.tobytes()
+        
+        # Calculate processing info
+        output_shape = output_image.shape[:2]
+        scale_factor = output_shape[1] / original_shape[1]
+        
+        processing_info = {
+            "model_used": f"RealESRGAN_x{self.MODEL_CONFIGS[model_type]['scale']}plus",
+            "quality_level": model_type,
+            "scale_factor": round(scale_factor, 2),
+            "original_size": f"{original_shape[1]}x{original_shape[0]}",
+            "output_size": f"{output_shape[1]}x{output_shape[0]}",
+            "is_premium": is_premium,
+            "memory_optimized": True
+        }
+        
+        # Clean up
+        del input_image, output_image, nparr, buffer
+        gc.collect()
+        
+        return output_bytes, processing_info
 
 
 async def perform_upscaling(
@@ -143,7 +191,7 @@ async def perform_upscaling(
     config: Dict[str, Any]
 ) -> Tuple[str, Dict[str, Any]]:
     """
-    Perform image upscaling using Real-ESRGAN.
+    Perform optimized image upscaling using Real-ESRGAN.
     
     Args:
         job_id: Unique job identifier
@@ -153,103 +201,102 @@ async def perform_upscaling(
     Returns:
         Tuple of (processed_image_url, processing_info)
     """
-    logger.info(f"Processing upscaling job {job_id} with image URL: {image_url}")
+    logger.info(f"Processing upscaling job {job_id}")
     
-    processor = None
     try:
-        # Get quality level from config (default to free)
+        # Get quality level
         quality = config.get('quality', 'FREE').upper()
         is_premium = quality == 'PREMIUM'
         
-        # Download image from Cloudinary
-        logger.info(f"Downloading image from Cloudinary: {image_url}")
+        # Download image efficiently
+        logger.info(f"Downloading image from Cloudinary")
         input_image_bytes = CloudinaryService.download_image_from_url(image_url)
         
-        # Convert bytes to opencv image
-        nparr = np.frombuffer(input_image_bytes, np.uint8)
-        input_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        # Process with optimized processor
+        processor = OptimizedUpscalingProcessor()
+        output_bytes, processing_info = processor.process_image(input_image_bytes, is_premium)
         
-        if input_image is None:
-            raise ValueError("Failed to decode input image")
-        
-        # Initialize processor
-        logger.info("Initializing UpscalingProcessor...")
-        processor = UpscalingProcessor()
-        
-        # Select model based on quality
-        model_key = 'premium' if is_premium else 'free'
-        upsampler = processor.models[model_key]
-        
-        if upsampler is None:
-            raise RuntimeError(f"Failed to load {model_key} upscaling model")
-        
-        logger.info(f"Performing {quality.lower()} quality upscaling for job {job_id}")
-        
-        # Perform upscaling
-        try:
-            output_image, _ = upsampler.enhance(input_image, outscale=None)
-        except Exception as e:
-            logger.error(f"Upscaling enhancement failed: {e}")
-            raise RuntimeError(f"Upscaling process failed: {e}")
-        
-        output_image_bgr = cv2.cvtColor(output_image, cv2.COLOR_RGB2BGR)
-        is_success, buffer = cv2.imencode('.png', output_image_bgr, [cv2.IMWRITE_PNG_COMPRESSION, 6])
-        # Convert result back to bytes
-        is_success, buffer = cv2.imencode('.png', output_image)
-        if not is_success:
-            raise RuntimeError("Failed to encode output image")
-        
-        output_bytes = buffer.tobytes()
-        
-        logger.info(f"🖼️ Generating thumbnail locally for {job_id}")
-        # Create thumbnail locally for better quality control
+        # Create thumbnail efficiently
+        logger.info(f"Creating thumbnail for {job_id}")
         thumbnail_bytes = LocalImageProcessor.create_thumbnail(output_bytes)
         
-        # Optimize premium image
-        optimized_premium_bytes = LocalImageProcessor.optimize_premium_image(output_bytes)
+        # Optimize for upload
+        if is_premium:
+            optimized_bytes = LocalImageProcessor.optimize_premium_image(output_bytes)
+        else:
+            optimized_bytes = output_bytes
         
-        logger.info(f"☁️ Uploading premium optimized image to Cloudinary for {job_id}")
+        # Upload to Cloudinary
+        logger.info(f"Uploading to Cloudinary for {job_id}")
         processed_url, processed_public_id = CloudinaryService.upload_processed_image(
-            optimized_premium_bytes, job_id, "upscaled"
+            optimized_bytes, job_id, "upscaled"
         )
         
-        logger.info(f"☁️ Uploading thumbnail to Cloudinary for {job_id}")
         thumbnail_url, thumbnail_public_id = CloudinaryService.upload_thumbnail(
             thumbnail_bytes, job_id
         )
-
-        logger.info(f"✅ Successfully processed upscaling job {job_id}")
-        logger.info(f"🔗 Premium quality URL: {processed_url}")
-        logger.info(f"🔗 Thumbnail URL: {thumbnail_url}")
-
-        # Calculate scale factor
-        original_height, original_width = input_image.shape[:2]
-        output_height, output_width = output_image.shape[:2]
-        scale_factor = output_width / original_width
-
-        processing_info = {
-            "model_used": "RealESRGAN_x4plus" if is_premium else "RealESRGAN_x2plus",
-            "quality_level": quality.lower(),
-            "scale_factor": round(scale_factor, 2),
-            "original_size": f"{original_width}x{original_height}",
-            "output_size": f"{output_width}x{output_height}",
-            "processing_time_seconds": 0,
+        
+        # Update processing info
+        processing_info.update({
             "full_quality_public_id": processed_public_id,
             "thumbnail_public_id": thumbnail_public_id,
             "thumbnail_url": thumbnail_url,
             "local_thumbnail_generated": True,
             "thumbnail_size_bytes": len(thumbnail_bytes),
-            "premium_size_bytes": len(optimized_premium_bytes),
-            "mode": "hybrid_secure_integration",
-            "is_premium": is_premium
-        }
-
+            "premium_size_bytes": len(optimized_bytes),
+            "mode": "memory_optimized"
+        })
+        
+        logger.info(f"✅ Successfully processed job {job_id}")
+        logger.info(f"🔗 URL: {processed_url}")
+        
+        # Final cleanup
+        del input_image_bytes, output_bytes, thumbnail_bytes, optimized_bytes
+        gc.collect()
+        if CUDA_AVAILABLE:
+            torch.cuda.empty_cache()
+        
         return processed_url, processing_info
-
+        
     except Exception as e:
         logger.error(f"Upscaling failed for job {job_id}: {e}")
+        # Force cleanup on error
+        gc.collect()
+        if CUDA_AVAILABLE:
+            torch.cuda.empty_cache()
         raise RuntimeError(f"Upscaling failed: {e}")
-    finally:
-        # Clean up if needed
-        if processor:
-            del processor
+
+
+def cleanup_models():
+    """Manually cleanup models to free memory."""
+    global _current_model, _current_model_name
+    
+    if _current_model is not None:
+        del _current_model
+        _current_model = None
+        _current_model_name = None
+        gc.collect()
+        if CUDA_AVAILABLE:
+            torch.cuda.empty_cache()
+        logger.info("Models cleaned up successfully")
+
+
+def get_memory_usage() -> Dict[str, Any]:
+    """Get current memory usage statistics."""
+    import psutil
+    import os
+    
+    process = psutil.Process(os.getpid())
+    memory_info = process.memory_info()
+    
+    stats = {
+        "rss_mb": memory_info.rss / 1024 / 1024,
+        "vms_mb": memory_info.vms / 1024 / 1024,
+        "model_loaded": _current_model_name,
+    }
+    
+    if CUDA_AVAILABLE:
+        stats["gpu_memory_mb"] = torch.cuda.memory_allocated() / 1024 / 1024
+        stats["gpu_memory_cached_mb"] = torch.cuda.memory_reserved() / 1024 / 1024
+    
+    return stats
