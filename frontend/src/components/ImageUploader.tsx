@@ -21,9 +21,10 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated, onImageSele
     
     const reader = new FileReader();
     reader.onload = () => {
-      setPreview(reader.result as string);
-      onImageSelected(file, preview);
-    };
+  const result = reader.result as string;
+  setPreview(result);
+  onImageSelected(file, result); 
+};
     reader.readAsDataURL(file);
   };
 
