@@ -74,16 +74,16 @@ const ImageGenerationPage: React.FC = () => {
   // Mock images for the slider
   const mockImages = [
     {
-      before: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&h=600&fit=crop',
-      after: 'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=600&h=600&fit=crop',
-      title: 'Fantasy Landscape',
-      description: 'Generated from prompt: "mystical forest with glowing mushrooms, fantasy art"'
+      before: 'https://i.imgur.com/8LmHyoh.png',
+      after: 'https://i.imgur.com/fK6xA7U.png',
+      title: 'Fantasy Candy Island',
+      description: 'Generated from prompt: "a breathtakingly vibrant 3D render of a fantasy candy landscape, featuring twisted sugary trees adorned with glistening crystal-like sweets, wavy licorice vines, and towering gumdrop mountains, set against a radiant sky with hues of cotton candy pink, electric blue, and sunshine yellow"'
     },
     {
-      before: 'https://images.unsplash.com/photo-1564131149321-3da5832c4ff8?w=600&h=600&fit=crop',
-      after: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=600&h=600&fit=crop',
-      title: 'Futuristic City',
-      description: 'Generated from prompt: "cyberpunk city skyline at night, neon lights"'
+      before: 'https://i.imgur.com/8LmHyoh.png',
+      after: 'https://i.imgur.com/birXPAV.png',
+      title: 'Sports Car',
+      description: 'Generated from prompt: "a highly detailed, photorealistic 3D render of a sleek, silver McLaren 570S speeding down a winding road at 300km/h, its wheels slightly lifted off the ground, with motion blur and wispy smoke trails behind it, set against a vibrant, gradient blue sky"'
     }
   ];
 

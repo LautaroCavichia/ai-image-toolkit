@@ -47,10 +47,12 @@ class TextToImageProcessor:
         
         # Reduced resolutions for memory optimization
         self.resolutions = {
-            "square": (512, 512),
-            "portrait": (448, 576),    
-            "landscape": (576, 448),   
-        }
+    "square": (512, 512),
+    "portrait": (448, 576),
+    "landscape": (576, 448),
+}
+
+
         
         # Cache for processed prompts (reduced size)
         self._prompt_cache = {}
@@ -177,8 +179,8 @@ class TextToImageProcessor:
     def _get_negative_prompt(self, custom_negative: str = None) -> str:
         """Simplified negative prompt."""
         base_negative = [
-            "low quality", "blurry", "bad anatomy", "cropped", 
-            "cut off", "watermark", "text"
+            "text", "numbers", "low quality", "blurry", "bad anatomy", "cropped", 
+            "cut off", "watermark"
         ]
         
         negative_prompt = ", ".join(base_negative)

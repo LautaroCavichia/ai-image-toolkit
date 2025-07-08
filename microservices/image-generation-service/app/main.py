@@ -15,6 +15,7 @@ import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from aio_pika.abc import AbstractIncomingMessage, AbstractRobustConnection
+from aio_pika.exceptions import ChannelInvalidStateError
 
 from app.config import (
     RABBITMQ_URL,
@@ -43,6 +44,15 @@ app = FastAPI(
 # Global variables for the RabbitMQ connection and HTTP client
 rabbitmq_connection: Optional[AbstractRobustConnection] = None
 http_client: Optional[httpx.AsyncClient] = None
+
+async def safe_ack(message):
+    try:
+        await message.ack()
+    except ChannelInvalidStateError:
+        logger.error("Channel invalid when attempting to ack message.")
+    except Exception as e:
+        logger.error(f"Unexpected error on ack: {e}")
+
 
 @app.on_event("startup")
 async def startup_event():
@@ -169,7 +179,7 @@ async def process_message(message: AbstractIncomingMessage) -> None:
             # Only process IMAGE_GENERATION job type
             if job_dto.jobType != "IMAGE_GENERATION":
                 logger.warning(f"Ignoring job {job_id} with unsupported type: {job_dto.jobType}")
-                await message.ack()
+                await safe_ack(message)
                 return
 
             # Send PROCESSING status on first attempt, RETRYING on subsequent attempts
@@ -197,7 +207,7 @@ async def process_message(message: AbstractIncomingMessage) -> None:
             await send_status_update(job_id, completed_status)
 
             # Acknowledge the message on successful processing
-            await message.ack()
+            await safe_ack(message)
             logger.info(f"Job {job_id} completed successfully on attempt {retry_count + 1}")
             return  # Exit after success
 
