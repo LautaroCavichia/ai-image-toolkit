@@ -12,12 +12,14 @@ interface BeforeAfterSliderProps {
   images: BeforeAfterImage[];
   autoPlay?: boolean;
   autoPlayInterval?: number;
+  objectFit?: 'contain' | 'cover' | 'fill' | 'scale-down';
 }
 
 const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   images,
   autoPlay = true,
-  autoPlayInterval = 8000
+  autoPlayInterval = 8000,
+  objectFit = 'contain' // Changed default to 'contain' to prevent zoom
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(autoPlay);
@@ -83,7 +85,7 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
       }
 
       const elapsed = Date.now() - animationStartTimeRef.current;
-      const cycleDuration = 6000; // Reduced from 8000 for smoother animation
+      const cycleDuration = 6000;
 
       const progress = (elapsed % cycleDuration) / cycleDuration;
       const position = ((Math.cos(progress * Math.PI * 2) + 1) / 2) * 100;
@@ -178,7 +180,6 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
       setIsDragging(false);
     };
 
-    // Add listeners only to container to avoid conflicts
     const container = containerRef.current;
     if (container) {
       container.addEventListener('mousemove', handleMouseMove, { passive: false });
@@ -209,6 +210,17 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
 
   if (!currentImage) return null;
 
+  // Get the appropriate object-fit class
+  const getObjectFitClass = () => {
+    switch (objectFit) {
+      case 'contain': return 'object-contain';
+      case 'cover': return 'object-cover';
+      case 'fill': return 'object-fill';
+      case 'scale-down': return 'object-scale-down';
+      default: return 'object-contain';
+    }
+  };
+
   return (
     <div className="bg-white/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-xl border border-slate-200/50">
       <div className="text-center mb-8">
@@ -218,18 +230,36 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         <p className="text-slate-600 text-lg">Experience the transformation power of our AI</p>
       </div>
 
+      {/* Object Fit Controls */}
+      <div className="flex justify-center gap-2 mb-6">
+        <span className="text-sm text-slate-600 mr-2">Image fit:</span>
+        {['contain', 'cover', 'fill', 'scale-down'].map((fit) => (
+          <button
+            key={fit}
+            onClick={() => {}}
+            className={`px-3 py-1 text-xs rounded-full transition-colors ${
+              objectFit === fit 
+                ? 'bg-slate-900 text-white' 
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            {fit}
+          </button>
+        ))}
+      </div>
+
       {/* Before/After Container */}
       <div
         ref={containerRef}
-        className="relative w-full h-96 md:h-[500px] rounded-2xl overflow-hidden shadow-2xl mb-8 select-none"
+        className="relative w-full h-96 md:h-[500px] rounded-2xl overflow-hidden shadow-2xl mb-8 select-none bg-slate-50"
         style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
       >
         {/* Before Image */}
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 flex items-center justify-center">
           <img
             src={currentImage.before}
             alt="Before"
-            className="w-full h-full object-cover"
+            className={`w-full h-full ${getObjectFitClass()}`}
             draggable={false}
           />
           <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium">
@@ -237,17 +267,17 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           </div>
         </div>
 
-        {/* After Image with Clip - Removed ALL transitions during drag */}
+        {/* After Image with Clip */}
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 flex items-center justify-center"
           style={{ 
             clipPath: `polygon(${sliderPosition}% 0%, 100% 0%, 100% 100%, ${sliderPosition}% 100%)`,
             willChange: isDragging ? 'clip-path' : 'auto'
           }}
         >
-          {/* Container with a white background */}
-          <div className="w-full h-full relative bg-white">
-            {/* Grid positioned underneath the image */}
+          {/* Container with background pattern for transparency */}
+          <div className="w-full h-full relative bg-slate-50">
+            {/* Transparency grid pattern */}
             <div
               className="absolute inset-0"
               style={{
@@ -255,11 +285,11 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
                 backgroundSize: '20px 20px',
               }}
             />
-            {/* Image with relative positioning to stack on top of the grid */}
+            {/* After image */}
             <img
               src={currentImage.after}
               alt="After"
-              className="w-full h-full object-cover relative"
+              className={`w-full h-full ${getObjectFitClass()} relative`}
               draggable={false}
             />
           </div>
@@ -269,7 +299,7 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           </div>
         </div>
 
-        {/* Slider Line - Removed ALL transitions during drag */}
+        {/* Slider Line */}
         <div
           className="absolute top-0 bottom-0 w-0.5 bg-white shadow-lg"
           style={{ 
@@ -277,7 +307,7 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
             willChange: isDragging ? 'left' : 'auto'
           }}
         >
-          {/* Slider Handle - Removed transitions during drag */}
+          {/* Slider Handle */}
           <div
             className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-white rounded-full shadow-xl flex items-center justify-center hover:scale-110"
             style={{ 
@@ -306,7 +336,6 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
 
       {/* Controls */}
       <div className="flex items-center justify-center gap-4">
-        {/* Previous Button */}
         <button
           onClick={handlePrevious}
           disabled={images.length <= 1}
@@ -315,7 +344,6 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           <ChevronLeft size={20} className="text-slate-700" />
         </button>
 
-        {/* Play/Pause Button */}
         <button
           onClick={togglePlayPause}
           disabled={images.length <= 1}
@@ -325,7 +353,6 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           <span className="text-sm">{isPlaying ? 'Pause' : 'Play'}</span>
         </button>
 
-        {/* Next Button */}
         <button
           onClick={handleNext}
           disabled={images.length <= 1}
@@ -342,8 +369,9 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
             <button
               key={index}
               onClick={() => setCurrentIndex(index)}
-              className={`w-2 h-2 rounded-full transition-all duration-200 ${index === currentIndex ? 'bg-slate-900 w-6' : 'bg-slate-300 hover:bg-slate-400'
-                }`}
+              className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                index === currentIndex ? 'bg-slate-900 w-6' : 'bg-slate-300 hover:bg-slate-400'
+              }`}
             />
           ))}
         </div>
@@ -351,5 +379,7 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
     </div>
   );
 };
+
+
 
 export default BeforeAfterSlider;
