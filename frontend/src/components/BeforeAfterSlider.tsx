@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react';
 
 interface BeforeAfterImage {
@@ -23,13 +23,21 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   const [isPlaying, setIsPlaying] = useState(autoPlay);
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
-  const [isUserInteracting, setIsUserInteracting] = useState(false);
 
   const animationRef = useRef<number | undefined>(undefined);
   const animationStartTimeRef = useRef<number>(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const sliderRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Optimized position update function
+  const updateSliderPosition = useCallback((clientX: number) => {
+    if (!containerRef.current) return;
+
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
+    setSliderPosition(percentage);
+  }, []);
 
   // Auto-advance to next image
   useEffect(() => {
@@ -53,7 +61,7 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
     };
   }, [isPlaying, isDragging, images.length, autoPlayInterval]);
 
-  // Smooth slider animation
+  // Smooth slider animation - only when not dragging
   useEffect(() => {
     if (!isPlaying || isDragging) {
       if (animationRef.current) {
@@ -75,7 +83,7 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
       }
 
       const elapsed = Date.now() - animationStartTimeRef.current;
-      const cycleDuration = 8000; // 4 second cycle for smooth animation
+      const cycleDuration = 6000; // Reduced from 8000 for smoother animation
 
       const progress = (elapsed % cycleDuration) / cycleDuration;
       const position = ((Math.cos(progress * Math.PI * 2) + 1) / 2) * 100;
@@ -94,80 +102,115 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
     };
   }, [isPlaying, isDragging]);
 
-  const handlePrevious = () => {
-    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
-  };
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % images.length);
-  };
-
-  const togglePlayPause = () => {
-    setIsPlaying(!isPlaying);
-  };
-
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+  // Optimized mouse/touch event handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(true);
     updateSliderPosition(e.clientX);
-  };
+  }, [updateSliderPosition]);
 
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(true);
     if (e.touches[0]) {
       updateSliderPosition(e.touches[0].clientX);
     }
-  };
+  }, [updateSliderPosition]);
 
-  const updateSliderPosition = (clientX: number) => {
-    if (!containerRef.current) return;
+  const handlePrevious = useCallback(() => {
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+  }, [images.length]);
 
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
-    setSliderPosition(percentage);
-  };
+  const handleNext = useCallback(() => {
+    setCurrentIndex((prev) => (prev + 1) % images.length);
+  }, [images.length]);
 
-  // Global event listeners for dragging
+  const togglePlayPause = useCallback(() => {
+    setIsPlaying(!isPlaying);
+  }, [isPlaying]);
+
+  // Global event listeners for dragging - optimized with throttling
   useEffect(() => {
     if (!isDragging) return;
 
+    let animationFrame: number | null = null;
+    let lastClientX: number | null = null;
+
     const handleMouseMove = (e: MouseEvent) => {
-      updateSliderPosition(e.clientX);
+      e.preventDefault();
+      e.stopPropagation();
+      
+      lastClientX = e.clientX;
+      
+      if (animationFrame) return;
+      
+      animationFrame = requestAnimationFrame(() => {
+        if (lastClientX !== null) {
+          updateSliderPosition(lastClientX);
+        }
+        animationFrame = null;
+      });
     };
 
     const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
       if (e.touches[0]) {
-        updateSliderPosition(e.touches[0].clientX);
+        lastClientX = e.touches[0].clientX;
+        
+        if (animationFrame) return;
+        
+        animationFrame = requestAnimationFrame(() => {
+          if (lastClientX !== null) {
+            updateSliderPosition(lastClientX);
+          }
+          animationFrame = null;
+        });
       }
     };
 
-    const handleEnd = () => setIsDragging(false);
+    const handleEnd = () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+        animationFrame = null;
+      }
+      setIsDragging(false);
+    };
 
-    window.addEventListener('mousemove', handleMouseMove);
+    // Add listeners only to container to avoid conflicts
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener('mousemove', handleMouseMove, { passive: false });
+      container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    }
+    
     window.addEventListener('mouseup', handleEnd);
-    window.addEventListener('touchmove', handleTouchMove);
     window.addEventListener('touchend', handleEnd);
+    window.addEventListener('mouseleave', handleEnd);
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+      
+      if (container) {
+        container.removeEventListener('mousemove', handleMouseMove);
+        container.removeEventListener('touchmove', handleTouchMove);
+      }
+      
       window.removeEventListener('mouseup', handleEnd);
-      window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleEnd);
+      window.removeEventListener('mouseleave', handleEnd);
     };
-  }, [isDragging]);
+  }, [isDragging, updateSliderPosition]);
 
   const currentImage = images[currentIndex];
 
   if (!currentImage) return null;
 
   return (
-    <div ref={sliderRef} className="bg-white/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-xl border border-slate-200/50">
+    <div className="bg-white/80 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-xl border border-slate-200/50">
       <div className="text-center mb-8">
         <h3 className="text-3xl font-light text-slate-900 mb-3 tracking-tight">
           See the <em className="italic text-slate-600">Magic</em>
@@ -187,16 +230,20 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
             src={currentImage.before}
             alt="Before"
             className="w-full h-full object-cover"
+            draggable={false}
           />
           <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium">
             Before
           </div>
         </div>
 
-        {/* After Image with Clip */}
+        {/* After Image with Clip - Removed ALL transitions during drag */}
         <div
-          className="absolute inset-0 transition-all duration-75 ease-out"
-          style={{ clipPath: `polygon(${sliderPosition}% 0%, 100% 0%, 100% 100%, ${sliderPosition}% 100%)` }}
+          className="absolute inset-0"
+          style={{ 
+            clipPath: `polygon(${sliderPosition}% 0%, 100% 0%, 100% 100%, ${sliderPosition}% 100%)`,
+            willChange: isDragging ? 'clip-path' : 'auto'
+          }}
         >
           {/* Container with a white background */}
           <div className="w-full h-full relative bg-white">
@@ -213,6 +260,7 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
               src={currentImage.after}
               alt="After"
               className="w-full h-full object-cover relative"
+              draggable={false}
             />
           </div>
 
@@ -221,15 +269,22 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           </div>
         </div>
 
-        {/* Slider Line */}
+        {/* Slider Line - Removed ALL transitions during drag */}
         <div
-          className="absolute top-0 bottom-0 w-0.5 bg-white shadow-lg transition-all duration-75 ease-out"
-          style={{ left: `${sliderPosition}%` }}
+          className="absolute top-0 bottom-0 w-0.5 bg-white shadow-lg"
+          style={{ 
+            left: `${sliderPosition}%`,
+            willChange: isDragging ? 'left' : 'auto'
+          }}
         >
-          {/* Slider Handle */}
+          {/* Slider Handle - Removed transitions during drag */}
           <div
-            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-white rounded-full shadow-xl flex items-center justify-center transition-transform duration-200 hover:scale-110"
-            style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-white rounded-full shadow-xl flex items-center justify-center hover:scale-110"
+            style={{ 
+              cursor: isDragging ? 'grabbing' : 'grab',
+              transform: `translate(-50%, -50%) ${!isDragging && 'scale(1.05)'}`,
+              transition: isDragging ? 'none' : 'transform 0.2s ease'
+            }}
             onMouseDown={handleMouseDown}
             onTouchStart={handleTouchStart}
           >
@@ -286,10 +341,7 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
           {images.map((_, index) => (
             <button
               key={index}
-              onClick={() => {
-                setCurrentIndex(index);
-                setIsUserInteracting(true);
-              }}
+              onClick={() => setCurrentIndex(index)}
               className={`w-2 h-2 rounded-full transition-all duration-200 ${index === currentIndex ? 'bg-slate-900 w-6' : 'bg-slate-300 hover:bg-slate-400'
                 }`}
             />

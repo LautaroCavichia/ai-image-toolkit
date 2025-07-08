@@ -523,6 +523,48 @@ class MVPGenerativeFillProcessor:
         logger.info(f"Original image overlaid with {blend_margin}px soft blending")
         return result
 
+    def _resize_input_if_larger(self, image: np.ndarray, target_w: int, target_h: int) -> np.ndarray:
+            """
+            Redimensiona la imagen de entrada si es más grande que el tamaño objetivo
+            manteniendo la proporción y asegurando que no exceda las dimensiones objetivo.
+            
+            Args:
+                image: Imagen de entrada en formato numpy (BGR)
+                target_w: Ancho objetivo
+                target_h: Alto objetivo
+                
+            Returns:
+                Imagen redimensionada si era necesario, o la original si ya era del tamaño correcto
+            """
+            original_h, original_w = image.shape[:2]
+            
+            # Si la imagen es más pequeña o igual al objetivo, no hacer nada
+            if original_w <= target_w and original_h <= target_h:
+                logger.info(f"Input image {original_w}x{original_h} fits within target {target_w}x{target_h}, no resizing needed")
+                return image
+            
+            # Calcular factor de escala para que quepa dentro del target manteniendo proporción
+            scale_w = target_w / original_w
+            scale_h = target_h / original_h
+            scale = min(scale_w, scale_h)  # Usar el menor para que quepa completamente
+            
+            # Calcular nuevas dimensiones
+            new_w = int(original_w * scale)
+            new_h = int(original_h * scale)
+            
+            # Asegurar que sean múltiplos de 8 (requerido por Stable Diffusion)
+            new_w = self._round_to_multiple_of_8(new_w)
+            new_h = self._round_to_multiple_of_8(new_h)
+            
+            # Redimensionar usando interpolación de alta calidad
+            resized_image = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
+            
+            logger.info(f"Input image resized from {original_w}x{original_h} to {new_w}x{new_h} (scale: {scale:.3f})")
+            
+            return resized_image
+
+
+
     def process(self, input_image: np.ndarray, target_aspect: AspectRatio, 
                 preserve_original: bool = True, blend_margin: int = 10) -> np.ndarray:
         """
@@ -546,6 +588,11 @@ class MVPGenerativeFillProcessor:
             target_w, target_h = self._calculate_target_dimensions(w, h, target_aspect)
             logger.info(f"Target dimensions: {target_w}x{target_h} (expansion factor: {target_w/w:.1f}x{target_h/h:.1f})")
 
+            input_image = self._resize_input_if_larger(input_image, target_w, target_h)
+        
+        # Actualizar dimensiones después del posible redimensionado
+            h, w = input_image.shape[:2]
+            
             # Verificar que efectivamente sea un agrandamiento
             if target_w <= w and target_h <= h:
                 # Si por alguna razón no se agrandó, forzar agrandamiento mínimo

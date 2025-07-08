@@ -71,20 +71,20 @@ const EnlargePage: React.FC = () => {
   // Mock images for the slider
   const mockImages = [
     {
-      before: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop',
-      after: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=600&fit=crop',
+      before: 'https://i.imgur.com/vjDdfp5.jpeg',
+      after: 'https://i.imgur.com/LjEnkZx.jpeg',
       title: 'Square Expansion',
       description: 'Transform your landscape into perfect square format'
     },
     {
-      before: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=600&fit=crop',
-      after: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600&h=400&fit=crop',
+      before: 'https://i.imgur.com/I9NyDGO.jpeg',
+      after: 'https://i.imgur.com/CXUsYyP.jpeg',
       title: 'Landscape Extension',
       description: 'Expand portraits to stunning landscape compositions'
     },
     {
-      before: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&h=400&fit=crop',
-      after: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=600&fit=crop',
+      before: 'https://i.imgur.com/Nu1OQwT.jpeg',
+      after: 'https://i.imgur.com/xwOckiV.jpeg',
       title: 'Portrait Conversion',
       description: 'Convert landscapes to elegant portrait orientations'
     }
