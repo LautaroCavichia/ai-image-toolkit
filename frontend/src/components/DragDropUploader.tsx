@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { Upload, Image as ImageIcon, CheckCircle, X } from 'lucide-react';
+import React, { useState, useCallback, useRef } from 'react';
+import { Upload, Image as ImageIcon, CheckCircle } from 'lucide-react';
 
 interface DragDropUploaderProps {
   onFileSelect: (file: File) => void;
@@ -19,31 +19,33 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [, setDragCounter] = useState(0);
   const [error, setError] = useState<string>('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const validateFile = useCallback((file: File): boolean => {
     setError('');
-
-    // Check file type
     if (!file.type.startsWith('image/')) {
       setError('Please upload an image file');
       return false;
     }
-
-    // Check file size
     const fileSizeMB = file.size / (1024 * 1024);
     if (fileSizeMB > maxSize) {
       setError(`File size must be less than ${maxSize}MB`);
       return false;
     }
-
     return true;
   }, [maxSize]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && validateFile(file)) {
+      onFileSelect(file);
+    }
+  };
 
   const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
     setDragCounter(0);
-
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
       const file = files[0];
@@ -53,57 +55,27 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
     }
   }, [onFileSelect, validateFile]);
 
-  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-  }, []);
-
-  const handleDragEnter = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragCounter(prev => prev + 1);
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragCounter(prev => {
-      const newCounter = prev - 1;
-      if (newCounter === 0) {
-        setIsDragging(false);
-      }
-      return newCounter;
-    });
-  }, []);
-
   const handleClick = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = accept;
-    input.onchange = (e) => {
-      const target = e.target as HTMLInputElement;
-      if (target.files && target.files.length > 0) {
-        const file = target.files[0];
-        if (validateFile(file)) {
-          onFileSelect(file);
-        }
-      }
-    };
-    input.click();
-  };
-
-  const clearPreview = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setError('');
-    // You might want to add an onClear callback here if needed
+    inputRef.current?.click();
   };
 
   return (
     <div className={`${className}`}>
+      {/* 👇 Input real, oculto visualmente pero funcional */}
+      <input
+        type="file"
+        accept={accept}
+        ref={inputRef}
+        onChange={handleFileChange}
+        style={{ display: 'none' }}
+      />
+
       <div
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragEnter={handleDragEnter}
-        onDragLeave={handleDragLeave}
         onClick={handleClick}
+        onDrop={handleDrop}
+        onDragOver={(e) => e.preventDefault()}
+        onDragEnter={(e) => { e.preventDefault(); setIsDragging(true); setDragCounter((c) => c + 1); }}
+        onDragLeave={(e) => { e.preventDefault(); setDragCounter((c) => { const n = c - 1; if (n === 0) setIsDragging(false); return n; }); }}
         className={`
           relative border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-300
           ${isDragging 
@@ -122,7 +94,6 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
                 alt="Preview" 
                 className="max-w-full h-auto max-h-48 rounded-xl border mx-auto shadow-lg"
               />
-             
             </div>
             <div className="text-sm text-green-700 flex items-center justify-center gap-2">
               <CheckCircle size={16} />
@@ -151,7 +122,7 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
             </div>
           </div>
         )}
-        
+
         {isDragging && (
           <div className="absolute inset-0 bg-blue-100/50 rounded-2xl flex items-center justify-center">
             <div className="text-blue-600 font-medium text-lg">
