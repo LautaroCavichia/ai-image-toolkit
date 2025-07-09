@@ -251,6 +251,9 @@ def create_minimal_thumbnail(image_bytes: bytes, size: int = 150) -> bytes:
     """
     MINIMAL THUMBNAIL CREATION: Direct streaming, no intermediate storage.
     """
+    memory_thumb_start = get_memory_usage()
+    logger.info(f"🖼️ Thumbnail creation start: {memory_thumb_start:.1f}MB")
+    
     with UltraMemoryManager("thumbnail"):
         image = Image.open(io.BytesIO(image_bytes))
         
@@ -265,6 +268,9 @@ def create_minimal_thumbnail(image_bytes: bytes, size: int = 150) -> bytes:
             thumb_bytes = thumb_buffer.getvalue()
             thumb_buffer.close()
             thumbnail.close()
+            
+            memory_thumb_end = get_memory_usage()
+            logger.info(f"🖼️ Thumbnail creation end: {memory_thumb_start:.1f}MB → {memory_thumb_end:.1f}MB")
             
             return thumb_bytes
             
