@@ -230,23 +230,7 @@ const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         <p className="text-slate-600 text-lg">Experience the transformation power of our AI</p>
       </div>
 
-      {/* Object Fit Controls */}
-      <div className="flex justify-center gap-2 mb-6">
-        <span className="text-sm text-slate-600 mr-2">Image fit:</span>
-        {['contain', 'cover', 'fill', 'scale-down'].map((fit) => (
-          <button
-            key={fit}
-            onClick={() => {}}
-            className={`px-3 py-1 text-xs rounded-full transition-colors ${
-              objectFit === fit 
-                ? 'bg-slate-900 text-white' 
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            {fit}
-          </button>
-        ))}
-      </div>
+     
 
       {/* Before/After Container */}
       <div

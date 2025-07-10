@@ -12,6 +12,10 @@ interface JobStatusProps {
   serviceType?: 'background-removal' | 'upscale' | 'enlarge' | 'object-removal';
   onJobCompleted?: (job: JobResponseDTO) => void;
 }
+interface DownloadButtonsProps {
+  jobId: string;
+}
+
 
 const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceType = 'background-removal', onJobCompleted }) => {
   const [job, setJob] = useState<JobResponseDTO | null>(null);
@@ -21,6 +25,40 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
   const imageRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const processedImageRef = useRef<HTMLImageElement>(null);
+  const [progress, setProgress] = useState(0);
+
+  const downloadImage = async (imageUrl: string, fileName: string = 'image.png'): Promise<void> => {
+  try {
+
+    const response = await fetch(imageUrl);
+    
+ 
+    if (!response.ok) {
+      throw new Error(`Error trying to download image: ${response.status}`);
+    }
+    
+
+    const blob = await response.blob();
+  
+    const blobUrl = window.URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = fileName;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  
+    window.URL.revokeObjectURL(blobUrl);
+    
+  } catch (error) {
+
+    window.open(imageUrl, '_blank');
+  }
+};
+
+
 
   // Service-specific configuration
   const serviceConfig = useMemo(() => {
@@ -218,15 +256,35 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
     };
   }, [isProcessing]);
 
-  // Completion animation
+  
+
   useEffect(() => {
-    if (isCompleted && processedImageRef.current) {
-      gsap.fromTo(processedImageRef.current,
-        { opacity: 0, scale: 0.8, rotationY: 15 },
-        { opacity: 1, scale: 1, rotationY: 0, duration: 1.2, ease: "power3.out", delay: 0.3 }
-      );
-    }
-  }, [isCompleted]);
+  if (!isProcessing) {
+    setProgress(0);
+    return;
+  }
+
+  let timeElapsed = 0;
+  const interval = setInterval(() => {
+    timeElapsed += 300;
+    
+    setProgress((prev) => {
+      
+      if (prev >= 70) {
+        return Math.min(prev + Math.random() * 0.5, 85);
+      }
+     
+      if (prev >= 50) {
+        return prev + Math.random() * 1;
+      }
+      
+      return prev + Math.random() * 3;
+    });
+  }, 300);
+
+  return () => clearInterval(interval);
+}, [isProcessing]);
+  
 
   if (error) {
     return (
@@ -256,27 +314,37 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
           <div className="aspect-[4/3] bg-slate-50 rounded-2xl overflow-hidden relative ring-1 ring-slate-900/5 shadow-inner">
             {/* Original Image */}
             <img
-              src={initialImageUrl}
-              alt="Original"
-              className={`w-full h-full object-cover transition-all duration-700 ${isCompleted ? 'opacity-0 scale-105' : 'opacity-100 scale-100'}`}
-            />
+            src={initialImageUrl || 'https://i.imgur.com/8LmHyoh.png'}
+            className={`w-full h-full object-contain transition-all duration-700 ${isCompleted ? 'opacity-0 scale-105' : 'opacity-100 scale-100'}`}
+            alt="Initial"
+          />
             
             {/* Processing Overlay */}
-            <div 
-              ref={overlayRef}
-              className={`absolute inset-0 backdrop-blur-sm flex flex-col items-center justify-center transition-all duration-500 ${isProcessing ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-              style={{
-                background: `linear-gradient(135deg, ${serviceConfig.accentColor.replace('from-', 'rgba(').replace('to-', ', 0.9), rgba(').replace('-500', ', 0.1)').replace('-600', ', 0.2)')} 0.2)`
-              }}
-            >
-              <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-6 ${statusConfig.bgColor} ${statusConfig.pulse ? 'animate-pulse' : ''}`}>
-                <StatusIcon className="text-white" size={32} />
-              </div>
-              <div className="text-center text-white">
-                <p className="font-semibold text-lg mb-2">{statusConfig.text}</p>
-                <p className="text-sm opacity-90">This usually takes 15-30 seconds</p>
-              </div>
-            </div>
+           <div 
+            ref={overlayRef}
+            className={`absolute inset-0 backdrop-blur-sm flex flex-col items-center justify-center transition-all duration-500 bg-black/20 ${isProcessing ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+  
+>
+  <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-6 ${statusConfig.bgColor} ${statusConfig.pulse ? 'animate-pulse' : ''}`}>
+    <StatusIcon className="text-white" size={32} />
+  </div>
+  <div className="text-center text-white">
+    <p className="font-semibold text-lg mb-2">{statusConfig.text}</p>
+    <p className="text-sm opacity-90">This usually takes 15-30 seconds</p>
+  </div>
+  
+  
+  <div className="w-80 h-1 bg-white/20 rounded-full mt-6 overflow-hidden">
+    <div 
+      className="h-full bg-white rounded-full transition-all duration-300 ease-out"
+      style={{ 
+        width: `${progress}%`,
+        transform: `translateX(-${100 - progress}%)`,
+        animation: 'slideIn 0.3s ease-out'
+      }}
+    />
+  </div>
+</div>
             
             {/* Processed Image */}
             <img
@@ -339,33 +407,28 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
                 </div>
               )}
 
-              {/* Download Buttons */}
-              <div className="space-y-3">
+                <div className="space-y-3">
                 {/* Thumbnail Download Button - Always Available */}
                 {job.thumbnailUrl && (
-                  <a
-                    href={job.thumbnailUrl}
-                    download
+                  <button
+                    onClick={() => downloadImage(job.thumbnailUrl!, 'PixelPerfect_Image')}
                     className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] ring-1 ring-blue-500/20"
                   >
                     <Download size={20} />
                     <span>Download Preview (Free)</span>
-                  </a>
+                  </button>
                 )}
                 
-                {/* Premium Download Button */}
-                {job.processedImageUrl && (
-                  <a
-                    href={job.processedImageUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-900 hover:to-black text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] ring-1 ring-slate-700/20"
-                  >
-                    <Download size={20} />
-                    <span>Download Full Quality</span>
-                  </a>
-                )}
-              </div>
+              {job.isPremiumQuality && job.processedImageUrl && (
+              <button
+                onClick={() => downloadImage(job.processedImageUrl!, 'full-quality-image.png')}
+                className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] ring-1 ring-green-500/20"
+              >
+                <Download size={20} />
+                <span>Download Full Quality</span>
+              </button>
+            )}
+          </div>
             </div>
           )}
 

@@ -1,21 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Layout from '../components/Layout';
 import Navbar from '../components/Navbar';
-//import LoadingScreen from '../components/LoadingScreen';
 import AnimatedGradientMesh from '../components/AnimatedGradientMesh';
 import AnimatedNetMesh from '../components/AnimatedNetMesh';
 import { isAuthenticated } from '../services/authService';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import BeforeAfterSlider from '../components/BeforeAfterSlider';
 import { Scissors, Maximize, Sparkles, Expand, Zap, Target, Shield, ArrowRight, Star, Wand2, FileImage } from 'lucide-react';
 import logo from '../assets/logo.png';
 
 gsap.registerPlugin(ScrollTrigger);
 
 const HomePage: React.FC = () => {
-   const [showContent, setShowContent] = useState(true);
+   const [showContent] = useState(true);
  
-  const [activeTextIndex, setActiveTextIndex] = useState(0);
+
 
   const heroRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -31,35 +31,38 @@ const HomePage: React.FC = () => {
   const [currentOffset, setCurrentOffset] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isTransitioning] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
+  const launchAppRef = useRef<HTMLDivElement>(null); 
+
 
    const contentData = [
     {
-      url: "https://cdn.leonardo.ai/users/7accf579-f61e-438c-80d3-9d45630f0f1b/generations/708616f7-b8be-4ecd-be1e-1349081e1ece/Leonardo_Phoenix_10_A_joyful_dog_its_fur_a_warm_golden_brown_w_0.jpg",
-      alt: "Tecnología moderna",
+      url: "https://i.imgur.com/4qFtyXo.png",
+      alt: "Modern Technology",
       title: "Built for those who need",
       highlight1: { text: "speed", color: "from-blue-700 to-blue-600" },
       highlight2: { text: "quality", color: "from-purple-700 to-purple-600" },
       description: "Advanced AI processing technology that delivers exceptional results in seconds, maintaining the precision and quality your work demands."
     },
     {
-      url: "https://cdn.leonardo.ai/users/7accf579-f61e-438c-80d3-9d45630f0f1b/generations/4b498504-637d-4a15-96da-ea0e4864d205/Leonardo_Phoenix_10_A_majestic_cat_with_shimmering_iridescent_1.jpg",
-      alt: "Análisis de datos",
+      url: "https://i.imgur.com/unna4UB.png",
+      alt: "Data Analysis",
       title: "Designed for teams that value",
       highlight1: { text: "precision", color: "from-emerald-700 to-emerald-600" },
       highlight2: { text: "efficiency", color: "from-orange-700 to-orange-600" },
       description: "Streamlined workflows and intelligent automation tools that empower your team to achieve more with less effort and maximum accuracy."
     },
     {
-      url: "https://cdn.leonardo.ai/users/7accf579-f61e-438c-80d3-9d45630f0f1b/generations/87c1e6f1-e1b2-449a-9214-2381409ec850/Leonardo_Phoenix_10_A_lone_majestic_cactus_donning_trendy_refl_2.jpg",
-      alt: "Innovación empresarial",
+      url: "https://i.imgur.com/YYPiic6.jpeg",
+      alt: "Empresarial innovation",
       title: "Perfect for organizations seeking",
       highlight1: { text: "innovation", color: "from-violet-700 to-violet-600" },
       highlight2: { text: "growth", color: "from-rose-700 to-rose-600" },
       description: "Cutting-edge solutions that scale with your business, fostering innovation while driving sustainable growth and competitive advantage."
     },
     {
-      url: "https://cdn.leonardo.ai/users/7accf579-f61e-438c-80d3-9d45630f0f1b/generations/4b498504-637d-4a15-96da-ea0e4864d205/Leonardo_Phoenix_10_A_majestic_cat_with_shimmering_iridescent_1.jpg",
-      alt: "Colaboración en equipo",
+      url: "https://i.imgur.com/Hmgx1e3.png",
+      alt: "Team collaboration",
       title: "Crafted for professionals who demand",
       highlight1: { text: "reliability", color: "from-teal-700 to-teal-600" },
       highlight2: { text: "excellence", color: "from-indigo-700 to-indigo-600" },
@@ -137,6 +140,21 @@ const HomePage: React.FC = () => {
     return () => clearInterval(interval);
   }, [technologies.length]);
 
+
+  const mockImages = [
+    {
+      before: '/assets/before_and_after/car_before.png',
+      after: '/assets/before_and_after/car_after.png',
+      title: 'Car Background Removal',
+      description: 'Professional car photography with clean transparent background'
+    },
+    {
+      before: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=600&h=600&fit=crop',
+      after: '/assets/before_and_after/pet_after.png',
+      title: 'Pet Photography',
+      description: 'Cute pets isolated perfectly for creative projects'
+    }
+  ];
 
 
 
@@ -628,14 +646,6 @@ useEffect(() => {
     }
   ];
 
-  const techTexts = [
-    "NEXT-GEN",
-    "AI PROCESSING",
-    "PIXEL PERFECT",
-    "FUTURE READY"
-  ];
-
-  
 
   return (
     <Layout>
@@ -674,7 +684,16 @@ useEffect(() => {
             Break the rules. Transform the mundane. Create the extraordinary.
             <br />
             <em className="text-slate-500">Young creators deserve young tools.</em>
+            <br />
+            <em className="text-slate-500">
+              No compromises. Fast and{' '}
+              <span className="relative inline-block px-1 py-1 font-semibold text-white bg-gradient-to-r from-green-400 to-blue-500 rounded-md">
+                FREE
+                <span className="absolute inset-0 rounded-md opacity-30 bg-white mix-blend-screen pointer-events-none"></span>
+              </span>
+            </em>
           </p>
+
 
           <div
             ref={ctaRef}
@@ -758,6 +777,52 @@ useEffect(() => {
         </div>
       </div>
 
+      <section className="py-24 px-6 bg-white">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-16">
+          <h2 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+            Unmatched Results
+          </h2>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Discover the transformative power of our solutions through real success stories 
+            and measurable outcomes that speak for themselves.
+          </p>
+        </div>
+
+        {/* Component Placeholder */}
+        <div className="mb-16">
+         
+            <div className="text-gray-500 text-lg">
+              <div className="mb-8">
+            <BeforeAfterSlider images={mockImages} />
+          </div>
+            </div>
+          </div>
+       
+
+        {/* CTA Button */}
+        <div className="text-center">
+          <button className="inline-flex items-center px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl">
+            View more examples
+            <svg 
+              className="ml-2 w-5 h-5" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M13 7l5 5m0 0l-5 5m5-5H6" 
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
 
 
 <div className="py-12 sm:py-16 lg:py-24 mx-3 sm:mx-6 bg-white/60 backdrop-blur-sm relative overflow-hidden rounded-2xl sm:rounded-3xl">
@@ -835,7 +900,7 @@ useEffect(() => {
             <div className="relative group">
               {/* Glow effect */}
               <div className="absolute -inset-4 sm:-inset-8 bg-gradient-to-br from-blue-500/3 via-transparent to-purple-500/3 sm:from-blue-500/5 sm:to-purple-500/5 rounded-2xl sm:rounded-[3rem] blur-2xl sm:blur-3xl opacity-0 group-hover:opacity-100 transition-all duration-1000"></div>
-              
+             
               <div className="w-64 h-72 sm:w-72 sm:h-80 lg:w-80 lg:h-96 rounded-xl sm:rounded-2xl overflow-hidden shadow-xl sm:shadow-2xl shadow-slate-900/10 ring-1 ring-slate-200/60 group-hover:shadow-slate-900/15 group-hover:ring-slate-300/80 transform transition-all duration-700 hover:scale-[1.02] bg-white/60 backdrop-blur-sm relative">
                 
                 {/* Images with transition */}
@@ -860,8 +925,20 @@ useEffect(() => {
                 <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 w-3 h-3 sm:w-4 sm:h-4 border-r border-b border-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-30"></div>
               </div>
             </div>
-          </div>
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-1 z-30">
+  <p className="text-[12px] sm:text-base text-black/80 px-5 py-2 rounded-lg bg-white/70 backdrop-blur-md font-light tracking-wide shadow-md">
+    These images were generated by PixelPerfect Gen AI
+  </p>
+  <a
+    href="image-generation"
+    className="mt-1.5 text-[11px] sm:text-sm text-black/70 hover:text-black transition-colors font-medium"
+  >
+    Try it now →
+  </a>
+</div>
 
+          </div>
+              
           {/* Premium typography with dynamic content */}
           <div
             className={`space-y-4 sm:space-y-6 lg:space-y-10 order-2 text-center lg:text-left -mt-4 sm:mt-0 transition-all duration-500 ${
@@ -920,6 +997,128 @@ useEffect(() => {
     </div>
   </div>
 </div>
+                      
+       {/* Launch App Section */}
+{/* Launch App Section */}
+<div ref={launchAppRef} className="py-32 bg-white relative z-10">
+  <div className="max-w-6xl mx-auto px-6">
+    <div className="grid md:grid-cols-2 items-center gap-12">
+      <div className="rounded-xl overflow-hidden shadow-lg">
+        <img
+          src="https://i.imgur.com/vFbGwUI.jpeg"
+          alt="Launch App"
+          className="w-full h-[500px] object-cover"
+        />
+      </div>
+      <div>
+        <h2 className="text-4xl md:text-5xl font-light text-slate-900 mb-6 tracking-tight">
+          <span className="block mb-2">Get started now</span>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+            <span className="relative inline-block">
+              <span className="italic bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent font-light">
+                Launch
+              </span>
+              <div className="absolute -bottom-1 left-0 w-full h-[1px] bg-gradient-to-r from-blue-500 to-transparent/60"></div>
+            </span>
+            <span className="text-slate-900 font-extralight">the</span>
+            <span className="relative inline-block">
+              <span className="italic bg-gradient-to-r from-cyan-500 to-purple-500 bg-clip-text text-transparent font-light">
+                App
+              </span>
+              <div className="absolute -bottom-1 left-0 w-full h-[1px] bg-gradient-to-r from-cyan-500 to-transparent/60"></div>
+            </span>
+          </div>
+        </h2>
+        <p className="text-xl text-slate-600 font-light leading-relaxed mb-6">
+          Discover the tools that bring your creative vision to life.
+        </p>
+        <div className="text-left">
+          <button
+            onClick={() => setShowPopup(true)}
+            className="inline-flex items-center px-6 py-3 bg-slate-900 text-white text-sm sm:text-base rounded-full shadow hover:bg-slate-700 transition-colors"
+          >
+            Launch App
+          </button>
+        </div>
+      </div>
+    </div>
+ 
+
+
+
+    {showPopup && (
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-2xl shadow-xl max-w-4xl w-full space-y-6 relative">
+          <button
+            onClick={() => setShowPopup(false)}
+            className="absolute top-3 right-3 text-slate-500 hover:text-slate-800"
+          >
+            ✕
+          </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+  {
+    name: 'Background Removal',
+    key: 'bg-removal',
+    img: 'https://i.imgur.com/tcqYJZV.png',
+    href: 'background-removal', // completalo con tu ruta real
+  },
+  {
+    name: 'Upscaling',
+    key: 'upscaling',
+    img: 'https://i.imgur.com/XioAAH7.jpeg',
+    href: 'upscale', // completalo con tu ruta real
+  },
+  {
+    name: 'Generative Fill',
+    key: 'generative-fill',
+    img: 'https://i.imgur.com/LjEnkZx.jpeg',
+    href: 'enlarge', // completalo con tu ruta real
+  },
+  {
+    name: 'Object Removal',
+    key: 'object-removal',
+    img: 'https://i.imgur.com/MikJwxb.png',
+    href: 'object-removal', // completalo con tu ruta real
+  },
+  {
+    name: 'Text to Image',
+    key: 'text-to-image',
+    img: 'https://i.imgur.com/birXPAV.png',
+    href: 'image-generation', // completalo con tu ruta real
+  },
+].map((tool) => (
+  <div
+    key={tool.key}
+    className="border border-slate-200 rounded-xl p-4 flex flex-col items-center text-center hover:shadow-md transition-shadow"
+  >
+    <div className="w-full h-32 bg-slate-100 rounded-lg mb-4 overflow-hidden">
+      <img
+        src={tool.img}
+        alt={tool.name}
+        className="w-full h-full object-cover rounded-lg"
+      />
+    </div>
+    <h3 className="text-lg font-semibold text-slate-800 mb-2">
+      {tool.name}
+    </h3>
+    <a
+      href={tool.href}
+      className="px-4 py-2 bg-slate-900 text-white text-sm rounded-full hover:bg-slate-700 transition-colors"
+    >
+      Try {tool.name}
+    </a>
+  </div>
+))}
+
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+</div>
+
+                 
 
       {/* Privacy Section */}
       <div ref={featuresRef} className="py-32 bg-slate-50/60 backdrop-blur-sm">
@@ -953,6 +1152,7 @@ useEffect(() => {
           </div>
         </div>
       </div>
+
     </Layout>
   );
 };

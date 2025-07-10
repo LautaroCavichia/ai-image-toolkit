@@ -25,23 +25,9 @@ const BackgroundRemovalPage: React.FC = () => {
     intensity: 'medium'
   });
 
-
-  const handleFileSelect = (file: File) => {
-    setSelectedFile(file);
-    setError('');
-    
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleUpload = async () => {
-    if (!selectedFile) return;
-
+  const handleUpload = async (file: File) => {
     console.log('📤 === HANDLE UPLOAD START ===');
-    console.log('📤 Selected file:', selectedFile.name, selectedFile.size);
+    console.log('📤 Selected file:', file.name, file.size);
     console.log('📤 Token in localStorage before upload:', localStorage.getItem('token') ? 'EXISTS' : 'MISSING');
     console.log('📤 User authenticated before upload:', isAuthenticated());
 
@@ -50,14 +36,12 @@ const BackgroundRemovalPage: React.FC = () => {
 
     try {
       console.log('📤 Calling uploadImageAndCreateJob...');
-      const response = await uploadImageAndCreateJob(selectedFile, JobTypeEnum.BG_REMOVAL);
+      const response = await uploadImageAndCreateJob(file, JobTypeEnum.BG_REMOVAL);
       console.log('📤 Upload response received:', response);
       setCurrentJobId(response.jobId);
       
-      // Reset form
-      setSelectedFile(null);
+      // Keep the preview for status display
       setStatusPreview(preview);
-      setPreview(null);
       
     } catch (err: any) {
       console.error('📤 Upload error caught:', err);
@@ -67,8 +51,29 @@ const BackgroundRemovalPage: React.FC = () => {
     }
   };
 
+  const handleFileSelect = (file: File) => {
+    setSelectedFile(file);
+    setError('');
+    setCurrentJobId(null); // Reset any previous job
+    
+    const reader = new FileReader();
+    reader.onload = () => {
+      const previewUrl = reader.result as string;
+      setPreview(previewUrl);
+      
+      // Auto-upload after preview is set
+      setTimeout(() => {
+        handleUpload(file);
+      }, 100); // Small delay to ensure preview is rendered
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleJobCompleted = () => {
-    // Job completed
+    // Job completed - reset form for next upload
+    setSelectedFile(null);
+    setPreview(null);
+    setStatusPreview(null);
   };
 
   // Mock images for the slider
@@ -120,8 +125,12 @@ const BackgroundRemovalPage: React.FC = () => {
               <div className="w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-200 rounded-3xl flex items-center justify-center mx-auto mb-6">
                 <Upload className="text-slate-700" size={24} />
               </div>
-              <h3 className="text-3xl font-light text-slate-900 mb-3 tracking-tight">Drop Your Image</h3>
-              <p className="text-slate-600 text-lg">Ready to make magic happen?</p>
+              <h3 className="text-3xl font-light text-slate-900 mb-3 tracking-tight">
+                {loading ? 'Processing Your Image...' : 'Drop Your Image'}
+              </h3>
+              <p className="text-slate-600 text-lg">
+                {loading ? 'AI is working its magic' : 'Processing starts instantly!'}
+              </p>
             </div>
 
             {error && (
@@ -135,47 +144,30 @@ const BackgroundRemovalPage: React.FC = () => {
                 onFileSelect={handleFileSelect}
                 preview={preview}
                 maxSize={10}
+                
               />
 
-              {selectedFile && (
+              {loading && (
+                <div className="text-center bg-blue-50 p-6 rounded-2xl border border-blue-200">
+                  <div className="flex items-center justify-center gap-3 mb-2">
+                    <div className="w-6 h-6 border-2 border-blue-600/30 border-t-blue-600 rounded-full animate-spin" />
+                    <strong className="text-blue-800">Processing...</strong>
+                  </div>
+                  <div className="text-slate-600">AI is cutting through the background noise</div>
+                </div>
+              )}
+
+              {selectedFile && !loading && (
                 <div className="text-center bg-green-50 p-6 rounded-2xl border border-green-200">
                   <div className="flex items-center justify-center gap-2 mb-2">
                     <CheckCircle className="text-green-600" size={20} />
-                    <strong className="text-green-800">Locked and Loaded</strong>
+                    <strong className="text-green-800">Upload Complete!</strong>
                   </div>
                   <div className="text-slate-600">{selectedFile.name} ({Math.round(selectedFile.size / 1024)} KB)</div>
                 </div>
               )}
-
-              {selectedFile && (
-                <button
-                  onClick={() => {
-                    console.log('🔥 PROCESS BUTTON CLICKED!');
-                    console.log('🔥 Auth state before upload:', isAuthenticated());
-                    console.log('🔥 Token before upload:', localStorage.getItem('token') ? 'EXISTS' : 'MISSING');
-                    handleUpload();
-                  }}
-                  disabled={loading}
-                  className="w-full bg-slate-900 hover:bg-slate-800 text-white py-6 px-8 rounded-2xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] text-lg"
-                >
-                  <div className="flex items-center justify-center gap-3">
-                    {loading ? (
-                      <>
-                        <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Cutting Through...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles size={24} />
-                        Slice & Dice
-                      </>
-                    )}
-                  </div>
-                </button>
-              )}
             </div>
           </div>
-
 
           {/* Job Status Section */}
           {currentJobId && (

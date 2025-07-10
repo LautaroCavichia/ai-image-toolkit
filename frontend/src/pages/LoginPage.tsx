@@ -172,7 +172,7 @@ const LoginPage: React.FC = () => {
 
           {/* Login Form */}
           <div ref={uploaderRef} className="w-full max-w-md mx-auto lg:mx-0">
-            <div className="bg-white/60 backdrop-blur-xl p-8 md:p-12 rounded-3xl shadow-xl border border-slate-200/50">
+            <div className="bg-white/60 backdrop-blur-xl p-6 md:p-8 rounded-3xl shadow-xl border border-slate-200/50">
               
               {/* Logo and Header */}
               <div ref={formContentRef} className="text-center mb-8">
@@ -334,19 +334,51 @@ const LoginPage: React.FC = () => {
           )}
 
               {/* Guest Login */}
-              <div className="mt-8 pt-8 border-t border-slate-200/50">
-                <button
-                  onClick={handleGuestLogin}
-                  disabled={loading}
-                  className="w-full bg-white/80 hover:bg-white text-slate-700 py-4 px-8 rounded-2xl font-medium transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed border border-slate-200/50 hover:scale-[1.02]"
-                >
-                  <div className="flex items-center justify-center gap-3">
-                    <User size={20} />
-                    Continue as Guest
-                    <ArrowRight size={20} />
-                  </div>
-                </button>
+        <div className="pt-8 border-t border-slate-200/50">
+          <button
+            onClick={handleGuestLogin}
+            disabled={loading}
+           className="
+            w-full 
+            bg-gradient-to-r from-[#0d47a1] via-[#42a5f5] to-[#0d47a1] 
+            hover:from-[#1565c0] hover:via-[#64b5f6] hover:to-[#1565c0] 
+            text-white 
+            py-5 px-8 
+            rounded-2xl 
+            font-semibold 
+            transition-all duration-500 
+            hover:shadow-lg hover:shadow-blue-400/40 
+            disabled:opacity-50 disabled:cursor-not-allowed 
+            border border-blue-600/30 
+            hover:border-blue-400/60 
+            hover:scale-[1.03] transform 
+            relative overflow-hidden 
+            group 
+            backdrop-blur-sm
+          "
+          >
+           
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 group-hover:animate-pulse"></div>
+            
+          
+            
+            <div className="flex items-center justify-center gap-4 relative z-10">
+              <div className="p-1 rounded-full bg-white/10 group-hover:bg-white/15 transition-all duration-300">
+                <User size={18} className="group-hover:scale-110 transition-transform duration-300" />
               </div>
+              <span className="text-base font-medium tracking-wide letter-spacing-wider">Continue as Guest</span>
+              <div className="p-1 rounded-full bg-white/10 group-hover:bg-white/15 transition-all duration-300">
+                <ArrowRight size={18} className="group-hover:translate-x-0.5 transition-transform duration-300" />
+              </div>
+            </div>
+            
+        
+            <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/5 to-transparent rounded-t-2xl"></div>
+            
+        
+            <div className="absolute top-3 right-6 w-1 h-1 bg-white/30 rounded-full animate-pulse opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          </button>
+        </div>
 
               {/* Security Note */}
               <div className="mt-6 p-4 bg-gradient-to-r from-slate-50 to-slate-100 rounded-2xl border border-slate-200/50 text-center">
