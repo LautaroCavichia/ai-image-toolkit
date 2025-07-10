@@ -11,6 +11,7 @@ import ImageGenerationPage from './pages/ImageGenerationPage';
 import ResetPasswordPage from './pages/ResetPassword';
 import AuthForm from './pages/AuthForm';
 import EmailVerificationPage from './pages/EmailVerificationPage';
+import BetaSignupPage from './pages/BetaSignupPage';
 
 import { isAuthenticated, setupAxiosInterceptors, createGuestUser } from './services/authService';
 
@@ -76,6 +77,7 @@ const AppWrapper = () => {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/beta-signup" element={<BetaSignupPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/verify-email" element={<EmailVerificationPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
