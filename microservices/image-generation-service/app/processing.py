@@ -179,9 +179,17 @@ class TextToImageProcessor:
     def _get_negative_prompt(self, custom_negative: str = None) -> str:
         """Simplified negative prompt."""
         base_negative = [
-            "text", "numbers", "low quality", "blurry", "bad anatomy", "cropped", 
-            "cut off", "watermark"
-        ]
+    "deformed iris", "deformed pupils", "semi-realistic", "cgi", "3d", "render",
+    "sketch", "cartoon", "drawing", "anime:1.4", "text", "close up", "cropped",
+    "out of frame", "worst quality", "low quality", "jpeg artifacts", "ugly",
+    "duplicate", "morbid", "mutilated", "extra fingers", "mutated hands",
+    "poorly drawn hands", "poorly drawn face", "mutation", "deformed", "blurry",
+    "dehydrated", "bad anatomy", "bad proportions", "extra limbs", "cloned face",
+    "disfigured", "gross proportions", "malformed limbs", "missing arms",
+    "missing legs", "extra arms", "extra legs", "fused fingers", "too many fingers",
+    "long neck"
+]
+
         
         negative_prompt = ", ".join(base_negative)
         

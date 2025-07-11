@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { Upload, Image as ImageIcon, CheckCircle } from 'lucide-react';
+import { Upload, Image, CheckCircle } from 'lucide-react';
 
 interface DragDropUploaderProps {
   onFileSelect: (file: File) => void;
@@ -20,6 +20,26 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
   const [, setDragCounter] = useState(0);
   const [error, setError] = useState<string>('');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Sample images - using placeholder images
+  const sampleImages = [
+    {
+      url: 'https://i.imgur.com/WM7R77C.jpeg',
+      name: 'Car'
+    },
+    {
+      url: 'https://i.imgur.com/yPoBGCN.jpeg',
+      name: 'House Room'
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=200&h=200&fit=crop',
+      name: 'Landscape'
+    },
+    {
+      url: 'https://i.imgur.com/aOfDSiN.jpeg',
+      name: 'Wild Life'
+    }
+  ];
 
   const validateFile = useCallback((file: File): boolean => {
     setError('');
@@ -57,6 +77,21 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
 
   const handleClick = () => {
     inputRef.current?.click();
+  };
+
+  const handleSampleImageClick = async (imageUrl: string, imageName: string) => {
+    try {
+      // Fetch the image and convert to File
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const file = new File([blob], `${imageName.toLowerCase().replace(/\s+/g, '_')}.jpg`, { type: 'image/jpeg' });
+      
+      if (validateFile(file)) {
+        onFileSelect(file);
+      }
+    } catch (err) {
+      setError('Failed to load sample image. Please try uploading your own image.');
+    }
   };
 
   return (
@@ -106,7 +141,7 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
               {isDragging ? (
                 <Upload className="mx-auto text-blue-500" size={48} />
               ) : (
-                <ImageIcon className="mx-auto text-slate-400" size={48} />
+                <Image className="mx-auto text-slate-400" size={48} />
               )}
             </div>
             <div>
@@ -137,6 +172,36 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
           {error}
         </div>
       )}
+
+      {/* Sample Images Section */}
+      <div className="mt-6">
+        <div className="text-center mb-4">
+          <p className="text-sm text-slate-600 mb-3">Don't have an image? Try these:</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {sampleImages.map((sample, index) => (
+              <div
+                key={index}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSampleImageClick(sample.url, sample.name);
+                }}
+                className="cursor-pointer group relative rounded-lg overflow-hidden border-2 border-slate-200 hover:border-blue-400 transition-all duration-200 hover:scale-105"
+              >
+                <img
+                  src={sample.url}
+                  alt={sample.name}
+                  className="w-full h-20 object-cover group-hover:opacity-80 transition-opacity"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-medium">
+                    {sample.name}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
       <div className="mt-4 text-xs text-slate-500 text-center">
         Your images are processed securely and automatically deleted after processing
