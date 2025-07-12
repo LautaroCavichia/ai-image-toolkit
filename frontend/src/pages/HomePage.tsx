@@ -7,7 +7,7 @@ import { isAuthenticated } from '../services/authService';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import BeforeAfterSlider from '../components/BeforeAfterSlider';
-import { Scissors, Maximize, Sparkles, Expand, Zap, Target, Shield, ArrowRight, Star, Wand2, FileImage } from 'lucide-react';
+import { Scissors, Maximize, Sparkles, Expand, Zap, Target, Shield, ArrowRight, Star, Wand2, FileImage, ArrowUpRight } from 'lucide-react';
 import logo from '../assets/logo.png';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -31,8 +31,33 @@ const HomePage: React.FC = () => {
   const [isTransitioning] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const launchAppRef = useRef<HTMLDivElement>(null); 
-  const forYouRef = useRef<HTMLDivElement>(null); 
+  const forYouRef = useRef<HTMLDivElement>(null);
+  const forTeamsRef = useRef(null) 
   
+   const features = [
+    {
+      title: "For Creators",
+      description: "Create production-quality visual assets for your projects with unprecedented quality, speed, and style-consistency.",
+    },
+    {
+      title: "For Teams", 
+      description: "Bring your team's best ideas to life at scale, with our intuitive AI-first creative suite designed for collaboration and built for business.",
+    },
+    {
+      title: "For Developers",
+      description: "Experience content creation excellence with PixelPerfect'S API. With unmatched scalability, effortlessly tailor outputs to your brand guideline.",
+    }
+  ];
+
+  const mediaLogos = [
+    "FORTUNE",
+    "ZONDA",
+    "Forbes", 
+    "TechCrunch",
+    "BUSINESS INSIDER",
+    "Smart Company",
+    "FINANCIAL REVIEW"
+  ];
 
    const contentData = [
     {
@@ -684,7 +709,58 @@ useEffect(() => {
         </div>
       </div>
 
-{/* Main section scroll sticky - Mobile Optimized */}
+      <div ref={forTeamsRef} className="min-h-screen bg-white py-24 px-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Feature Cards */}
+        <div className="grid md:grid-cols-3 gap-8 mb-32">
+          {features.map((feature, index) => (
+            <div 
+              key={index}
+              className="group relative bg-gray-50/80 backdrop-blur-xl border border-gray-200/50 rounded-2xl p-10 hover:bg-white hover:shadow-2xl hover:shadow-gray-200/30 transition-all duration-700 hover:-translate-y-1"
+            >
+              {/* Title */}
+              <h3 className="text-2xl font-semibold mb-6 text-gray-900 tracking-tight">
+                {feature.title}
+              </h3>
+              
+              {/* Description */}
+              <p className="text-gray-600 leading-relaxed text-[15px] font-normal">
+                {feature.description}
+              </p>
+              
+              {/* Arrow Icon */}
+              <div className="absolute top-8 right-8 w-10 h-10 bg-gray-100/80 rounded-full flex items-center justify-center group-hover:bg-gray-200/80 transition-all duration-300">
+                <ArrowUpRight className="w-5 h-5 text-gray-700 group-hover:rotate-12 transition-transform duration-300" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* As Featured In Section */}
+        <div className="text-center">
+          <p className="text-sm font-medium text-gray-500 mb-12 uppercase tracking-wider">
+            As Featured In
+          </p>
+          
+          <div className="flex flex-wrap justify-center items-center gap-16 opacity-40">
+            {mediaLogos.map((logo, index) => (
+              <div 
+                key={index}
+                className="text-gray-700 hover:opacity-100 transition-opacity duration-300 cursor-pointer"
+              >
+                <div className="text-base font-medium tracking-wide">
+                  {logo}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      {/* Subtle Background Gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/20 to-purple-50/20 pointer-events-none"></div>
+    </div>
+
 <div
   ref={sectionRef}
   className="relative"
@@ -705,50 +781,92 @@ useEffect(() => {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 h-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 lg:gap-20 items-center h-full">
           
-          {/* Premium image container */}
+          {/* Creative Image Container */}
           <div className="relative w-full h-64 sm:h-80 lg:h-[500px] xl:h-[40rem] flex items-center justify-center order-1 mb-0 sm:mb-0">
             <div className="relative group">
-              {/* Glow effect */}
-              <div className="absolute -inset-4 sm:-inset-8 bg-gradient-to-br from-blue-500/3 via-transparent to-purple-500/3 sm:from-blue-500/5 sm:to-purple-500/5 rounded-2xl sm:rounded-[3rem] blur-2xl sm:blur-3xl opacity-0 group-hover:opacity-100 transition-all duration-1000"></div>
-             
-              <div className="w-64 h-72 sm:w-72 sm:h-80 lg:w-80 lg:h-96 rounded-xl sm:rounded-2xl overflow-hidden shadow-xl sm:shadow-2xl shadow-slate-900/10 ring-1 ring-slate-200/60 group-hover:shadow-slate-900/15 group-hover:ring-slate-300/80 transform transition-all duration-700 hover:scale-[1.02] bg-white/60 backdrop-blur-sm relative">
+              
+              {/* Floating Image Gallery */}
+              <div className="relative w-80 h-80 sm:w-96 sm:h-96 lg:w-[30rem] lg:h-[30rem]">
                 
-                {/* Images with transition */}
-                {contentData.map((content, index) => (
-                  <img
-                    key={index}
-                    src={content.url}
-                    alt={content.alt}
-                    className={`absolute top-0 left-0 w-full h-full object-cover transition-all duration-1000 group-hover:scale-105 ${
-                      index === currentImageIndex
-                        ? 'opacity-100 z-10'
-                        : 'opacity-0 z-0'
-                    }`}
-                  />
-                ))}
+                {/* Main featured image */}
+                <div className="absolute top-0 left-0 w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 group-hover:scale-105 transition-all duration-700">
+                  <div className="w-full h-full rounded-3xl overflow-hidden shadow-2xl shadow-slate-900/25 ring-1 ring-white/20 relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-purple-500/10"></div>
+                    {contentData.map((content, index) => (
+                      <img
+                        key={index}
+                        src={content.url}
+                        alt={content.alt}
+                        className={`absolute top-0 left-0 w-full h-full object-cover transition-all duration-1000 ${
+                          index === currentImageIndex
+                            ? 'opacity-100 z-10'
+                            : 'opacity-0 z-0'
+                        }`}
+                      />
+                    ))}
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-60"></div>
+                  </div>
+                </div>
 
-                {/* Subtle overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 via-transparent to-white/10 group-hover:from-slate-900/10 transition-all duration-500 z-20"></div>
+                {/* Floating accent images */}
+                <div className="absolute -top-4 -right-4 w-28 h-36 sm:w-36 sm:h-44 lg:w-44 lg:h-52 rotate-12 group-hover:rotate-6 transition-all duration-700">
+                  <div className="w-full h-full rounded-[3rem] overflow-hidden shadow-xl shadow-slate-900/20 ring-1 ring-white/30 opacity-80 group-hover:opacity-100 transform -skew-y-2">
+                    <div className="absolute inset-0 bg-gradient-to-br from-violet-500/20 to-pink-500/20"></div>
+                    {contentData.map((content, index) => (
+                      <img
+                        key={index}
+                        src={content.url}
+                        alt={content.alt}
+                        className={`absolute top-0 left-0 w-full h-full object-cover transition-all duration-1000 ${
+                          index === (currentImageIndex + 1) % contentData.length
+                            ? 'opacity-100 z-10'
+                            : 'opacity-0 z-0'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
 
-                {/* Minimal corner accents */}
-                <div className="absolute top-2 left-2 sm:top-4 sm:left-4 w-3 h-3 sm:w-4 sm:h-4 border-l border-t border-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-30"></div>
-                <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 w-3 h-3 sm:w-4 sm:h-4 border-r border-b border-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-30"></div>
+                <div className="absolute -bottom-6 -left-6 w-24 h-32 sm:w-32 sm:h-40 lg:w-40 lg:h-48 -rotate-12 group-hover:-rotate-6 transition-all duration-700">
+                  <div className="w-full h-full rounded-[2rem] overflow-hidden shadow-xl shadow-slate-900/20 ring-1 ring-white/30 opacity-70 group-hover:opacity-90 transform skew-x-3">
+                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-cyan-500/20"></div>
+                    {contentData.map((content, index) => (
+                      <img
+                        key={index}
+                        src={content.url}
+                        alt={content.alt}
+                        className={`absolute top-0 left-0 w-full h-full object-cover transition-all duration-1000 ${
+                          index === (currentImageIndex + 2) % contentData.length
+                            ? 'opacity-100 z-10'
+                            : 'opacity-0 z-0'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Floating particles */}
+                <div className="absolute top-1/4 right-1/4 w-2 h-2 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full opacity-60 group-hover:opacity-80 transition-all duration-700 animate-pulse"></div>
+                <div className="absolute bottom-1/3 left-1/3 w-1 h-1 bg-gradient-to-br from-pink-400 to-orange-400 rounded-full opacity-50 group-hover:opacity-70 transition-all duration-700 animate-pulse" style={{animationDelay: '0.5s'}}></div>
+                <div className="absolute top-2/3 left-1/6 w-1.5 h-1.5 bg-gradient-to-br from-emerald-400 to-cyan-400 rounded-full opacity-40 group-hover:opacity-60 transition-all duration-700 animate-pulse" style={{animationDelay: '1s'}}></div>
               </div>
             </div>
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-1 z-30">
-  <p className="text-[12px] sm:text-base text-black/80 px-5 py-2 rounded-lg bg-white/70 backdrop-blur-md font-light tracking-wide shadow-md">
-    These images were generated by PixelPerfect Gen AI
-  </p>
-  <a
-    href="image-generation"
-    className="mt-1.5 text-[11px] sm:text-sm text-black/70 hover:text-black transition-colors font-medium"
-  >
-    Try it now →
-  </a>
-</div>
-
-          </div>
-              
+            
+            {/* Attribution text */}
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-1 z-30">
+              <p className="text-[12px] sm:text-base text-black/80 px-5 py-2 rounded-lg bg-white/70 backdrop-blur-md font-light tracking-wide shadow-md">
+                These images were generated by PixelPerfect Gen AI
+              </p>
+              <a
+                href="image-generation"
+                className="mt-1.5 text-[11px] sm:text-sm text-black/70 hover:text-black transition-colors font-medium"
+              >
+                Try it now →
+              </a>
+            </div>
+        </div>
+    
+      
           {/* Premium typography with dynamic content */}
           <div
             className={`space-y-4 sm:space-y-6 lg:space-y-10 order-2 text-center lg:text-left -mt-4 sm:mt-0 transition-all duration-500 ${
@@ -923,6 +1041,7 @@ useEffect(() => {
     )}
   </div>
 </div>
+
 {/* Unlimited Banner Section */}
 <div ref={forYouRef} className="py-32 bg-slate-50/60 backdrop-blur-sm">
   <div className="w-full px-6">
