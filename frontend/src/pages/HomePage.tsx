@@ -33,6 +33,7 @@ const HomePage: React.FC = () => {
   const launchAppRef = useRef<HTMLDivElement>(null); 
   const forYouRef = useRef<HTMLDivElement>(null);
   const forTeamsRef = useRef(null) 
+  const infoSectionRef = useRef<HTMLDivElement>(null);
   
    const features = [
     {
@@ -515,7 +516,8 @@ useEffect(() => {
       title: "Background Removal",
       description: "Remove backgrounds with surgical precision. Perfect for product photography and creative projects.",
       tokens: "Free",
-      gradient: "bg-gradient-to-r from-red-600 via-orange-600 to-yellow-600"
+      gradient: "bg-gradient-to-r from-red-600 via-orange-600 to-yellow-600",
+      videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
     },
     {
       href: "/enlarge",
@@ -652,62 +654,89 @@ useEffect(() => {
 
       {/* Services Section */}
       <div
-        ref={servicesRef}
-        id="services"
-        className="py-32 bg-white/40 backdrop-blur-sm"
-      >
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-20">
-            <h2 className="services-title text-4xl md:text-5xl font-light text-slate-900 mb-6 tracking-tight">
-              <em className="italic text-slate-600">Powerful</em> AI Tools
-            </h2>
-            <p className="services-subtitle text-xl text-slate-600 max-w-2xl mx-auto font-light">
-              Everything you need to transform your creative vision into reality.
+  ref={servicesRef}
+  id="services"
+  className="py-32 bg-white/40 backdrop-blur-sm"
+>
+  <div className="max-w-6xl mx-auto px-6">
+    <div className="text-center mb-20">
+      <h2 className="services-title text-4xl md:text-5xl font-light text-slate-900 mb-6 tracking-tight">
+        <em className="italic text-slate-600">Powerful</em> AI Tools
+      </h2>
+      <p className="services-subtitle text-xl text-slate-600 max-w-2xl mx-auto font-light">
+        Everything you need to transform your creative vision into reality.
+      </p>
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {services.map((service) => (
+        <a
+          key={service.href}
+          href={service.href}
+          className={`service-card group relative bg-white border border-slate-200 rounded-3xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:border-slate-300 hover:-translate-y-2 ${service.comingSoon ? 'cursor-default opacity-90' : ''}`}
+        >
+          {/* Coming Soon badge */}
+          {service.comingSoon && (
+            <div className="absolute top-6 right-6 bg-slate-100 text-slate-500 text-xs font-medium px-3 py-1 rounded-full z-10">
+              Coming Soon
+            </div>
+          )}
+
+          {/* Video Container - Vertical aspect ratio */}
+          <div className="relative w-full h-64 bg-slate-100 overflow-hidden">
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            >
+              <source src={service.videoUrl} type="video/mp4" />
+              <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
+                <service.icon className="text-slate-400" size={32} />
+              </div>
+            </video>
+            
+            {/* Video overlay gradient */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            
+            {/* Play indicator */}
+            <div className="absolute top-4 left-4 w-8 h-8 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <div className="w-3 h-3 bg-white rounded-full"></div>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-8">
+            <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-slate-900 transition-colors duration-300">
+              <service.icon className="text-slate-600 group-hover:text-white transition-colors duration-300" size={24} />
+            </div>
+
+            <h3 className={`text-xl font-medium mb-3 ${service.gradient} bg-clip-text text-transparent`}>
+              {service.title}
+            </h3>
+            
+            <p className="text-slate-600 text-sm mb-6 leading-relaxed">
+              {service.description}
             </p>
+
+            <div className="flex items-center justify-between">
+              <span className="text-slate-500 text-sm font-medium">
+                {service.tokens}
+              </span>
+              {!service.comingSoon && (
+                <ArrowRight
+                  size={16}
+                  className="text-slate-400 group-hover:text-slate-900 group-hover:translate-x-1 transition-all duration-300"
+                />
+              )}
+            </div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {services.map((service) => (
-              <a
-                key={service.href}
-                href={service.href}
-                className={`service-card group bg-white border border-slate-200 rounded-3xl p-8 transition-all duration-300 hover:shadow-2xl hover:border-slate-300 hover:-translate-y-2 ${service.comingSoon ? 'cursor-default opacity-90' : ''}`}
-              >
-                {/* Coming Soon badge */}
-                {service.comingSoon && (
-                  <div className="absolute top-6 right-6 bg-slate-100 text-slate-500 text-xs font-medium px-3 py-1 rounded-full">
-                    Coming Soon
-                  </div>
-                )}
-
-                <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-slate-900 transition-colors duration-300">
-                  <service.icon className="text-slate-600 group-hover:text-white transition-colors duration-300" size={24} />
-                </div>
-
-                <h3 className={`text-xl font-medium mb-3 ${service.gradient} bg-clip-text text-transparent`}>
-                  {service.title}
-                </h3>
-                
-                <p className="text-slate-600 text-sm mb-6 leading-relaxed">
-                  {service.description}
-                </p>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500 text-sm font-medium">
-                    {service.tokens}
-                  </span>
-                  {!service.comingSoon && (
-                    <ArrowRight
-                      size={16}
-                      className="text-slate-400 group-hover:text-slate-900 group-hover:translate-x-1 transition-all duration-300"
-                    />
-                  )}
-                </div>
-              </a>
-            ))}
-          </div>
-        </div>
-      </div>
+        </a>
+      ))}
+    </div>
+  </div>
+</div>
 
       <div ref={forTeamsRef} className="min-h-screen bg-white py-24 px-6">
       <div className="max-w-7xl mx-auto">
@@ -925,8 +954,150 @@ useEffect(() => {
     </div>
   </div>
 </div>
-                      
 
+{/* Info Section */}
+{/* Info Section */}
+<div ref={infoSectionRef} className="py-32 bg-white relative z-10">
+  <div className="max-w-6xl mx-auto px-6">
+    <div className="grid md:grid-cols-2 items-center gap-12">
+      <div>
+        <h2 className="text-4xl md:text-5xl font-light text-slate-900 mb-6 tracking-tight">
+          <div className="block mb-3">
+            Edit <span className="relative inline-block">
+              <span className="italic bg-gradient-to-r from-emerald-600 to-emerald-400 bg-clip-text text-transparent font-light">
+                images
+              </span>
+              <div className="absolute -bottom-0.5 left-0 w-full h-[0.5px] bg-gradient-to-r from-emerald-400 to-transparent opacity-60"></div>
+            </span> effortlessly in just <span className="relative inline-block">
+              <span className="italic bg-gradient-to-r from-teal-600 to-teal-400 bg-clip-text text-transparent font-light">
+                seconds
+              </span>
+              <div className="absolute -bottom-0.5 left-0 w-full h-[0.5px] bg-gradient-to-r from-teal-400 to-transparent opacity-60"></div>
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-3xl md:text-4xl">
+            <span className="text-slate-600 font-extralight">Let AI handle the</span>
+            <span className="relative inline-block">
+              <span className="italic bg-gradient-to-r from-cyan-600 to-cyan-400 bg-clip-text text-transparent font-light">
+                hard work
+              </span>
+              <div className="absolute -bottom-0.5 left-0 w-full h-[0.5px] bg-gradient-to-r from-cyan-400 to-transparent opacity-60"></div>
+            </span>
+            <span className="text-slate-600 font-extralight">—</span>
+            <span className="relative inline-block">
+              <span className="italic bg-gradient-to-r from-sky-600 to-sky-400 bg-clip-text text-transparent font-light">
+                you just create
+              </span>
+              <div className="absolute -bottom-0.5 left-0 w-full h-[0.5px] bg-gradient-to-r from-sky-400 to-transparent opacity-60"></div>
+            </span>
+          </div>
+        </h2>
+        <p className="text-xl text-slate-600 font-light leading-relaxed mb-6">
+          With PixelPerfect, you can remove backgrounds in 5 seconds, upscale your images up to 4x, erase unwanted objects, extend your photos with generative fill, or even turn text into stunning visuals — all in one place.
+        </p>
+        <p className="text-xl text-slate-600 font-light leading-relaxed mb-6">
+          Whether you're going for a transparent PNG, a high-res masterpiece, or a totally new image from scratch, PixelPerfect makes it easy, fast, and fun.
+        </p>
+      </div>
+      <div className="rounded-xl overflow-hidden shadow-lg">
+        <img
+          src="https://i.imgur.com/9Lk9jkz.jpeg"
+          alt="Launch App"
+          className="w-full h-[500px] object-cover"
+        />
+      </div>
+    </div>
+  </div>
+</div>
+
+{/* Unlimited Banner Section */}
+<div ref={forYouRef} className="py-32 bg-white">
+  <div className="w-full px-6">
+    <div className="relative flex h-[410px] items-center overflow-hidden rounded-3xl bg-gradient-to-br from-gray-100 via-gray-50 to-gray-200 text-center shadow-lg shadow-gray-900/15 md:text-left">
+      
+      {/* Background decorative elements - subtle metallic shine */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(255,255,255,0.08),transparent_50%)] opacity-70"></div>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_80%,rgba(255,255,255,0.05),transparent_50%)] opacity-60"></div>
+      
+      {/* Subtle metallic shine effect */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/05 to-transparent opacity-40"></div>
+      
+      {/* Animated background pattern - subtle metallic dots */}
+      <div className="absolute top-0 right-0 w-full h-full opacity-25">
+        <div className="absolute top-1/4 right-1/4 w-32 h-32 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/3 right-1/3 w-20 h-20 bg-white/08 rounded-full blur-2xl animate-pulse" style={{animationDelay: '1s'}}></div>
+        <div className="absolute top-1/2 right-1/5 w-16 h-16 bg-white/06 rounded-full blur-xl animate-pulse" style={{animationDelay: '2s'}}></div>
+      </div>
+
+      {/* Main background image - SIN opacidad blanca */}
+      <div className="absolute bottom-0 right-0 hidden md:block">
+        <div className="relative w-[726px] h-[410px] lg:w-[886px] xl:translate-x-32 2xl:translate-x-48">
+          <img
+            src="https://res.cloudinary.com/drzokg7bb/image/upload/v1752321215/pixelperfect/processed/8d27f1aa-5c1a-4da7-ab05-f1d6b5f66b39_pixel_perfect.png"
+            alt="unlimited banner"
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-gradient-to-l from-transparent via-black/15 to-black/40"></div>
+          
+          {/* Copyright text */}
+          <div className="absolute bottom-2 left-4 text-xs text-white/70 font-light whitespace-nowrap">
+            PixelPerfect AI ™ all rights reserved
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10 w-full md:pl-20">
+        <div className="flex w-full max-w-[80%] flex-col items-center justify-center mx-auto px-6 md:max-w-[45%] md:items-start md:justify-start md:mx-0 md:px-0 md:pr-8">
+          
+          {/* Title */}
+          <h2 className="text-center text-[28px] md:text-3xl lg:text-4xl font-semibold leading-tight text-gray-900 md:text-left mb-4">
+            <span className="block md:inline whitespace-nowrap bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+              Unlimited images.
+            </span>{' '}
+            <span className="block md:inline whitespace-nowrap bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-light italic">
+              Endless creativity
+            </span>
+          </h2>
+
+          {/* Description */}
+          <p className="text-center text-[16px] md:text-[18px] leading-relaxed text-gray-600 md:text-left mb-8 font-light">
+            Generate and edit unlimited images with all our AI models.{' '}
+            <strong className="text-gray-900 font-semibold">
+              No credits, no limits: your ideas will flow freely.
+            </strong>
+            <br />
+            <span className="text-gray-500 text-sm">
+              Available with Pro and Premium+ plans.
+            </span>
+          </p>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-wrap justify-center gap-4 md:justify-start">
+            <a
+              href="/pricing?origin=freepik_web"
+              className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-8 py-3 text-sm font-semibold text-white transition-all duration-300 hover:from-blue-600 hover:to-blue-700 hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5"
+            >
+              <span className="relative z-10">View plans</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            </a>
+            
+            <a
+              href="/demo"
+              className="group relative overflow-hidden rounded-xl border-2 border-gray-400 bg-white/95 backdrop-blur-sm px-8 py-3 text-sm font-semibold text-gray-900 transition-all duration-300 hover:bg-white hover:border-gray-500 hover:shadow-lg hover:shadow-gray-900/10 hover:-translate-y-0.5"
+            >
+              <span className="relative z-10">Try for free</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-gray-100/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+                
 {/* Launch App Section */}
 <div ref={launchAppRef} className="py-32 bg-white relative z-10">
   <div className="max-w-6xl mx-auto px-6">
@@ -1041,92 +1212,7 @@ useEffect(() => {
     )}
   </div>
 </div>
-
-{/* Unlimited Banner Section */}
-<div ref={forYouRef} className="py-32 bg-slate-50/60 backdrop-blur-sm">
-  <div className="w-full px-6">
-    <div className="relative flex h-[410px] items-center overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-black text-center shadow-2xl shadow-slate-900/20 md:text-left">
-      
-      {/* Background decorative elements */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(59,130,246,0.15),transparent_50%)] opacity-80"></div>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_80%,rgba(147,51,234,0.12),transparent_50%)] opacity-70"></div>
-      
-      {/* Animated background pattern */}
-      <div className="absolute top-0 right-0 w-full h-full opacity-10">
-        <div className="absolute top-1/4 right-1/4 w-32 h-32 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/3 right-1/3 w-20 h-20 bg-blue-400/20 rounded-full blur-2xl animate-pulse" style={{animationDelay: '1s'}}></div>
-        <div className="absolute top-1/2 right-1/5 w-16 h-16 bg-purple-400/15 rounded-full blur-xl animate-pulse" style={{animationDelay: '2s'}}></div>
-      </div>
-
-      {/* Main background image */}
-      <div className="absolute bottom-0 right-0 hidden md:block">
-        <div className="relative w-[726px] h-[410px] lg:w-[886px] xl:translate-x-32 2xl:translate-x-48">
-          <img
-            src="https://res.cloudinary.com/drzokg7bb/image/upload/v1752321215/pixelperfect/processed/8d27f1aa-5c1a-4da7-ab05-f1d6b5f66b39_pixel_perfect.png"
-            alt="unlimited banner"
-            className="w-full h-full object-cover opacity-60 mix-blend-overlay"
-            loading="lazy"
-          />
-          <div className="absolute inset-0 bg-gradient-to-l from-transparent via-black/20 to-black/80"></div>
           
-          {/* Copyright text */}
-          <div className="absolute bottom-2 left-4 text-xs text-white/50 font-light whitespace-nowrap">
-            PixelPerfect AI ™ all rights reserved
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="relative z-10 w-full md:pl-20">
-        <div className="flex w-full max-w-[80%] flex-col items-center justify-center mx-auto px-6 md:max-w-[45%] md:items-start md:justify-start md:mx-0 md:px-0 md:pr-8">
-          
-          {/* Title */}
-          <h2 className="text-center text-[28px] md:text-3xl lg:text-4xl font-semibold leading-tight text-white md:text-left mb-4">
-            <span className="block md:inline whitespace-nowrap bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent">
-              Unlimited images.
-            </span>{' '}
-            <span className="block md:inline whitespace-nowrap bg-gradient-to-r from-blue-300 to-purple-300 bg-clip-text text-transparent font-light italic">
-              Endless creativity
-            </span>
-          </h2>
-
-          {/* Description */}
-          <p className="text-center text-[16px] md:text-[18px] leading-relaxed text-slate-200 md:text-left mb-8 font-light">
-            Generate and edit unlimited images with all our AI models.{' '}
-            <strong className="text-white font-semibold">
-              No credits, no limits: your ideas will flow freely.
-            </strong>
-            <br />
-            <span className="text-slate-300 text-sm">
-              Available with Pro and Premium+ plans.
-            </span>
-          </p>
-
-          {/* CTA Buttons */}
-          <div className="flex flex-wrap justify-center gap-4 md:justify-start">
-            <a
-              href="/pricing?origin=freepik_web"
-              className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-8 py-3 text-sm font-semibold text-white transition-all duration-300 hover:from-blue-600 hover:to-blue-700 hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5"
-            >
-              <span className="relative z-10">View plans</span>
-              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </a>
-            
-            <a
-              href="/demo"
-              className="group relative overflow-hidden rounded-xl border-2 border-white/20 bg-white/5 backdrop-blur-sm px-8 py-3 text-sm font-semibold text-white transition-all duration-300 hover:bg-white/10 hover:border-white/30 hover:shadow-lg hover:shadow-white/10 hover:-translate-y-0.5"
-            >
-              <span className="relative z-10">Try for free</span>
-              <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-                 
       {/* Privacy Section */}
       <div ref={featuresRef} className="py-32 bg-slate-50/60 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-6">
