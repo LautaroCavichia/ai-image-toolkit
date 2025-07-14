@@ -228,8 +228,8 @@ const ObjectRemovalPage: React.FC = () => {
   // Mock images for the slider
   const mockImages = [
     {
-      before: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=600&fit=crop',
-      after: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=600&fit=crop&blend=FFFFFF&blend-mode=normal',
+      before: 'https://i.imgur.com/djgBnnA.jpeg',
+      after: 'https://i.imgur.com/aAyqjKV.jpeg',
       title: 'Tourist Removal',
       description: 'Remove unwanted people from your perfect landscape shots'
     },

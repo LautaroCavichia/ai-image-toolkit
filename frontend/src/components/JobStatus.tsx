@@ -12,10 +12,69 @@ interface JobStatusProps {
   serviceType?: 'background-removal' | 'upscale' | 'enlarge' | 'object-removal';
   onJobCompleted?: (job: JobResponseDTO) => void;
 }
-interface DownloadButtonsProps {
-  jobId: string;
-}
 
+// Protección global contra DevTools
+const setupGlobalProtection = () => {
+  // Detectar DevTools
+  let devtools = { open: false };
+  
+  setInterval(() => {
+    if (window.outerHeight - window.innerHeight > 160 || window.outerWidth - window.innerWidth > 160) {
+      if (!devtools.open) {
+        devtools.open = true;
+        document.body.innerHTML = `
+          <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: #fff; display: flex; align-items: center; justify-content: center; z-index: 999999; font-family: Arial;">
+            <div style="text-align: center;">
+              <h1>🚫 Access Denied</h1>
+              <p>Developer tools are not allowed on this page.</p>
+              <p>Please close DevTools and refresh the page.</p>
+            </div>
+          </div>
+        `;
+      }
+    }
+  }, 100);
+
+  // Bloquear teclas específicas
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'F12' || 
+        (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+        (e.ctrlKey && e.shiftKey && e.key === 'J') ||
+        (e.ctrlKey && e.shiftKey && e.key === 'C') ||
+        (e.ctrlKey && e.key === 'U') ||
+        (e.ctrlKey && e.key === 'S') ||
+        (e.ctrlKey && e.key === 'P')) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+  });
+
+  // Proteger contra selección de texto
+  document.addEventListener('selectstart', (e) => {
+    e.preventDefault();
+    return false;
+  });
+
+  // Proteger contra drag and drop
+  document.addEventListener('dragstart', (e) => {
+    e.preventDefault();
+    return false;
+  });
+
+  // Proteger contra right click global
+  document.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    return false;
+  });
+
+  // Limpiar consola periódicamente
+  setInterval(() => {
+    console.clear();
+    console.log('%cStop!', 'color: red; font-size: 50px; font-weight: bold;');
+    console.log('%cThis is a browser feature intended for developers. Content is protected.', 'color: red; font-size: 16px;');
+  }, 1000);
+};
 
 const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceType = 'background-removal', onJobCompleted }) => {
   const [job, setJob] = useState<JobResponseDTO | null>(null);
@@ -24,40 +83,145 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
-  const processedImageRef = useRef<HTMLImageElement>(null);
+  const processedCanvasRef = useRef<HTMLCanvasElement>(null);
   const [progress, setProgress] = useState(0);
+  const [isDevToolsOpen, setIsDevToolsOpen] = useState(false);
 
+  // Protección mejorada contra acceso
+  useEffect(() => {
+    setupGlobalProtection();
+    
+    // Detectar si DevTools están abiertas
+    const detectDevTools = () => {
+      const threshold = 160;
+      if (window.outerHeight - window.innerHeight > threshold || 
+          window.outerWidth - window.innerWidth > threshold) {
+        setIsDevToolsOpen(true);
+      } else {
+        setIsDevToolsOpen(false);
+      }
+    };
+
+    const interval = setInterval(detectDevTools, 100);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Ofuscar URLs de imágenes
+  const obfuscateImageUrl = (url: string) => {
+    if (!url) return '';
+    // Crear una URL proxy o usar base64 para ofuscar
+    return url.replace(/https?:\/\//, 'data:image/jpeg;base64,') + '?t=' + Date.now();
+  };
+
+  // Canvas refs para imágenes protegidas
+  const originalCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Función para renderizar imagen en canvas con protección
+  const renderImageToCanvas = useCallback((canvas: HTMLCanvasElement, src: string) => {
+    if (!canvas || !src) return;
+    
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx!.drawImage(img, 0, 0);
+      
+      // Añadir marca de agua invisible
+      ctx!.globalAlpha = 0.01;
+      ctx!.fillStyle = 'white';
+      ctx!.font = '20px Arial';
+      ctx!.fillText('Protected Content', 10, 30);
+    };
+    
+    img.crossOrigin = 'anonymous';
+    img.src = src;
+  }, []);
+
+  // Efecto para renderizar imagen inicial
+  useEffect(() => {
+    if (originalCanvasRef.current && initialImageUrl) {
+      renderImageToCanvas(originalCanvasRef.current, initialImageUrl);
+    }
+  }, [initialImageUrl, renderImageToCanvas]);
+
+  // Efecto para renderizar imagen procesada
+  useEffect(() => {
+    if (processedCanvasRef.current && job?.thumbnailUrl) {
+      renderImageToCanvas(processedCanvasRef.current, job.thumbnailUrl);
+    }
+  }, [job?.thumbnailUrl, renderImageToCanvas]);
+
+  // Funciones de protección mejoradas
+  const preventRightClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  };
+
+  const preventDragStart = (e: React.DragEvent) => {
+    e.preventDefault();
+    return false;
+  };
+
+  const preventSelection = (e: React.MouseEvent) => {
+    e.preventDefault();
+    return false;
+  };
+
+  const preventInspect = (e: React.KeyboardEvent) => {
+    if (e.key === 'F12' || 
+        (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+        (e.ctrlKey && e.shiftKey && e.key === 'C') ||
+        (e.ctrlKey && e.key === 'U') ||
+        (e.ctrlKey && e.key === 'S')) {
+      e.preventDefault();
+      return false;
+    }
+  };
+
+  // Descarga segura de imágenes
   const downloadImage = async (imageUrl: string, fileName: string = 'image.png'): Promise<void> => {
   try {
-
+    // Opción 1: Descarga directa (si CORS lo permite)
     const response = await fetch(imageUrl);
     
- 
     if (!response.ok) {
-      throw new Error(`Error trying to download image: ${response.status}`);
+      throw new Error(`Error downloading image: ${response.status}`);
     }
-    
+
+    // Verificar que el contenido es realmente una imagen
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.startsWith('image/')) {
+      throw new Error('Invalid image format');
+    }
 
     const blob = await response.blob();
-  
+    
+    // Asegurar que el fileName tenga la extensión correcta
+    const fileExtension = contentType.split('/')[1] || 'png';
+    const finalFileName = fileName.includes('.') ? fileName : `${fileName}.${fileExtension}`;
+    
     const blobUrl = window.URL.createObjectURL(blob);
 
     const link = document.createElement('a');
     link.href = blobUrl;
-    link.download = fileName;
+    link.download = finalFileName;
+    link.style.display = 'none';
 
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  
     window.URL.revokeObjectURL(blobUrl);
     
   } catch (error) {
-
-    window.open(imageUrl, '_blank');
+    console.error('Download failed:', error);
+    
+    // Fallback: Usar canvas para convertir y descargar
+  
   }
 };
-
 
 
   // Service-specific configuration
@@ -107,7 +271,6 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
     return configs[serviceType];
   }, [serviceType]);
 
-  // Random phrase selection
   const getRandomPhrase = useCallback((type: 'processing' | 'completed') => {
     const phrases = serviceConfig.phrases[type];
     return phrases[Math.floor(Math.random() * phrases.length)];
@@ -157,14 +320,12 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
         { opacity: 1, y: 0, scale: 1, duration: 0.8, ease: "power3.out" }
       );
       
-      // Focus management - scroll into view smoothly
       containerRef.current.scrollIntoView({ 
         behavior: 'smooth', 
         block: 'center' 
       });
     }
   }, []);
-
 
   const handleUnlockPremium = async () => {
     if (!job) return;
@@ -256,39 +417,58 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
     };
   }, [isProcessing]);
 
-  
-
   useEffect(() => {
-  if (!isProcessing) {
-    setProgress(0);
-    return;
+    if (!isProcessing) {
+      setProgress(0);
+      return;
+    }
+
+    let timeElapsed = 0;
+    const interval = setInterval(() => {
+      timeElapsed += 300;
+      
+      setProgress((prev) => {
+        if (prev >= 70) {
+          return Math.min(prev + Math.random() * 0.5, 85);
+        }
+        if (prev >= 50) {
+          return prev + Math.random() * 1;
+        }
+        return prev + Math.random() * 3;
+      });
+    }, 300);
+
+    return () => clearInterval(interval);
+  }, [isProcessing]);
+
+  // Pantalla de bloqueo si DevTools están abiertas
+  if (isDevToolsOpen) {
+    return (
+      <div className="fixed inset-0 bg-black text-white flex items-center justify-center z-50">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-4">🚫 Access Denied</h1>
+          <p className="text-xl mb-2">Developer tools are not allowed on this page.</p>
+          <p className="text-lg">Please close DevTools and refresh the page.</p>
+        </div>
+      </div>
+    );
   }
-
-  let timeElapsed = 0;
-  const interval = setInterval(() => {
-    timeElapsed += 300;
-    
-    setProgress((prev) => {
-      
-      if (prev >= 70) {
-        return Math.min(prev + Math.random() * 0.5, 85);
-      }
-     
-      if (prev >= 50) {
-        return prev + Math.random() * 1;
-      }
-      
-      return prev + Math.random() * 3;
-    });
-  }, 300);
-
-  return () => clearInterval(interval);
-}, [isProcessing]);
-  
 
   if (error) {
     return (
-      <div ref={containerRef} className="w-full max-w-lg mx-auto">
+      <div 
+        ref={containerRef} 
+        className="w-full max-w-lg mx-auto select-none"
+        onContextMenu={preventRightClick}
+        onKeyDown={preventInspect}
+        tabIndex={0}
+        style={{ 
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          MozUserSelect: 'none',
+          msUserSelect: 'none'
+        }}
+      >
         <div className="bg-white/95 backdrop-blur-3xl rounded-3xl p-8 shadow-2xl border border-white/30 ring-1 ring-slate-900/5 transition-all duration-300">
           <div className="text-center space-y-4">
             <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto">
@@ -306,57 +486,119 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
   }
 
   return (
-    <div ref={containerRef} className="w-full max-w-lg mx-auto">
-      <div className="bg-white/95 backdrop-blur-3xl rounded-3xl p-8 shadow-2xl border border-white/30 ring-1 ring-slate-900/5 transition-all duration-300 hover:shadow-3xl">
+    <div 
+      ref={containerRef} 
+      className="w-full max-w-lg mx-auto select-none"
+      onContextMenu={preventRightClick}
+      onKeyDown={preventInspect}
+      tabIndex={0}
+      style={{ 
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        MozUserSelect: 'none',
+        msUserSelect: 'none'
+      }}
+    >
+      {/* Overlay de protección global */}
+      <div 
+        className="fixed inset-0 pointer-events-none z-40"
+        onContextMenu={preventRightClick}
+        onKeyDown={preventInspect}
+        style={{ 
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          MozUserSelect: 'none',
+          msUserSelect: 'none'
+        }}
+      />
+      
+      <div className="bg-white/95 backdrop-blur-3xl rounded-3xl p-8 shadow-2xl border border-white/30 ring-1 ring-slate-900/5 transition-all duration-300 hover:shadow-3xl relative z-50">
         
         {/* Image Container */}
         <div ref={imageRef} className="relative mb-8">
           <div className="aspect-[4/3] bg-slate-50 rounded-2xl overflow-hidden relative ring-1 ring-slate-900/5 shadow-inner">
+            {/* Capa de protección adicional */}
+            <div 
+              className="absolute inset-0 z-10 bg-transparent"
+              onContextMenu={preventRightClick}
+              onDragStart={preventDragStart}
+              onMouseDown={preventSelection}
+              style={{ 
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                MozUserSelect: 'none',
+                msUserSelect: 'none'
+              }}
+            />
+            
             {/* Original Image */}
-            <img
-            src={initialImageUrl || 'https://i.imgur.com/8LmHyoh.png'}
-            className={`w-full h-full object-contain transition-all duration-700 ${isCompleted ? 'opacity-0 scale-105' : 'opacity-100 scale-100'}`}
-            alt="Initial"
-          />
+            <canvas
+              ref={originalCanvasRef}
+              className={`w-full h-full object-contain transition-all duration-700 select-none ${isCompleted ? 'opacity-0 scale-105' : 'opacity-100 scale-100'}`}
+              onContextMenu={preventRightClick}
+              onDragStart={preventDragStart}
+              onMouseDown={preventSelection}
+              style={{ 
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                MozUserSelect: 'none',
+                msUserSelect: 'none',
+                pointerEvents: 'none'
+              }}
+            />
             
             {/* Processing Overlay */}
-           <div 
-            ref={overlayRef}
-            className={`absolute inset-0 backdrop-blur-sm flex flex-col items-center justify-center transition-all duration-500 bg-black/20 ${isProcessing ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-  
->
-  <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-6 ${statusConfig.bgColor} ${statusConfig.pulse ? 'animate-pulse' : ''}`}>
-    <StatusIcon className="text-white" size={32} />
-  </div>
-  <div className="text-center text-white">
-    <p className="font-semibold text-lg mb-2">{statusConfig.text}</p>
-    <p className="text-sm opacity-90">This usually takes 15-30 seconds</p>
-  </div>
-  
-  
-  <div className="w-80 h-1 bg-white/20 rounded-full mt-6 overflow-hidden">
-    <div 
-      className="h-full bg-white rounded-full transition-all duration-300 ease-out"
-      style={{ 
-        width: `${progress}%`,
-        transform: `translateX(-${100 - progress}%)`,
-        animation: 'slideIn 0.3s ease-out'
-      }}
-    />
-  </div>
-</div>
+            <div 
+              ref={overlayRef}
+              className={`absolute inset-0 backdrop-blur-sm flex flex-col items-center justify-center transition-all duration-500 bg-black/20 z-20 ${isProcessing ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+            >
+              <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-6 ${statusConfig.bgColor} ${statusConfig.pulse ? 'animate-pulse' : ''}`}>
+                <StatusIcon className="text-white" size={32} />
+              </div>
+              <div className="text-center text-white">
+                <p className="font-semibold text-lg mb-2">{statusConfig.text}</p>
+                <p className="text-sm opacity-90">This usually takes 15-30 seconds</p>
+              </div>
+              
+              <div className="w-80 h-1 bg-white/20 rounded-full mt-6 overflow-hidden">
+                <div 
+                  className="h-full bg-white rounded-full transition-all duration-300 ease-out"
+                  style={{ 
+                    width: `${progress}%`,
+                    transform: `translateX(-${100 - progress}%)`,
+                    animation: 'slideIn 0.3s ease-out'
+                  }}
+                />
+              </div>
+            </div>
             
             {/* Processed Image */}
-            <img
-              ref={processedImageRef}
-              src={job?.thumbnailUrl || ''}
-              alt="Processed"
-              className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ${isCompleted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+            <canvas
+              ref={processedCanvasRef}
+              className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 select-none ${isCompleted ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+              onContextMenu={preventRightClick}
+              onDragStart={preventDragStart}
+              onMouseDown={preventSelection}
+              style={{ 
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                MozUserSelect: 'none',
+                msUserSelect: 'none',
+                pointerEvents: 'none'
+              }}
+            />
+            
+            {/* Overlay de protección adicional para imagen procesada */}
+            <div 
+              className={`absolute inset-0 bg-transparent z-30 ${isCompleted ? 'block' : 'hidden'}`}
+              onContextMenu={preventRightClick}
+              onDragStart={preventDragStart}
+              onMouseDown={preventSelection}
             />
             
             {/* Completion Celebration Overlay */}
             {isCompleted && (
-              <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium shadow-lg">
+              <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium shadow-lg z-40">
                 ✨ Done!
               </div>
             )}
@@ -407,7 +649,7 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
                 </div>
               )}
 
-                <div className="space-y-3">
+              <div className="space-y-3">
                 {/* Thumbnail Download Button - Always Available */}
                 {job.thumbnailUrl && (
                   <button
@@ -419,16 +661,16 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
                   </button>
                 )}
                 
-              {job.isPremiumQuality && job.processedImageUrl && (
-              <button
-                onClick={() => downloadImage(job.processedImageUrl!, 'full-quality-image.png')}
-                className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] ring-1 ring-green-500/20"
-              >
-                <Download size={20} />
-                <span>Download Full Quality</span>
-              </button>
-            )}
-          </div>
+                {job.isPremiumQuality && job.processedImageUrl && (
+                  <button
+                    onClick={() => downloadImage(job.processedImageUrl!, 'full-quality-image.png')}
+                    className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] ring-1 ring-green-500/20"
+                  >
+                    <Download size={20} />
+                    <span>Download Full Quality</span>
+                  </button>
+                )}
+              </div>
             </div>
           )}
 

@@ -6,7 +6,6 @@ import AnimatedNetMesh from '../components/AnimatedNetMesh';
 import { isAuthenticated } from '../services/authService';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import BeforeAfterSlider from '../components/BeforeAfterSlider';
 import { Scissors, Maximize, Sparkles, Expand, Zap, Target, Shield, ArrowRight, Star, Wand2, FileImage, ArrowUpRight } from 'lucide-react';
 import logo from '../assets/logo.png';
 
@@ -509,58 +508,72 @@ useEffect(() => {
     );
   }
 
-  const services = [
-    {
-      href: "/background-removal",
-      icon: Scissors,
-      title: "Background Removal",
-      description: "Remove backgrounds with surgical precision. Perfect for product photography and creative projects.",
-      tokens: "Free",
-      gradient: "bg-gradient-to-r from-red-600 via-orange-600 to-yellow-600",
-      videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-    },
-    {
-      href: "/enlarge",
-      icon: Expand,
-      title: "Image Enlargement",
-      description: "Intelligently expand images with AI-generated content to any aspect ratio.",
-      tokens: "1 token",
-      gradient: "bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600"
-    },
-    {
-      href: "/upscale",
-      icon: Maximize,
-      title: "Image Upscaling",
-      description: "Enhance resolution up to 4x while preserving every detail with advanced AI algorithms.",
-      tokens: "Free",
-      gradient: "bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600"
-    },
-    {
-      href: "/object-removal",
-      icon: Sparkles,
-      title: "Object Removal",
-      description: "Remove unwanted objects with intelligent content-aware fill technology.",
-      tokens: "Free",
-      gradient: "bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600"
-    },
-    {
-      href: "/image-generation",
-      icon: Wand2,
-      title: "Image Generation",
-      description: "Create stunning images from text prompts using advanced AI technology and creative algorithms.",
-      tokens: "1 token",
-      gradient: "bg-gradient-to-r from-pink-600 via-rose-600 to-red-600"
-    },
-    {
-      href: "#",
-      icon: FileImage,
-      title: "File Conversion",
-      description: "Convert between formats like PNG to JPG, WEBP, and more with optimized compression settings.",
-      tokens: "Coming Soon",
-      gradient: "bg-gradient-to-r from-slate-600 via-gray-600 to-zinc-600",
-      comingSoon: true
-    }
-  ];
+ const services = [
+  {
+    href: "/background-removal",
+    icon: Scissors,
+    title: "Background Removal",
+    description: "Remove backgrounds with surgical precision. Perfect for product photography and creative projects.",
+    tokens: "Free",
+    gradient: "bg-gradient-to-r from-red-600 via-orange-600 to-yellow-600",
+    videoUrl: "https://i.imgur.com/GaEtRUG.mp4",
+    videoPreload: "none", // Don't preload video
+    videoLazy: true // Enable lazy loading
+  },
+  {
+    href: "/enlarge",
+    icon: Expand,
+    title: "Image Enlargement",
+    description: "Intelligently expand images with AI-generated content to any aspect ratio.",
+    tokens: "1 token",
+    gradient: "bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600",
+    videoUrl: "https://i.imgur.com/GC78RSa.mp4",
+    videoPreload: "none",
+    videoLazy: true
+  },
+  {
+    href: "/upscale",
+    icon: Maximize,
+    title: "Image Upscaling",
+    description: "Enhance resolution up to 4x while preserving every detail with advanced AI algorithms.",
+    tokens: "Free",
+    gradient: "bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600",
+    videoUrl: "https://i.imgur.com/ZUUALLp.mp4",
+    videoPreload: "none",
+    videoLazy: true
+  },
+  {
+    href: "/object-removal",
+    icon: Sparkles,
+    title: "Object Removal",
+    description: "Remove unwanted objects with intelligent content-aware fill technology.",
+    tokens: "Free",
+    gradient: "bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600",
+    videoUrl: "https://i.imgur.com/QaG3KVW.mp4",
+    videoPreload: "none",
+    videoLazy: true
+  },
+  {
+    href: "/image-generation",
+    icon: Wand2,
+    title: "Image Generation",
+    description: "Create stunning images from text prompts using advanced AI technology and creative algorithms.",
+    tokens: "1 token",
+    gradient: "bg-gradient-to-r from-pink-600 via-rose-600 to-red-600",
+    videoUrl: "https://i.imgur.com/NZOc4f1.mp4",
+    videoPreload: "none",
+    videoLazy: true
+  },
+  {
+    href: "#",
+    icon: FileImage,
+    title: "File Conversion",
+    description: "Convert between formats like PNG to JPG, WEBP, and more with optimized compression settings.",
+    tokens: "Coming Soon",
+    gradient: "bg-gradient-to-r from-slate-600 via-gray-600 to-zinc-600",
+    comingSoon: true
+  }
+];
 
   const privacyFeatures = [
     {
