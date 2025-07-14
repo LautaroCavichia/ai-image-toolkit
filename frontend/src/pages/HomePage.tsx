@@ -49,15 +49,6 @@ const HomePage: React.FC = () => {
     }
   ];
 
-  const mediaLogos = [
-    "FORTUNE",
-    "ZONDA",
-    "Forbes", 
-    "TechCrunch",
-    "BUSINESS INSIDER",
-    "Smart Company",
-    "FINANCIAL REVIEW"
-  ];
 
    const contentData = [
     {
@@ -474,6 +465,32 @@ useEffect(() => {
     
   }, [showContent]);
 
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes gradientShift {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+      }
+      
+      @keyframes scroll {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+      }
+      
+      .animate-scroll {
+        animation: scroll 30s linear infinite;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+  
+
   if (!isAuthenticated()) {
     return (
       <Layout>
@@ -807,64 +824,99 @@ const services = [
         </div>
 
         {/* As Featured In Section */}
-       <div className="text-center">
-  <p className="text-sm font-medium text-gray-500 mb-8 uppercase tracking-wider">
-    We are a product of
-  </p>
-
-  <div className="mb-12">
-    <a 
-      href="https://zonda.one" 
-      target="_blank" 
-      rel="noopener noreferrer"
-      className="group inline-block cursor-pointer"
-    >
-      <div className="flex items-center justify-center gap-3 mb-2">
-        <span 
-          className="text-6xl font-bold tracking-wider group-hover:scale-105 transition-transform duration-300"
-          style={{
-            color: 'transparent',
-            background: 'linear-gradient(90deg, #000000 0%, #ff3131 40%, #ff3131 60%, #000000 100%)',
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            backgroundSize: '200% 200%',
-            animation: 'gradientShift 12s ease-in-out infinite',
-            fontFamily: '"AwareBold", "Inter", sans-serif'
-          }}
+         <div className="text-center max-w-4xl mx-auto">
+      <p className="text-sm font-medium text-gray-500 mb-8 uppercase tracking-wider">
+        We are a product of
+      </p>
+      <div className="mb-12">
+        <a 
+          href="https://zonda.dev" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="group inline-block cursor-pointer"
         >
-          ZONDA
-        </span>
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <span 
+              className="text-6xl font-bold tracking-wider group-hover:scale-105 transition-transform duration-300"
+              style={{
+                color: 'transparent',
+                background: 'linear-gradient(90deg, #000000 0%, #ff3131 40%, #ff3131 60%, #000000 100%)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                backgroundSize: '200% 200%',
+                animation: 'gradientShift 12s ease-in-out infinite',
+                fontFamily: '"AwareBold", "Inter", sans-serif'
+              }}
+            >
+              ZONDA
+            </span>
+          </div>
+         
+        </a>
       </div>
-    </a>
-  </div>
-
-  <p className="text-sm font-medium text-gray-500 mb-12 uppercase tracking-wider">
-    Trusted by Early Adopters
-  </p>
-
-  <div className="flex flex-wrap justify-center items-center gap-16 opacity-40">
-    {[
-      "AI Creators Collective",
-      "Design Foundry",
-      "IndieDev Hub",
-      "NextGen Studios",
-      "Product Makers",
-      "Visual Architects",
-    ].map((name, index) => (
-      <div
-        key={index}
-        className="text-gray-700 hover:opacity-100 transition-opacity duration-300 cursor-default"
+      <p className="text-sm font-medium text-gray-500 mb-12 uppercase tracking-wider">
+        Trusted by Early Adopters
+      </p>
+      <div 
+        className="relative overflow-hidden"
+        onMouseEnter={(e) => {
+          const scrollElement = e.currentTarget.querySelector('.animate-scroll') as HTMLElement;
+          if (scrollElement) scrollElement.style.animationPlayState = 'paused';
+        }}
+        onMouseLeave={(e) => {
+          const scrollElement = e.currentTarget.querySelector('.animate-scroll') as HTMLElement;
+          if (scrollElement) scrollElement.style.animationPlayState = 'running';
+        }}
       >
-        <div className="text-base font-medium tracking-wide">
-          {name}
+        <div className="flex items-center gap-16 opacity-40 animate-scroll">
+         
+          {[
+            "AI Creators Collective",
+            "Design Foundry",
+            "IndieDev Hub",
+            "NextGen Studios",
+            "Product Makers",
+            "Visual Architects",
+          ].map((name, index) => (
+            <div
+              key={index}
+              className="text-gray-700 hover:opacity-100 transition-opacity duration-300 cursor-default whitespace-nowrap flex-shrink-0"
+            >
+              <div className="text-lg font-medium tracking-wide">
+                {name}
+              </div>
+            </div>
+          ))}
+          
+          
+          {[
+            "AI Creators Collective",
+            "Design Foundry",
+            "IndieDev Hub",
+            "NextGen Studios",
+            "Product Makers",
+            "Visual Architects",
+          ].map((name, index) => (
+            <div
+              key={`duplicate-${index}`}
+              className="text-gray-700 hover:opacity-100 transition-opacity duration-300 cursor-default whitespace-nowrap flex-shrink-0"
+            >
+              <div className="text-base font-medium tracking-wide">
+                {name}
+              </div>
+            </div>
+          ))}
         </div>
+        
+       
+        <div className="absolute top-0 left-0 w-32 h-full bg-gradient-to-r from-white to-transparent pointer-events-none z-10"></div>
+        <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-white to-transparent pointer-events-none z-10"></div>
       </div>
-    ))}
-  </div>
-</div>
+    </div>
+
       </div>
       
-      {/* Subtle Background Gradient */}
+      
       <div className="absolute inset-0 bg-gradient-to-br from-blue-50/20 to-purple-50/20 pointer-events-none"></div>
     </div>
 
@@ -900,7 +952,7 @@ const services = [
 
       {/* Content */}
       <div className="max-w-xl text-center lg:text-left">
-        <h2 className="text-5xl font-normal text-gray-900 leading-tight mb-6">
+        <h2 className="text-5xl font-light leading-tight mb-6 tracking-tight text-green-900">
           {currentContent.title}
         </h2>
 
@@ -918,7 +970,6 @@ const services = [
     </section>
   </div>
 </div>
-
 
 {/* Info Section */}
 <div ref={infoSectionRef} className="py-36 bg-white relative z-10 overflow-hidden">
@@ -949,8 +1000,8 @@ const services = [
         <div className="mb-4 text-sm font-medium text-[#0a2540] uppercase tracking-widest">
           Now with Generative Fill
         </div>
-        <h2 className="text-5xl md:text-6xl font-light text-slate-900 mb-10 leading-tight tracking-tight">
-          <span className="block mb-4">Edit</span>
+        <h2 className="text-3xl md:text-4xl font-light text-slate-900 mb-8 leading-tight tracking-tight">
+          <span className="block mb-3">Edit</span>
           <span className="block">
             <span className="bg-gradient-to-r from-[#1e3a8a] to-[#2563eb] bg-clip-text text-transparent font-semibold">
             images effortlessly
@@ -958,10 +1009,10 @@ const services = [
             <span className="text-slate-700"> in just seconds</span>
           </span>
         </h2>
-        <p className="text-lg md:text-xl text-slate-600 font-light mb-6 leading-relaxed">
+        <p className="text-base md:text-lg text-slate-600 font-light mb-5 leading-relaxed">
           PixelPerfect is your creative assistant — remove backgrounds, upscale, erase objects, and transform ideas into visuals. All in one elegant, powerful toolkit.
         </p>
-        <p className="text-lg md:text-xl text-slate-600 font-light mb-8 leading-relaxed">
+        <p className="text-base md:text-lg text-slate-600 font-light mb-6 leading-relaxed">
           From high-resolution exports to AI-generated artwork, achieve studio-quality results with zero friction. Fast. Precise. Intuitive.
         </p>
         <button
@@ -994,113 +1045,74 @@ const services = [
   </div>
 </div>
 
-
 {/* Apple-like Unlimited Banner Section */}
-<div ref={forYouRef} className="py-32 bg-white">
+<div ref={forYouRef} className="py-24 bg-gradient-to-br from-slate-50 to-blue-50 relative overflow-hidden">
+  {/* Decorative Background Elements */}
+  <div className="absolute inset-0 -z-10">
+    <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse"></div>
+    <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-25 animate-pulse delay-1000"></div>
+  </div>
+
   <div className="max-w-6xl mx-auto px-6">
-    <div className="relative flex flex-col md:flex-row items-center bg-white rounded-3xl shadow-xl overflow-hidden">
+    <div className="relative flex flex-col md:flex-row items-center bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden border border-white/20">
       
       {/* Left content */}
       <div className="w-full md:w-1/2 p-12 text-center md:text-left">
-        <h2 className="text-4xl font-semibold text-gray-900 mb-4 leading-tight">
-          <span className="block">Unlimited images.</span>
-          <span className="block font-light text-gray-600 italic mt-1">Endless creativity.</span>
+        <div className="mb-4 text-sm font-medium text-[#0a2540] uppercase tracking-widest">
+          Premium Experience
+        </div>
+        <h2 className="text-3xl md:text-4xl font-light text-slate-900 mb-6 leading-tight tracking-tight">
+          <span className="block mb-2">
+            <span className="bg-gradient-to-r from-[#1e3a8a] to-[#2563eb] bg-clip-text text-transparent font-semibold">
+              Unlimited images.
+            </span>
+          </span>
+          <span className="block font-light text-slate-600 italic">Endless creativity.</span>
         </h2>
-        <p className="text-gray-700 text-lg leading-relaxed mb-10 max-w-lg mx-auto md:mx-0">
+        <p className="text-slate-600 text-base md:text-lg leading-relaxed mb-8 max-w-lg mx-auto md:mx-0">
           Generate and edit unlimited images with all our AI models. <br />
-          <strong className="font-semibold text-gray-900">No credits, no limits: your ideas will flow freely.</strong>
+          <strong className="font-semibold text-slate-900">No credits, no limits: your ideas will flow freely.</strong>
         </p>
-        <div className="flex justify-center md:justify-start gap-6">
+        <div className="flex flex-col sm:flex-row justify-center md:justify-start gap-4">
           <a
             href="/pricing?origin=freepik_web"
-            className="px-8 py-3 border border-gray-900 rounded-lg text-gray-900 font-semibold hover:bg-gray-100 transition"
+            className="px-8 py-3 border border-[#0a2540] rounded-full text-[#0a2540] font-medium hover:bg-[#0a2540] hover:text-white transition-all duration-300 text-center"
           >
             View plans
           </a>
           <a
             href="/demo"
-            className="px-8 py-3 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-800 transition"
+            className="px-8 py-3 rounded-full bg-[#0a2540] text-white font-medium hover:bg-[#122f4e] transition-all duration-300 shadow-lg hover:shadow-xl text-center"
           >
             Try for free
           </a>
         </div>
       </div>
 
-      {/* Right image */}
-      <div className="w-full md:w-1/2 relative select-none">
-        {/* SVG Lines top */}
-        <svg
-          className="absolute top-6 left-10 w-48 h-12 opacity-30"
-          viewBox="0 0 200 50"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M0 40 L50 10 L100 40 L150 10 L200 40"
-            stroke="url(#lineGradient)"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <defs>
-            <linearGradient id="lineGradient" x1="0" y1="0" x2="200" y2="0">
-              <stop stopColor="#a2a2a2" stopOpacity="0.5" />
-              <stop offset="1" stopColor="#4b4b4b" stopOpacity="0.9" />
-            </linearGradient>
-          </defs>
-          <animate
-            attributeName="stroke-dashoffset"
-            from="0"
-            to="200"
-            dur="6s"
-            repeatCount="indefinite"
-          />
-        </svg>
-
-        {/* SVG Lines bottom */}
-        <svg
-          className="absolute bottom-6 right-10 w-56 h-14 opacity-25"
-          viewBox="0 0 240 60"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M0 20 L60 50 L120 20 L180 50 L240 20"
-            stroke="url(#lineGradient2)"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <defs>
-            <linearGradient id="lineGradient2" x1="0" y1="0" x2="240" y2="0">
-              <stop stopColor="#7f7f7f" stopOpacity="0.4" />
-              <stop offset="1" stopColor="#2f2f2f" stopOpacity="0.75" />
-            </linearGradient>
-          </defs>
-          <animate
-            attributeName="stroke-dashoffset"
-            from="240"
-            to="0"
-            dur="8s"
-            repeatCount="indefinite"
-          />
-        </svg>
-
-        <img
-          src="https://res.cloudinary.com/drzokg7bb/image/upload/v1752321215/pixelperfect/processed/8d27f1aa-5c1a-4da7-ab05-f1d6b5f66b39_pixel_perfect.png"
-          alt="Unlimited banner"
-          className="w-full h-auto object-contain rounded-3xl relative z-10"
-          loading="lazy"
-          draggable={false}
-        />
-        <div className="absolute bottom-4 left-6 text-xs text-gray-500 select-none z-10">
-          PixelPerfect AI ™ all rights reserved
-        </div>
-      </div>
-    </div>
+      <div className="w-full md:w-1/2 relative select-none p-6 flex justify-center items-center">
+  <div
+    className="relative w-100 h-100  overflow-hidden"
+    style={{
+      clipPath: 'polygon(10.25% 27.27%, 10.10% 29.62%, 11.11% 31.96%, 12.12% 33.14%, 12.12% 33.43%, 12.70% 33.87%, 12.70% 34.16%, 13.42% 34.75%, 13.42% 35.04%, 14.29% 35.78%, 14.29% 36.07%, 16.02% 37.83%, 16.02% 38.12%, 16.88% 38.86%, 16.88% 39.15%, 18.04% 40.32%, 18.04% 40.62%, 18.47% 40.91%, 18.47% 41.20%, 18.90% 41.50%, 18.90% 41.79%, 19.34% 42.08%, 19.34% 42.38%, 19.77% 42.67%, 19.77% 42.96%, 20.92% 44.43%, 21.07% 45.01%, 21.36% 45.16%, 23.23% 48.83%, 24.68% 53.23%, 24.82% 57.77%, 24.24% 60.70%, 23.23% 63.64%, 22.66% 64.52%, 22.66% 64.96%, 19.48% 70.97%, 18.61% 73.61%, 18.61% 75.66%, 19.19% 77.13%, 20.49% 78.45%, 21.36% 78.89%, 22.22% 79.18%, 24.82% 79.18%, 28.14% 78.15%, 35.93% 74.19%, 36.36% 74.19%, 36.65% 73.90%, 37.09% 73.90%, 37.37% 73.61%, 40.26% 72.58%, 43.43% 71.99%, 46.32% 72.14%, 47.76% 72.58%, 49.35% 73.46%, 51.37% 75.81%, 52.81% 79.47%, 54.11% 85.19%, 55.27% 87.10%, 56.13% 87.54%, 57.72% 87.54%, 59.02% 87.10%, 59.16% 86.80%, 60.61% 86.07%, 61.62% 85.04%, 62.05% 84.02%, 62.34% 83.87%, 62.34% 83.43%, 63.06% 81.82%, 64.65% 71.11%, 65.66% 67.89%, 66.09% 67.30%, 66.09% 66.86%, 66.81% 65.40%, 67.10% 65.25%, 67.68% 63.93%, 68.83% 62.61%, 69.12% 61.88%, 69.70% 61.44%, 69.70% 61.14%, 71.28% 59.38%, 71.28% 59.09%, 71.86% 58.65%, 71.86% 58.36%, 72.44% 57.92%, 72.44% 57.62%, 73.16% 57.04%, 73.16% 56.74%, 73.88% 56.16%, 73.88% 55.87%, 74.60% 55.28%, 75.18% 54.25%, 75.90% 53.67%, 75.90% 53.37%, 76.62% 52.79%, 77.20% 51.76%, 77.92% 51.17%, 77.92% 50.88%, 79.65% 48.97%, 79.65% 48.68%, 80.09% 48.39%, 80.09% 48.09%, 80.52% 47.80%, 80.52% 47.51%, 80.95% 47.21%, 80.95% 46.92%, 81.39% 46.63%, 81.39% 46.33%, 81.82% 46.04%, 82.40% 44.87%, 83.41% 43.70%, 83.55% 43.11%, 84.27% 42.23%, 85.43% 39.88%, 85.86% 38.56%, 85.86% 35.04%, 85.28% 34.46%, 84.70% 34.31%, 82.54% 34.75%, 74.75% 38.86%, 71.43% 40.03%, 69.41% 40.32%, 67.97% 40.18%, 65.66% 39.15%, 64.21% 37.68%, 64.07% 37.10%, 63.78% 36.95%, 63.35% 36.07%, 62.34% 32.11%, 62.05% 29.33%, 62.19% 16.42%, 61.90% 14.52%, 61.47% 13.05%, 60.89% 12.02%, 60.03% 11.14%, 58.87% 10.70%, 57.00% 10.85%, 55.41% 12.17%, 55.41% 12.46%, 54.98% 12.76%, 54.98% 13.05%, 54.11% 14.08%, 53.82% 14.96%, 53.54% 15.10%, 53.25% 15.98%, 52.96% 16.13%, 51.37% 19.35%, 50.79% 19.94%, 50.07% 21.41%, 49.21% 22.29%, 49.21% 22.58%, 48.48% 23.17%, 48.48% 23.46%, 45.31% 26.39%, 42.42% 28.01%, 40.55% 28.45%, 40.12% 28.74%, 37.23% 29.18%, 32.76% 29.03%, 27.56% 28.01%, 27.13% 27.71%, 25.54% 27.42%, 18.90% 25.22%, 15.87% 24.63%, 13.42% 24.63%, 12.41% 24.93%, 10.68% 26.39%, 10.25% 27.27%)',
+      
+    }}
+  >
+    <img
+      src="https://res.cloudinary.com/drzokg7bb/image/upload/v1752321215/pixelperfect/processed/8d27f1aa-5c1a-4da7-ab05-f1d6b5f66b39_pixel_perfect.png"
+      alt="PixelPerfect star shape"
+      className="w-full h-full object-cover relative z-10 rounded-[20px]"
+      loading="lazy"
+      draggable={false}
+      
+    />
+  
+    
   </div>
 </div>
 
+    </div>
+  </div>
+</div>
                 
  {/* Launch App Section */}
 <div ref={launchAppRef} className="py-32 bg-white relative z-10">
