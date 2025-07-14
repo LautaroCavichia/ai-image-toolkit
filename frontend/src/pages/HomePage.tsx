@@ -805,305 +805,231 @@ useEffect(() => {
 
 <div
   ref={sectionRef}
-  className="relative"
+  className="relative bg-animated-mesh"
   style={{ height: `${contentData.length * 50}vh` }}
 >
-  <div className="sticky top-0 h-screen flex flex-col">
-    <div className="py-4 sm:py-6 lg:py-8 w-full
-     bg-gradient-to-br from-slate-50/95 via-white/90 to-slate-50/95 backdrop-blur-2xl relative overflow-hidden shadow-lg sm:shadow-xl shadow-slate-900/5 border border-slate-200/50 h-full">
-      
-      {/* Subtle background elements */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(59,130,246,0.06),transparent_50%)] sm:bg-[radial-gradient(circle_at_30%_20%,rgba(59,130,246,0.08),transparent_50%)] opacity-60"></div>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(147,51,234,0.04),transparent_50%)] sm:bg-[radial-gradient(circle_at_70%_80%,rgba(147,51,234,0.06),transparent_50%)] opacity-50"></div>
+  <div className="sticky top-0 h-screen flex justify-center items-center px-6 relative">
 
-      {/* Floating refined elements - hidden on mobile */}
-      <div className="hidden sm:block absolute top-1/4 right-1/4 w-px h-24 bg-gradient-to-b from-transparent via-slate-300/40 to-transparent rotate-12 opacity-60"></div>
-      <div className="hidden sm:block absolute bottom-1/3 left-1/4 w-16 h-px bg-gradient-to-r from-transparent via-slate-300/30 to-transparent opacity-40"></div>
+    {/* Top gradient fade */}
+    <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-white to-transparent pointer-events-none z-20" />
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 h-full">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 lg:gap-20 items-center h-full">
-          
-          {/* Creative Image Container */}
-          <div className="relative w-full h-64 sm:h-80 lg:h-[500px] xl:h-[40rem] flex items-center justify-center order-1 mb-0 sm:mb-0">
-            <div className="relative group">
-              
-              {/* Floating Image Gallery */}
-              <div className="relative w-80 h-80 sm:w-96 sm:h-96 lg:w-[30rem] lg:h-[30rem]">
-                
-                {/* Main featured image */}
-                <div className="absolute top-0 left-0 w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 group-hover:scale-105 transition-all duration-700">
-                  <div className="w-full h-full rounded-3xl overflow-hidden shadow-2xl shadow-slate-900/25 ring-1 ring-white/20 relative">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-purple-500/10"></div>
-                    {contentData.map((content, index) => (
-                      <img
-                        key={index}
-                        src={content.url}
-                        alt={content.alt}
-                        className={`absolute top-0 left-0 w-full h-full object-cover transition-all duration-1000 ${
-                          index === currentImageIndex
-                            ? 'opacity-100 z-10'
-                            : 'opacity-0 z-0'
-                        }`}
-                      />
-                    ))}
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-60"></div>
-                  </div>
-                </div>
+    {/* Bottom gradient fade */}
+    <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-white to-transparent pointer-events-none z-20" />
 
-                {/* Floating accent images */}
-                <div className="absolute -top-4 -right-4 w-28 h-36 sm:w-36 sm:h-44 lg:w-44 lg:h-52 rotate-12 group-hover:rotate-6 transition-all duration-700">
-                  <div className="w-full h-full rounded-[3rem] overflow-hidden shadow-xl shadow-slate-900/20 ring-1 ring-white/30 opacity-80 group-hover:opacity-100 transform -skew-y-2">
-                    <div className="absolute inset-0 bg-gradient-to-br from-violet-500/20 to-pink-500/20"></div>
-                    {contentData.map((content, index) => (
-                      <img
-                        key={index}
-                        src={content.url}
-                        alt={content.alt}
-                        className={`absolute top-0 left-0 w-full h-full object-cover transition-all duration-1000 ${
-                          index === (currentImageIndex + 1) % contentData.length
-                            ? 'opacity-100 z-10'
-                            : 'opacity-0 z-0'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
+    <section className="max-w-7xl w-full flex flex-col lg:flex-row items-center gap-20 z-10 relative">
 
-                <div className="absolute -bottom-6 -left-6 w-24 h-32 sm:w-32 sm:h-40 lg:w-40 lg:h-48 -rotate-12 group-hover:-rotate-6 transition-all duration-700">
-                  <div className="w-full h-full rounded-[2rem] overflow-hidden shadow-xl shadow-slate-900/20 ring-1 ring-white/30 opacity-70 group-hover:opacity-90 transform skew-x-3">
-                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-cyan-500/20"></div>
-                    {contentData.map((content, index) => (
-                      <img
-                        key={index}
-                        src={content.url}
-                        alt={content.alt}
-                        className={`absolute top-0 left-0 w-full h-full object-cover transition-all duration-1000 ${
-                          index === (currentImageIndex + 2) % contentData.length
-                            ? 'opacity-100 z-10'
-                            : 'opacity-0 z-0'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Floating particles */}
-                <div className="absolute top-1/4 right-1/4 w-2 h-2 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full opacity-60 group-hover:opacity-80 transition-all duration-700 animate-pulse"></div>
-                <div className="absolute bottom-1/3 left-1/3 w-1 h-1 bg-gradient-to-br from-pink-400 to-orange-400 rounded-full opacity-50 group-hover:opacity-70 transition-all duration-700 animate-pulse" style={{animationDelay: '0.5s'}}></div>
-                <div className="absolute top-2/3 left-1/6 w-1.5 h-1.5 bg-gradient-to-br from-emerald-400 to-cyan-400 rounded-full opacity-40 group-hover:opacity-60 transition-all duration-700 animate-pulse" style={{animationDelay: '1s'}}></div>
-              </div>
-            </div>
-            
-            {/* Attribution text */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-1 z-30">
-              <p className="text-[12px] sm:text-base text-black/80 px-5 py-2 rounded-lg bg-white/70 backdrop-blur-md font-light tracking-wide shadow-md">
-                These images were generated by PixelPerfect Gen AI
-              </p>
-              <a
-                href="image-generation"
-                className="mt-1.5 text-[11px] sm:text-sm text-black/70 hover:text-black transition-colors font-medium"
-              >
-                Try it now →
-              </a>
-            </div>
-        </div>
-    
-      
-          {/* Premium typography with dynamic content */}
-          <div
-            className={`space-y-4 sm:space-y-6 lg:space-y-10 order-2 text-center lg:text-left -mt-4 sm:mt-0 transition-all duration-500 ${
-              isTransitioning
-                ? 'opacity-0 transform translate-y-4'
-                : 'opacity-100 transform translate-y-0'
-            }`}
-          >
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-extralight tracking-tight text-slate-900 leading-[1.1] relative">
-              <span className="block mb-1 sm:mb-2">{currentContent.title}</span>
-
-              <div className="flex flex-wrap justify-center lg:justify-start items-center gap-2 sm:gap-4">
-                <span className="relative inline-block">
-                  <span
-                    className={`italic bg-gradient-to-r ${currentContent.highlight1.color} bg-clip-text text-transparent font-light`}
-                  >
-                    {currentContent.highlight1.text}
-                  </span>
-                  <div
-                    className={`absolute -bottom-1 left-0 w-full h-[1px] bg-gradient-to-r ${currentContent.highlight1.color
-                      .replace('to-', 'to-transparent from-')
-                      .replace('from-', 'from-')}/60`}
-                  ></div>
-                </span>
-
-                <span className="text-slate-900 font-extralight">and</span>
-
-                <span className="relative inline-block">
-                  <span
-                    className={`italic bg-gradient-to-r ${currentContent.highlight2.color} bg-clip-text text-transparent font-light`}
-                  >
-                    {currentContent.highlight2.text}
-                  </span>
-                  <div
-                    className={`absolute -bottom-1 left-0 w-full h-[1px] bg-gradient-to-r ${currentContent.highlight2.color
-                      .replace('to-', 'to-transparent from-')
-                      .replace('from-', 'from-')}/60`}
-                  ></div>
-                </span>
-              </div>
-            </h2>
-
-            {/* Description */}
-            <div className="relative">
-              <p className="text-base sm:text-lg lg:text-xl text-slate-600 leading-relaxed max-w-xl mx-auto lg:mx-0 font-light tracking-wide">
-                {currentContent.description}
-              </p>
-
-              {/* Side indicator - hidden on mobile */}
-              <div className="hidden lg:block absolute left-0 top-0 w-[2px] h-full bg-gradient-to-b from-transparent via-slate-300/50 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-700"></div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-{/* Info Section */}
-{/* Info Section */}
-<div ref={infoSectionRef} className="py-32 bg-white relative z-10">
-  <div className="max-w-6xl mx-auto px-6">
-    <div className="grid md:grid-cols-2 items-center gap-12">
-      <div>
-        <h2 className="text-4xl md:text-5xl font-light text-slate-900 mb-6 tracking-tight">
-          <div className="block mb-3">
-            Edit <span className="relative inline-block">
-              <span className="italic bg-gradient-to-r from-emerald-600 to-emerald-400 bg-clip-text text-transparent font-light">
-                images
-              </span>
-              <div className="absolute -bottom-0.5 left-0 w-full h-[0.5px] bg-gradient-to-r from-emerald-400 to-transparent opacity-60"></div>
-            </span> effortlessly in just <span className="relative inline-block">
-              <span className="italic bg-gradient-to-r from-teal-600 to-teal-400 bg-clip-text text-transparent font-light">
-                seconds
-              </span>
-              <div className="absolute -bottom-0.5 left-0 w-full h-[0.5px] bg-gradient-to-r from-teal-400 to-transparent opacity-60"></div>
-            </span>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-3xl md:text-4xl">
-            <span className="text-slate-600 font-extralight">Let AI handle the</span>
-            <span className="relative inline-block">
-              <span className="italic bg-gradient-to-r from-cyan-600 to-cyan-400 bg-clip-text text-transparent font-light">
-                hard work
-              </span>
-              <div className="absolute -bottom-0.5 left-0 w-full h-[0.5px] bg-gradient-to-r from-cyan-400 to-transparent opacity-60"></div>
-            </span>
-            <span className="text-slate-600 font-extralight">—</span>
-            <span className="relative inline-block">
-              <span className="italic bg-gradient-to-r from-sky-600 to-sky-400 bg-clip-text text-transparent font-light">
-                you just create
-              </span>
-              <div className="absolute -bottom-0.5 left-0 w-full h-[0.5px] bg-gradient-to-r from-sky-400 to-transparent opacity-60"></div>
-            </span>
-          </div>
-        </h2>
-        <p className="text-xl text-slate-600 font-light leading-relaxed mb-6">
-          With PixelPerfect, you can remove backgrounds in 5 seconds, upscale your images up to 4x, erase unwanted objects, extend your photos with generative fill, or even turn text into stunning visuals — all in one place.
-        </p>
-        <p className="text-xl text-slate-600 font-light leading-relaxed mb-6">
-          Whether you're going for a transparent PNG, a high-res masterpiece, or a totally new image from scratch, PixelPerfect makes it easy, fast, and fun.
-        </p>
-      </div>
-      <div className="rounded-xl overflow-hidden shadow-lg">
-        <img
-          src="https://i.imgur.com/9Lk9jkz.jpeg"
-          alt="Launch App"
-          className="w-full h-[500px] object-cover"
-        />
-      </div>
-    </div>
-  </div>
-</div>
-
-{/* Unlimited Banner Section */}
-<div ref={forYouRef} className="py-32 bg-white">
-  <div className="w-full px-6">
-    <div className="relative flex h-[410px] items-center overflow-hidden rounded-3xl bg-gradient-to-br from-gray-100 via-gray-50 to-gray-200 text-center shadow-lg shadow-gray-900/15 md:text-left">
-      
-      {/* Background decorative elements - subtle metallic shine */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(255,255,255,0.08),transparent_50%)] opacity-70"></div>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_80%,rgba(255,255,255,0.05),transparent_50%)] opacity-60"></div>
-      
-      {/* Subtle metallic shine effect */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/05 to-transparent opacity-40"></div>
-      
-      {/* Animated background pattern - subtle metallic dots */}
-      <div className="absolute top-0 right-0 w-full h-full opacity-25">
-        <div className="absolute top-1/4 right-1/4 w-32 h-32 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/3 right-1/3 w-20 h-20 bg-white/08 rounded-full blur-2xl animate-pulse" style={{animationDelay: '1s'}}></div>
-        <div className="absolute top-1/2 right-1/5 w-16 h-16 bg-white/06 rounded-full blur-xl animate-pulse" style={{animationDelay: '2s'}}></div>
-      </div>
-
-      {/* Main background image - SIN opacidad blanca */}
-      <div className="absolute bottom-0 right-0 hidden md:block">
-        <div className="relative w-[726px] h-[410px] lg:w-[886px] xl:translate-x-32 2xl:translate-x-48">
+      {/* Image container */}
+      <div className="flex-shrink-0 w-80 sm:w-96 lg:w-[28rem] aspect-square rounded-2xl overflow-hidden bg-white/8 backdrop-blur-sm border border-white/15 relative shadow-2xl shadow-black/40">
+        {contentData.map((content, index) => (
           <img
-            src="https://res.cloudinary.com/drzokg7bb/image/upload/v1752321215/pixelperfect/processed/8d27f1aa-5c1a-4da7-ab05-f1d6b5f66b39_pixel_perfect.png"
-            alt="unlimited banner"
-            className="w-full h-full object-cover"
-            loading="lazy"
+            key={index}
+            src={content.url}
+            alt={content.alt}
+            className={`absolute top-0 left-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
+              index === currentImageIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
+            }`}
+            style={{ willChange: 'opacity' }}
           />
-          <div className="absolute inset-0 bg-gradient-to-l from-transparent via-black/15 to-black/40"></div>
-          
-          {/* Copyright text */}
-          <div className="absolute bottom-2 left-4 text-xs text-white/70 font-light whitespace-nowrap">
-            PixelPerfect AI ™ all rights reserved
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Content */}
-      <div className="relative z-10 w-full md:pl-20">
-        <div className="flex w-full max-w-[80%] flex-col items-center justify-center mx-auto px-6 md:max-w-[45%] md:items-start md:justify-start md:mx-0 md:px-0 md:pr-8">
-          
-          {/* Title */}
-          <h2 className="text-center text-[28px] md:text-3xl lg:text-4xl font-semibold leading-tight text-gray-900 md:text-left mb-4">
-            <span className="block md:inline whitespace-nowrap bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-              Unlimited images.
-            </span>{' '}
-            <span className="block md:inline whitespace-nowrap bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-light italic">
-              Endless creativity
-            </span>
-          </h2>
+      <div className="max-w-xl text-center lg:text-left">
+        <h2 className="text-5xl font-normal text-gray-900 leading-tight mb-6">
+          {currentContent.title}
+        </h2>
 
-          {/* Description */}
-          <p className="text-center text-[16px] md:text-[18px] leading-relaxed text-gray-600 md:text-left mb-8 font-light">
-            Generate and edit unlimited images with all our AI models.{' '}
-            <strong className="text-gray-900 font-semibold">
-              No credits, no limits: your ideas will flow freely.
-            </strong>
-            <br />
-            <span className="text-gray-500 text-sm">
-              Available with Pro and Premium+ plans.
-            </span>
-          </p>
+        <p className="text-lg text-gray-600 mb-6 leading-relaxed">
+          {currentContent.description}
+        </p>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-wrap justify-center gap-4 md:justify-start">
-            <a
-              href="/pricing?origin=freepik_web"
-              className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-8 py-3 text-sm font-semibold text-white transition-all duration-300 hover:from-blue-600 hover:to-blue-700 hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5"
-            >
-              <span className="relative z-10">View plans</span>
-              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </a>
-            
-            <a
-              href="/demo"
-              className="group relative overflow-hidden rounded-xl border-2 border-gray-400 bg-white/95 backdrop-blur-sm px-8 py-3 text-sm font-semibold text-gray-900 transition-all duration-300 hover:bg-white hover:border-gray-500 hover:shadow-lg hover:shadow-gray-900/10 hover:-translate-y-0.5"
-            >
-              <span className="relative z-10">Try for free</span>
-              <div className="absolute inset-0 bg-gradient-to-r from-gray-100/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </a>
-          </div>
+        <div className="flex justify-center lg:justify-start gap-4 text-sm text-gray-500 uppercase tracking-widest font-medium">
+          <span>{currentContent.highlight1.text}</span>
+          <span>•</span>
+          <span>{currentContent.highlight2.text}</span>
+        </div>
+      </div>
+
+    </section>
+  </div>
+</div>
+
+
+{/* Info Section */}
+<div ref={infoSectionRef} className="py-36 bg-white relative z-10 overflow-hidden">
+  {/* Decorative Background */}
+  <div className="absolute inset-0 -z-10">
+    <svg
+      className="w-full h-full opacity-5"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 800 600"
+      preserveAspectRatio="xMidYMid slice"
+      fill="none"
+    >
+      <defs>
+        <radialGradient id="grad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#0a2540" />
+          <stop offset="100%" stopColor="#1b2e4b" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <circle cx="400" cy="300" r="400" fill="url(#grad)" />
+    </svg>
+  </div>
+
+  <div className="max-w-7xl mx-auto px-6">
+    <div className="grid md:grid-cols-2 items-center gap-20">
+
+      {/* Text Section */}
+      <div>
+        <div className="mb-4 text-sm font-medium text-[#0a2540] uppercase tracking-widest">
+          Now with Generative Fill
+        </div>
+        <h2 className="text-5xl md:text-6xl font-light text-slate-900 mb-10 leading-tight tracking-tight">
+          <span className="block mb-4">Edit</span>
+          <span className="block">
+            <span className="bg-gradient-to-r from-[#0a2540] to-[#1b2e4b] bg-clip-text text-transparent font-semibold">
+              images effortlessly
+            </span>
+            <span className="text-slate-700"> in just seconds</span>
+          </span>
+        </h2>
+        <p className="text-lg md:text-xl text-slate-600 font-light mb-6 leading-relaxed">
+          PixelPerfect is your creative assistant — remove backgrounds, upscale, erase objects, and transform ideas into visuals. All in one elegant, powerful toolkit.
+        </p>
+        <p className="text-lg md:text-xl text-slate-600 font-light mb-8 leading-relaxed">
+          From high-resolution exports to AI-generated artwork, achieve studio-quality results with zero friction. Fast. Precise. Intuitive.
+        </p>
+        <button
+          onClick={() => setShowPopup(true)}
+          className="inline-flex items-center gap-2 px-6 py-3 bg-[#0a2540] text-white text-base rounded-full shadow-md hover:bg-[#122f4e] transition-all"
+        >
+          Try PixelPerfect
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Image Section */}
+      <div className="rounded-3xl overflow-hidden shadow-2xl border border-slate-100">
+        <img
+          src="https://i.imgur.com/9Lk9jkz.jpeg"
+          alt="PixelPerfect UI"
+          className="w-full h-[520px] object-cover"
+        />
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+{/* Apple-like Unlimited Banner Section */}
+<div ref={forYouRef} className="py-32 bg-white">
+  <div className="max-w-6xl mx-auto px-6">
+    <div className="relative flex flex-col md:flex-row items-center bg-white rounded-3xl shadow-xl overflow-hidden">
+      
+      {/* Left content */}
+      <div className="w-full md:w-1/2 p-12 text-center md:text-left">
+        <h2 className="text-4xl font-semibold text-gray-900 mb-4 leading-tight">
+          <span className="block">Unlimited images.</span>
+          <span className="block font-light text-gray-600 italic mt-1">Endless creativity.</span>
+        </h2>
+        <p className="text-gray-700 text-lg leading-relaxed mb-10 max-w-lg mx-auto md:mx-0">
+          Generate and edit unlimited images with all our AI models. <br />
+          <strong className="font-semibold text-gray-900">No credits, no limits: your ideas will flow freely.</strong>
+        </p>
+        <div className="flex justify-center md:justify-start gap-6">
+          <a
+            href="/pricing?origin=freepik_web"
+            className="px-8 py-3 border border-gray-900 rounded-lg text-gray-900 font-semibold hover:bg-gray-100 transition"
+          >
+            View plans
+          </a>
+          <a
+            href="/demo"
+            className="px-8 py-3 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-800 transition"
+          >
+            Try for free
+          </a>
+        </div>
+      </div>
+
+      {/* Right image */}
+      <div className="w-full md:w-1/2 relative select-none">
+        {/* SVG Lines top */}
+        <svg
+          className="absolute top-6 left-10 w-48 h-12 opacity-30"
+          viewBox="0 0 200 50"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M0 40 L50 10 L100 40 L150 10 L200 40"
+            stroke="url(#lineGradient)"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <defs>
+            <linearGradient id="lineGradient" x1="0" y1="0" x2="200" y2="0">
+              <stop stopColor="#a2a2a2" stopOpacity="0.5" />
+              <stop offset="1" stopColor="#4b4b4b" stopOpacity="0.9" />
+            </linearGradient>
+          </defs>
+          <animate
+            attributeName="stroke-dashoffset"
+            from="0"
+            to="200"
+            dur="6s"
+            repeatCount="indefinite"
+          />
+        </svg>
+
+        {/* SVG Lines bottom */}
+        <svg
+          className="absolute bottom-6 right-10 w-56 h-14 opacity-25"
+          viewBox="0 0 240 60"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M0 20 L60 50 L120 20 L180 50 L240 20"
+            stroke="url(#lineGradient2)"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <defs>
+            <linearGradient id="lineGradient2" x1="0" y1="0" x2="240" y2="0">
+              <stop stopColor="#7f7f7f" stopOpacity="0.4" />
+              <stop offset="1" stopColor="#2f2f2f" stopOpacity="0.75" />
+            </linearGradient>
+          </defs>
+          <animate
+            attributeName="stroke-dashoffset"
+            from="240"
+            to="0"
+            dur="8s"
+            repeatCount="indefinite"
+          />
+        </svg>
+
+        <img
+          src="https://res.cloudinary.com/drzokg7bb/image/upload/v1752321215/pixelperfect/processed/8d27f1aa-5c1a-4da7-ab05-f1d6b5f66b39_pixel_perfect.png"
+          alt="Unlimited banner"
+          className="w-full h-auto object-contain rounded-3xl relative z-10"
+          loading="lazy"
+          draggable={false}
+        />
+        <div className="absolute bottom-4 left-6 text-xs text-gray-500 select-none z-10">
+          PixelPerfect AI ™ all rights reserved
         </div>
       </div>
     </div>
@@ -1111,120 +1037,129 @@ useEffect(() => {
 </div>
 
                 
-{/* Launch App Section */}
+ {/* Launch App Section */}
 <div ref={launchAppRef} className="py-32 bg-white relative z-10">
   <div className="max-w-6xl mx-auto px-6">
-    <div className="grid md:grid-cols-2 items-center gap-12">
-      <div className="rounded-xl overflow-hidden shadow-lg">
+    <div className="grid md:grid-cols-2 items-center gap-16">
+      <div className="rounded-3xl overflow-hidden shadow-xl shadow-gray-300/20">
         <img
           src="https://i.imgur.com/vFbGwUI.jpeg"
           alt="Launch App"
-          className="w-full h-[500px] object-cover"
+          className="w-full h-[500px] object-cover transition-transform duration-500 ease-in-out hover:scale-[1.03]"
+          style={{ willChange: 'transform' }}
         />
       </div>
       <div>
-        <h2 className="text-4xl md:text-5xl font-light text-slate-900 mb-6 tracking-tight">
-          <span className="block mb-2">Get started now.</span>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-            <span className="relative inline-block">
-              <span className="italic bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent font-light">
+        <h2 className="text-5xl font-extralight text-gray-900 mb-8 tracking-tight leading-[1.1] font-sans">
+          <span className="block mb-3">Get started now.</span>
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+            <span className="relative inline-block cursor-default select-none">
+              <span className="italic bg-gradient-to-r from-blue-700 to-cyan-600 bg-clip-text text-transparent font-light text-[2.75rem] drop-shadow-sm">
                 Launch
               </span>
-              <div className="absolute -bottom-1 left-0 w-full h-[1px] bg-gradient-to-r from-blue-500 to-transparent/60"></div>
+              <span
+                className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-blue-700 to-transparent opacity-50
+                transition-opacity duration-300"
+              ></span>
             </span>
-            <span className="text-slate-900 font-extralight">the</span>
-            <span className="relative inline-block">
-              <span className="italic bg-gradient-to-r from-cyan-500 to-purple-500 bg-clip-text text-transparent font-light">
+            <span className="text-gray-900 font-extralight text-[1.8rem] select-none opacity-80 tracking-wider">
+              the
+            </span>
+            <span className="relative inline-block cursor-default select-none">
+              <span className="italic bg-gradient-to-r from-cyan-600 to-purple-700 bg-clip-text text-transparent font-light text-[2.75rem] drop-shadow-sm">
                 App
               </span>
-              <div className="absolute -bottom-1 left-0 w-full h-[1px] bg-gradient-to-r from-cyan-500 to-transparent/60"></div>
+              <span
+                className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-cyan-600 to-transparent opacity-50
+                transition-opacity duration-300"
+              ></span>
             </span>
           </div>
         </h2>
-        <p className="text-xl text-slate-600 font-light leading-relaxed mb-6">
+        <p className="text-lg md:text-xl text-gray-600 font-light leading-relaxed max-w-lg mb-10 font-sans tracking-wide opacity-90">
           Discover the tools that bring your creative vision to life.
         </p>
-        <div className="text-left">
-          <button
-            onClick={() => setShowPopup(true)}
-            className="inline-flex items-center px-6 py-3 bg-slate-900 text-white text-sm sm:text-base rounded-full shadow hover:bg-slate-700 transition-colors"
-          >
-            Launch App
-          </button>
-        </div>
+        <button
+          onClick={() => setShowPopup(true)}
+          className="inline-flex items-center px-10 py-4 bg-gray-900 text-white text-base rounded-full shadow-lg
+            hover:bg-gray-800 transition-colors duration-300 font-light tracking-wider font-sans"
+          style={{ boxShadow: '0 8px 20px rgb(0 0 0 / 0.15)' }}
+        >
+          Launch App
+        </button>
       </div>
     </div>
-
-    {showPopup && (
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-2xl shadow-xl max-w-4xl w-full space-y-6 relative">
-          <button
-            onClick={() => setShowPopup(false)}
-            className="absolute top-3 right-3 text-slate-500 hover:text-slate-800"
-          >
-            ✕
-          </button>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-  {
-    name: 'Background Removal',
-    key: 'bg-removal',
-    img: 'https://i.imgur.com/tcqYJZV.png',
-    href: 'background-removal', 
-  },
-  {
-    name: 'Upscaling',
-    key: 'upscaling',
-    img: 'https://i.imgur.com/XioAAH7.jpeg',
-    href: 'upscale', 
-  },
-  {
-    name: 'Generative Fill',
-    key: 'generative-fill',
-    img: 'https://i.imgur.com/LjEnkZx.jpeg',
-    href: 'enlarge', 
-  },
-  {
-    name: 'Object Removal',
-    key: 'object-removal',
-    img: 'https://i.imgur.com/MikJwxb.png',
-    href: 'object-removal', 
-  },
-  {
-    name: 'Text to Image',
-    key: 'text-to-image',
-    img: 'https://i.imgur.com/birXPAV.png',
-    href: 'image-generation', 
-  },
-].map((tool) => (
-  <div
-    key={tool.key}
-    className="border border-slate-200 rounded-xl p-4 flex flex-col items-center text-center hover:shadow-md transition-shadow"
-  >
-    <div className="w-full h-32 bg-slate-100 rounded-lg mb-4 overflow-hidden">
-      <img
-        src={tool.img}
-        alt={tool.name}
-        className="w-full h-full object-cover rounded-lg"
-      />
-    </div>
-    <h3 className="text-lg font-semibold text-slate-800 mb-2">
-      {tool.name}
-    </h3>
-    <a
-      href={tool.href}
-      className="px-4 py-2 bg-slate-900 text-white text-sm rounded-full hover:bg-slate-700 transition-colors"
+  
+      {showPopup && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-2xl shadow-xl max-w-4xl w-full space-y-6 relative">
+            <button
+              onClick={() => setShowPopup(false)}
+              className="absolute top-3 right-3 text-slate-500 hover:text-slate-800"
+            >
+              ✕
+            </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[
+    {
+      name: 'Background Removal',
+      key: 'bg-removal',
+      img: 'https://i.imgur.com/tcqYJZV.png',
+      href: 'background-removal', 
+    },
+    {
+      name: 'Upscaling',
+      key: 'upscaling',
+      img: 'https://i.imgur.com/XioAAH7.jpeg',
+      href: 'upscale', 
+    },
+    {
+      name: 'Generative Fill',
+      key: 'generative-fill',
+      img: 'https://i.imgur.com/LjEnkZx.jpeg',
+      href: 'enlarge', 
+    },
+    {
+      name: 'Object Removal',
+      key: 'object-removal',
+      img: 'https://i.imgur.com/MikJwxb.png',
+      href: 'object-removal', 
+    },
+    {
+      name: 'Text to Image',
+      key: 'text-to-image',
+      img: 'https://i.imgur.com/birXPAV.png',
+      href: 'image-generation', 
+    },
+  ].map((tool) => (
+    <div
+      key={tool.key}
+      className="border border-slate-200 rounded-xl p-4 flex flex-col items-center text-center hover:shadow-md transition-shadow"
     >
-      Try {tool.name}
-    </a>
-  </div>
-))}
+      <div className="w-full h-32 bg-slate-100 rounded-lg mb-4 overflow-hidden">
+        <img
+          src={tool.img}
+          alt={tool.name}
+          className="w-full h-full object-cover rounded-lg"
+        />
+      </div>
+      <h3 className="text-lg font-semibold text-slate-800 mb-2">
+        {tool.name}
+      </h3>
+      <a
+        href={tool.href}
+        className="px-4 py-2 bg-slate-900 text-white text-sm rounded-full hover:bg-slate-700 transition-colors"
+      >
+        Try {tool.name}
+      </a>
+    </div>
+  ))}
+            </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
+    </div>
   </div>
-</div>
           
       {/* Privacy Section */}
       <div ref={featuresRef} className="py-32 bg-slate-50/60 backdrop-blur-sm">

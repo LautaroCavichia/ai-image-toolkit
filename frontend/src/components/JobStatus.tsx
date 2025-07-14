@@ -13,9 +13,9 @@ interface JobStatusProps {
   onJobCompleted?: (job: JobResponseDTO) => void;
 }
 
-// Protección global contra DevTools
+// Global proteccion for DevTools
 const setupGlobalProtection = () => {
-  // Detectar DevTools
+  // Detect DevTools
   let devtools = { open: false };
   
   setInterval(() => {
@@ -35,7 +35,7 @@ const setupGlobalProtection = () => {
     }
   }, 100);
 
-  // Bloquear teclas específicas
+  // Block specific keys
   document.addEventListener('keydown', (e) => {
     if (e.key === 'F12' || 
         (e.ctrlKey && e.shiftKey && e.key === 'I') ||
@@ -50,25 +50,25 @@ const setupGlobalProtection = () => {
     }
   });
 
-  // Proteger contra selección de texto
+  // Protection for text selecting
   document.addEventListener('selectstart', (e) => {
     e.preventDefault();
     return false;
   });
 
-  // Proteger contra drag and drop
+  // Protection for drag and drop
   document.addEventListener('dragstart', (e) => {
     e.preventDefault();
     return false;
   });
 
-  // Proteger contra right click global
+  // Protection for  right click global
   document.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     return false;
   });
 
-  // Limpiar consola periódicamente
+  // Clean console periodically
   setInterval(() => {
     console.clear();
     console.log('%cStop!', 'color: red; font-size: 50px; font-weight: bold;');
@@ -87,11 +87,11 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
   const [progress, setProgress] = useState(0);
   const [isDevToolsOpen, setIsDevToolsOpen] = useState(false);
 
-  // Protección mejorada contra acceso
+  
   useEffect(() => {
     setupGlobalProtection();
     
-    // Detectar si DevTools están abiertas
+    // Detect if devtools is open
     const detectDevTools = () => {
       const threshold = 160;
       if (window.outerHeight - window.innerHeight > threshold || 
@@ -106,17 +106,10 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
     return () => clearInterval(interval);
   }, []);
 
-  // Ofuscar URLs de imágenes
-  const obfuscateImageUrl = (url: string) => {
-    if (!url) return '';
-    // Crear una URL proxy o usar base64 para ofuscar
-    return url.replace(/https?:\/\//, 'data:image/jpeg;base64,') + '?t=' + Date.now();
-  };
-
-  // Canvas refs para imágenes protegidas
+  
   const originalCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Función para renderizar imagen en canvas con protección
+
   const renderImageToCanvas = useCallback((canvas: HTMLCanvasElement, src: string) => {
     if (!canvas || !src) return;
     
@@ -139,21 +132,21 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
     img.src = src;
   }, []);
 
-  // Efecto para renderizar imagen inicial
+
   useEffect(() => {
     if (originalCanvasRef.current && initialImageUrl) {
       renderImageToCanvas(originalCanvasRef.current, initialImageUrl);
     }
   }, [initialImageUrl, renderImageToCanvas]);
 
-  // Efecto para renderizar imagen procesada
+
   useEffect(() => {
     if (processedCanvasRef.current && job?.thumbnailUrl) {
       renderImageToCanvas(processedCanvasRef.current, job.thumbnailUrl);
     }
   }, [job?.thumbnailUrl, renderImageToCanvas]);
 
-  // Funciones de protección mejoradas
+
   const preventRightClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -181,17 +174,17 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
     }
   };
 
-  // Descarga segura de imágenes
+
   const downloadImage = async (imageUrl: string, fileName: string = 'image.png'): Promise<void> => {
   try {
-    // Opción 1: Descarga directa (si CORS lo permite)
+    
     const response = await fetch(imageUrl);
     
     if (!response.ok) {
       throw new Error(`Error downloading image: ${response.status}`);
     }
 
-    // Verificar que el contenido es realmente una imagen
+ 
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.startsWith('image/')) {
       throw new Error('Invalid image format');
@@ -199,7 +192,7 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
 
     const blob = await response.blob();
     
-    // Asegurar que el fileName tenga la extensión correcta
+  
     const fileExtension = contentType.split('/')[1] || 'png';
     const finalFileName = fileName.includes('.') ? fileName : `${fileName}.${fileExtension}`;
     
@@ -218,7 +211,7 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
   } catch (error) {
     console.error('Download failed:', error);
     
-    // Fallback: Usar canvas para convertir y descargar
+
   
   }
 };
