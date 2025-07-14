@@ -61,7 +61,8 @@ const HomePage: React.FC = () => {
 
    const contentData = [
     {
-      url: "https://i.imgur.com/4qFtyXo.png",
+      url: "https://i.imgur.com/fK6xA7U.png",
+      
       alt: "Modern Technology",
       title: "Built for those who need",
       highlight1: { text: "speed", color: "from-blue-700 to-blue-600" },
@@ -69,7 +70,7 @@ const HomePage: React.FC = () => {
       description: "Advanced AI processing technology that delivers exceptional results in seconds, maintaining the precision and quality your work demands."
     },
     {
-      url: "https://i.imgur.com/unna4UB.png",
+      url: "https://i.imgur.com/P14Jczs.jpeg",
       alt: "Data Analysis",
       title: "Designed for teams that value",
       highlight1: { text: "precision", color: "from-emerald-700 to-emerald-600" },
@@ -85,7 +86,7 @@ const HomePage: React.FC = () => {
       description: "Cutting-edge solutions that scale with your business, fostering innovation while driving sustainable growth and competitive advantage."
     },
     {
-      url: "https://i.imgur.com/Hmgx1e3.png",
+      url: "https://i.imgur.com/4qFtyXo.png",
       alt: "Team collaboration",
       title: "Crafted for professionals who demand",
       highlight1: { text: "reliability", color: "from-teal-700 to-teal-600" },
@@ -507,8 +508,8 @@ useEffect(() => {
       </Layout>
     );
   }
-
- const services = [
+  
+const services = [
   {
     href: "/background-removal",
     icon: Scissors,
@@ -518,7 +519,9 @@ useEffect(() => {
     gradient: "bg-gradient-to-r from-red-600 via-orange-600 to-yellow-600",
     videoUrl: "https://i.imgur.com/GaEtRUG.mp4",
     videoPreload: "none", // Don't preload video
-    videoLazy: true // Enable lazy loading
+    videoLazy: true, // Enable lazy loading
+    videoLoop: false, // Play only once
+    videoMuted: true // Muted for autoplay compatibility
   },
   {
     href: "/enlarge",
@@ -529,7 +532,9 @@ useEffect(() => {
     gradient: "bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600",
     videoUrl: "https://i.imgur.com/GC78RSa.mp4",
     videoPreload: "none",
-    videoLazy: true
+    videoLazy: true,
+    videoLoop: false,
+    videoMuted: true
   },
   {
     href: "/upscale",
@@ -540,7 +545,9 @@ useEffect(() => {
     gradient: "bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600",
     videoUrl: "https://i.imgur.com/ZUUALLp.mp4",
     videoPreload: "none",
-    videoLazy: true
+    videoLazy: true,
+    videoLoop: false,
+    videoMuted: true
   },
   {
     href: "/object-removal",
@@ -551,7 +558,9 @@ useEffect(() => {
     gradient: "bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600",
     videoUrl: "https://i.imgur.com/QaG3KVW.mp4",
     videoPreload: "none",
-    videoLazy: true
+    videoLazy: true,
+    videoLoop: false,
+    videoMuted: true
   },
   {
     href: "/image-generation",
@@ -562,7 +571,9 @@ useEffect(() => {
     gradient: "bg-gradient-to-r from-pink-600 via-rose-600 to-red-600",
     videoUrl: "https://i.imgur.com/NZOc4f1.mp4",
     videoPreload: "none",
-    videoLazy: true
+    videoLazy: true,
+    videoLoop: false,
+    videoMuted: true
   },
   {
     href: "#",
@@ -666,7 +677,7 @@ useEffect(() => {
       </div>
 
       {/* Services Section */}
-      <div
+     <div
   ref={servicesRef}
   id="services"
   className="py-32 bg-white/40 backdrop-blur-sm"
@@ -697,18 +708,32 @@ useEffect(() => {
 
           {/* Video Container - Vertical aspect ratio */}
           <div className="relative w-full h-64 bg-slate-100 overflow-hidden">
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-            >
-              <source src={service.videoUrl} type="video/mp4" />
+            {service.videoUrl ? (
+              <video
+                autoPlay
+                loop={service.videoLoop !== false}
+                muted={service.videoMuted !== false}
+                playsInline
+                preload={service.videoPreload || "none"}
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                onEnded={(e) => {
+                  // Mantener el video en el último frame
+                  if (service.videoLoop === false) {
+                    const video = e.target as HTMLVideoElement;
+                    video.currentTime = video.duration;
+                  }
+                }}
+              >
+                <source src={service.videoUrl} type="video/mp4" />
+                <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
+                  <service.icon className="text-slate-400" size={32} />
+                </div>
+              </video>
+            ) : (
               <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
                 <service.icon className="text-slate-400" size={32} />
               </div>
-            </video>
+            )}
             
             {/* Video overlay gradient */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -751,9 +776,12 @@ useEffect(() => {
   </div>
 </div>
 
-      <div ref={forTeamsRef} className="min-h-screen bg-white py-24 px-6">
+<div ref={forTeamsRef} className="min-h-screen bg-white py-24 px-6">
       <div className="max-w-7xl mx-auto">
         {/* Feature Cards */}
+        <h2 className="text-4xl font-bold text-center text-gray-900 mb-20 tracking-tight">
+  Empowering Creators, Teams, and Developers Alike.
+        </h2>
         <div className="grid md:grid-cols-3 gap-8 mb-32">
           {features.map((feature, index) => (
             <div 
@@ -779,24 +807,61 @@ useEffect(() => {
         </div>
 
         {/* As Featured In Section */}
-        <div className="text-center">
-          <p className="text-sm font-medium text-gray-500 mb-12 uppercase tracking-wider">
-            As Featured In
-          </p>
-          
-          <div className="flex flex-wrap justify-center items-center gap-16 opacity-40">
-            {mediaLogos.map((logo, index) => (
-              <div 
-                key={index}
-                className="text-gray-700 hover:opacity-100 transition-opacity duration-300 cursor-pointer"
-              >
-                <div className="text-base font-medium tracking-wide">
-                  {logo}
-                </div>
-              </div>
-            ))}
-          </div>
+       <div className="text-center">
+  <p className="text-sm font-medium text-gray-500 mb-8 uppercase tracking-wider">
+    We are a product of
+  </p>
+
+  <div className="mb-12">
+    <a 
+      href="https://zonda.one" 
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="group inline-block cursor-pointer"
+    >
+      <div className="flex items-center justify-center gap-3 mb-2">
+        <span 
+          className="text-6xl font-bold tracking-wider group-hover:scale-105 transition-transform duration-300"
+          style={{
+            color: 'transparent',
+            background: 'linear-gradient(90deg, #000000 0%, #ff3131 40%, #ff3131 60%, #000000 100%)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            backgroundSize: '200% 200%',
+            animation: 'gradientShift 12s ease-in-out infinite',
+            fontFamily: '"AwareBold", "Inter", sans-serif'
+          }}
+        >
+          ZONDA
+        </span>
+      </div>
+    </a>
+  </div>
+
+  <p className="text-sm font-medium text-gray-500 mb-12 uppercase tracking-wider">
+    Trusted by Early Adopters
+  </p>
+
+  <div className="flex flex-wrap justify-center items-center gap-16 opacity-40">
+    {[
+      "AI Creators Collective",
+      "Design Foundry",
+      "IndieDev Hub",
+      "NextGen Studios",
+      "Product Makers",
+      "Visual Architects",
+    ].map((name, index) => (
+      <div
+        key={index}
+        className="text-gray-700 hover:opacity-100 transition-opacity duration-300 cursor-default"
+      >
+        <div className="text-base font-medium tracking-wide">
+          {name}
         </div>
+      </div>
+    ))}
+  </div>
+</div>
       </div>
       
       {/* Subtle Background Gradient */}
@@ -887,8 +952,8 @@ useEffect(() => {
         <h2 className="text-5xl md:text-6xl font-light text-slate-900 mb-10 leading-tight tracking-tight">
           <span className="block mb-4">Edit</span>
           <span className="block">
-            <span className="bg-gradient-to-r from-[#0a2540] to-[#1b2e4b] bg-clip-text text-transparent font-semibold">
-              images effortlessly
+            <span className="bg-gradient-to-r from-[#1e3a8a] to-[#2563eb] bg-clip-text text-transparent font-semibold">
+            images effortlessly
             </span>
             <span className="text-slate-700"> in just seconds</span>
           </span>
@@ -903,7 +968,7 @@ useEffect(() => {
           onClick={() => setShowPopup(true)}
           className="inline-flex items-center gap-2 px-6 py-3 bg-[#0a2540] text-white text-base rounded-full shadow-md hover:bg-[#122f4e] transition-all"
         >
-          Try PixelPerfect
+          View Community Gallery
           <svg
             className="w-4 h-4"
             fill="none"
