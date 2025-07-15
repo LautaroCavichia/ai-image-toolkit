@@ -64,7 +64,7 @@ const BackgroundRemovalPage: React.FC = () => {
       // Auto-upload after preview is set
       setTimeout(() => {
         handleUpload(file);
-      }, 100); // Small delay to ensure preview is rendered
+      });
     };
     reader.readAsDataURL(file);
   };

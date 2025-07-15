@@ -179,33 +179,82 @@ const JobStatus: React.FC<JobStatusProps> = ({
 
   // Optimized download function
   const downloadImage = useCallback(async (imageUrl: string, fileName: string = 'image.png'): Promise<void> => {
-    try {
-      const response = await fetch(imageUrl);
-      if (!response.ok) throw new Error(`Error downloading image: ${response.status}`);
-
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.startsWith('image/')) {
-        throw new Error('Invalid image format');
-      }
-
-      const blob = await response.blob();
-      const fileExtension = contentType.split('/')[1] || 'png';
-      const finalFileName = fileName.includes('.') ? fileName : `${fileName}.${fileExtension}`;
-      
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = finalFileName;
-      link.style.display = 'none';
-
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
-    } catch (error) {
-      console.error('Download failed:', error);
+  
+  
+  try {
+    if (!imageUrl || imageUrl.trim() === '') {
+      throw new Error('URL empty');
     }
-  }, []);
+
+ 
+    const response = await fetch(imageUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'image/*',
+        'Cache-Control': 'no-cache',
+      },
+      mode: 'cors', 
+      credentials: 'omit' // 
+    });
+
+    console.log('📡 Server Response:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries())
+    });
+
+    if (!response.ok) {
+      throw new Error(`Server error: ${response.status} - ${response.statusText}`);
+    }
+
+    const contentType = response.headers.get('content-type');
+    
+    if (!contentType || !contentType.startsWith('image/')) {
+      throw new Error(`Invalid content: ${contentType}`);
+    }
+
+
+    const blob = await response.blob();
+
+    if (blob.size === 0) {
+    }
+    const fileExtension = contentType.split('/')[1] || 'png';
+    const finalFileName = fileName.includes('.') ? fileName : `${fileName}.${fileExtension}`;
+    
+
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = finalFileName;
+    link.style.display = 'none';
+
+    document.body.appendChild(link);
+    
+  
+    setTimeout(() => {
+      link.click();
+      
+      setTimeout(() => {
+        if (document.body.contains(link)) {
+          document.body.removeChild(link);
+        }
+        URL.revokeObjectURL(blobUrl);
+        
+      }, 100);
+    }, 10);
+    
+  } catch (error) {
+  
+   
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      setError('We could not connect to the server');
+    } else if (error instanceof Error) {
+      setError(`Download error: ${error.message}`);
+    } else {
+      setError('Unknown Error');
+    }
+  }
+}, []);
 
   // Memoized service configuration
   const serviceConfig = useMemo(() => {
@@ -612,7 +661,9 @@ const JobStatus: React.FC<JobStatusProps> = ({
                 
                 {job.isPremiumQuality && job.processedImageUrl && (
                   <button
-                    onClick={() => downloadImage(job.processedImageUrl!, 'full-quality-image.png')}
+                  
+                    onClick={() => downloadImage(job.processedImageUrl!, 'full-quality-image_pixel_perfect')}
+                    
                     className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] ring-1 ring-green-500/20"
                   >
                     <Download size={20} />

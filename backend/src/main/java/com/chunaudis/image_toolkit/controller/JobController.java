@@ -140,7 +140,7 @@ public class JobController {
             
             if (hasPremiumAccess) {
                 // User has premium access - can access full quality via proxy
-                dto.setProcessedImageUrl(baseUrl + "?premium=true");
+                 dto.setProcessedImageUrl(originalUrl);
             } else {
                 // Free user - only gets thumbnail via proxy  
                 dto.setProcessedImageUrl(null);

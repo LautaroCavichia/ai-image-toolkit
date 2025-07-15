@@ -31,26 +31,35 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated, onImageSele
   const handleUpload = () => {
     if (!selectedFile) return;
 
-    // Instant UI activation
+
     setLoading(true);
     setError('');
     
-    // Create temp job and activate component instantly
-    const tempJobId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  
+    const tempJobId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
     onJobCreated(tempJobId);
 
-    // Process in background
+ 
     uploadImageAndCreateJob(selectedFile, jobType)
       .then(response => {
         console.log('Job completed:', response.jobId);
+        
+         onJobCreated(response.jobId);
       })
       .catch(err => {
         setError(err.message || 'Upload failed');
         console.error('Job failed:', err);
+        
       })
       .finally(() => {
         setLoading(false);
       });
+  };
+
+  const getButtonText = () => {
+    if (loading) return 'Processing...';
+    if (selectedFile) return 'Upload & Process';
+    return 'Select an image first';
   };
 
   return (
@@ -72,6 +81,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated, onImageSele
             value={jobType}
             onChange={(e) => setJobType(e.target.value as JobTypeEnum)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={loading}
           >
             <option value={JobTypeEnum.BG_REMOVAL}>Background Removal</option>
             <option value={JobTypeEnum.UPSCALE}>Upscale</option>
@@ -94,7 +104,13 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated, onImageSele
         <button
           onClick={handleUpload}
           disabled={!selectedFile || loading}
-          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className={`w-full py-2 px-4 rounded-md font-medium transition-all duration-200 ${
+            loading 
+              ? 'bg-blue-500 text-white cursor-not-allowed' 
+              : !selectedFile 
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
+          }`}
         >
           {loading ? (
             <div className="flex items-center justify-center space-x-2">
@@ -102,7 +118,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated, onImageSele
               <span>Processing...</span>
             </div>
           ) : (
-            'Upload & Process'
+            getButtonText()
           )}
         </button>
       </div>
