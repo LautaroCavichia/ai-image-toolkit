@@ -66,11 +66,10 @@ public class JobService {
 )
 @Transactional
 public Job createAndDispatchJob(Image image, JobTypeEnum jobType, String imageStoragePath, Map<String, Object> jobConfig, UUID userId) {
-    // Buscar usuario
-    User user = userRepository.findById(userId)
-            .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + userId));
-
-    // Crear el job
+    // User lookup - reuse from image entity to avoid duplicate query
+    User user = image.getUser();
+    
+    // Create the job with all properties in one batch
     Job job = new Job();
     job.setUser(user);
     job.setOriginalImage(image);
@@ -81,7 +80,7 @@ public Job createAndDispatchJob(Image image, JobTypeEnum jobType, String imageSt
     Job savedJob = jobRepository.save(job);
     log.info("Created job {} with status QUEUED", savedJob.getJobId());
 
-    // Preparar mensaje RabbitMQ
+    // Prepare RabbitMQ message
     JobMessageDTO message = new JobMessageDTO(
             savedJob.getJobId(),
             image.getImageId(),
@@ -90,20 +89,23 @@ public Job createAndDispatchJob(Image image, JobTypeEnum jobType, String imageSt
             jobConfig
     );
 
-    // Publicar mensaje con manejo de errores
+    // Publish message with error handling
     try {
         jobPublisherService.publishJob(message);
         log.info("Dispatched job {} to RabbitMQ", savedJob.getJobId());
     } catch (Exception e) {
         log.error("Failed to dispatch job {} to RabbitMQ: {}", savedJob.getJobId(), e.getMessage(), e);
-        savedJob.setStatus(JobStatusEnum.FAILED); // Estado como fallido
+        
+        // Update status to failed in single operation
+        savedJob.setStatus(JobStatusEnum.FAILED);
         jobRepository.save(savedJob);
-        throw e; // Re-lanzamos para que Retryable lo intente de nuevo si es posible
+        
+        // Re-throw for retry mechanism
+        throw e;
     }
 
     return savedJob;
 }
-
     @Transactional
     public Job updateJobStatus(UUID jobId, JobStatusUpdateRequestDTO updateRequest) {
         Job job = jobRepository.findById(jobId)

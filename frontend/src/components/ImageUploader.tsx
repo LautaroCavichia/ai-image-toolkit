@@ -21,27 +21,36 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated, onImageSele
     
     const reader = new FileReader();
     reader.onload = () => {
-  const result = reader.result as string;
-  setPreview(result);
-  onImageSelected(file, result); 
-};
+      const result = reader.result as string;
+      setPreview(result);
+      onImageSelected(file, result); 
+    };
     reader.readAsDataURL(file);
   };
 
-  const handleUpload = async () => {
+  const handleUpload = () => {
     if (!selectedFile) return;
 
+    // Instant UI activation
     setLoading(true);
     setError('');
+    
+    // Create temp job and activate component instantly
+    const tempJobId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    onJobCreated(tempJobId);
 
-    try {
-      const response = await uploadImageAndCreateJob(selectedFile, jobType);
-      onJobCreated(response.jobId);
-    } catch (err: any) {
-      setError(err.message || 'Upload failed');
-    } finally {
-      setLoading(false);
-    }
+    // Process in background
+    uploadImageAndCreateJob(selectedFile, jobType)
+      .then(response => {
+        console.log('Job completed:', response.jobId);
+      })
+      .catch(err => {
+        setError(err.message || 'Upload failed');
+        console.error('Job failed:', err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
   return (
@@ -67,7 +76,6 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated, onImageSele
             <option value={JobTypeEnum.BG_REMOVAL}>Background Removal</option>
             <option value={JobTypeEnum.UPSCALE}>Upscale</option>
             <option value={JobTypeEnum.ENLARGE}>Enlarge</option>
-          
           </select>
         </div>
 
@@ -88,7 +96,14 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onJobCreated, onImageSele
           disabled={!selectedFile || loading}
           className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? 'Uploading...' : 'Upload & Process'}
+          {loading ? (
+            <div className="flex items-center justify-center space-x-2">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              <span>Processing...</span>
+            </div>
+          ) : (
+            'Upload & Process'
+          )}
         </button>
       </div>
     </div>

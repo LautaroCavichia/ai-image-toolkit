@@ -43,89 +43,88 @@ public class ImageController {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<JobResponseDTO> uploadImageAndCreateJob(
-            @RequestParam("file") MultipartFile file,
-            @RequestParam("jobType") JobTypeEnum jobType,
-            @RequestParam(value = "jobConfig", required = false) String jobConfigJson,
-            HttpServletRequest request
-    ) {
-        // Get user ID from security context
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        log.info("Authentication object: {}", authentication);
-        log.info("Is authenticated: {}", authentication != null ? authentication.isAuthenticated() : "null");
-        
-        if (authentication == null || !authentication.isAuthenticated()) {
-            log.warn("Authentication failed - authentication: {}", authentication);
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+public ResponseEntity<JobResponseDTO> uploadImageAndCreateJob(
+        @RequestParam("file") MultipartFile file,
+        @RequestParam("jobType") JobTypeEnum jobType,
+        @RequestParam(value = "jobConfig", required = false) String jobConfigJson,
+        HttpServletRequest request
+) {
+    // Get user ID from security context
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    
+    if (authentication == null || !authentication.isAuthenticated()) {
+        log.warn("Authentication failed - authentication: {}", authentication);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+    
+    // Get user ID from request attribute set in JwtRequestFilter
+    UUID userId = (UUID) request.getAttribute("userId");
+    
+    if (userId == null) {
+        userId = (UUID) authentication.getPrincipal();
+        log.info("Using authentication principal as userId: {}", userId);
+    }
+    
+    log.info("Processing upload for user: {}, jobType: {}", userId, jobType);
+    
+    // Early validation - fail fast for corrupt images
+    if (imageService.isImageCorrupt(file)) {
+        JobResponseDTO dto = new JobResponseDTO();
+        dto.setErrorMessage("Corrupt image or invalid image extension.");
+        return ResponseEntity.badRequest().body(dto);
+    }
+    
+    // Create request DTO
+    ImageUploadRequestDTO requestDTO = new ImageUploadRequestDTO();
+    requestDTO.setUserId(userId.toString());
+    requestDTO.setJobType(jobType);
+
+    // Parse job config if provided - optimized parsing
+    Map<String, Object> jobConfig = new HashMap<>();
+    if (jobConfigJson != null && !jobConfigJson.trim().isEmpty()) {
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> parsedConfig = objectMapper.readValue(jobConfigJson, Map.class);
+            jobConfig.putAll(parsedConfig);
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to parse job config JSON, using defaults: {}", e.getMessage());
+            // Continue with empty config instead of failing
         }
-        
-        // Get user ID from request attribute set in JwtRequestFilter
-        UUID userId = (UUID) request.getAttribute("userId");
-        log.info("User ID from request attribute: {}", userId);
-        
-        if (userId == null) {
-            UUID authPrincipalUserId = (UUID) authentication.getPrincipal();
-            log.info("User ID from authentication principal: {}", authPrincipalUserId);
-            // Use authentication principal as fallback
-            userId = authPrincipalUserId;
-        }
-        
-        log.info("Received image upload request for user: {}, jobType: {}", userId, jobType);
-        
-      
+    }
 
-        if (imageService.isImageCorrupt(file)) {
-    JobResponseDTO dto = new JobResponseDTO();
-    dto.setErrorMessage("Corrupt image or invalid image extension.");
-    return ResponseEntity.badRequest().body(dto);
-}
-
-
-
-
-
-        ImageUploadRequestDTO requestDTO = new ImageUploadRequestDTO();
-        requestDTO.setUserId(userId.toString());
-        requestDTO.setJobType(jobType);
-
-        // Parse job config if provided
-        Map<String, Object> jobConfig = new HashMap<>();
-        if (jobConfigJson != null && !jobConfigJson.trim().isEmpty()) {
-            try {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> parsedConfig = objectMapper.readValue(jobConfigJson, Map.class);
-                jobConfig.putAll(parsedConfig);
-                log.info("Parsed job config: {}", jobConfig);
-            } catch (JsonProcessingException e) {
-                log.warn("Failed to parse job config JSON: {}", jobConfigJson, e);
-                // Continue with empty config instead of failing
-            }
-        }
-
-        // Set default configs based on job type
-        if (jobType == JobTypeEnum.UPSCALE) {
+    // Set default configs based on job type - optimized with switch
+    switch (jobType) {
+        case UPSCALE:
             jobConfig.putIfAbsent("quality", "FREE"); // Default to free quality
             jobConfig.putIfAbsent("scale", 2); // Default scale factor
-        } else if (jobType == JobTypeEnum.ENLARGE) {
+            break;
+        case ENLARGE:
             jobConfig.putIfAbsent("scaleFactor", 2); // Default scale factor for enlarge
-        } else if (jobType == JobTypeEnum.IMAGE_GENERATION) {
+            break;
+        case IMAGE_GENERATION:
             jobConfig.putIfAbsent("aspectRatio", "square"); // Default aspect ratio
             jobConfig.putIfAbsent("quality", "FREE"); // Default quality
             jobConfig.putIfAbsent("steps", 20); // Default inference steps
             jobConfig.putIfAbsent("guidanceScale", 7.5); // Default guidance scale
-        }
+            break;
+        default:
+            // No default config needed for other job types
+            break;
+    }
 
-       try {
- 
+    try {
+        Job createdJob = imageService.processUploadedImage(file, requestDTO, jobConfig);
+        JobResponseDTO response = mapJobToJobResponseDTO(createdJob);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
 
-    Job createdJob = imageService.processUploadedImage(file, requestDTO, jobConfig);
-    JobResponseDTO response = mapJobToJobResponseDTO(createdJob);
-    return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
-
-} catch (Exception e) {
-    log.error("Error processing image upload: ", e);
-    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-}
+    } catch (Exception e) {
+        log.error("Error processing image upload for user {}: {}", userId, e.getMessage(), e);
+        
+        // Return error response with message instead of empty body
+        JobResponseDTO errorResponse = new JobResponseDTO();
+        errorResponse.setErrorMessage("Processing failed: " + e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
 }
 
     @PostMapping("/generate")

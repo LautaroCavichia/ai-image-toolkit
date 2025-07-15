@@ -3,7 +3,6 @@ import { JobResponseDTO, JobStatusEnum } from '../types';
 import { getJobStatus } from '../services/apiService';
 import { unlockPremiumQuality } from '../services/tokenService';
 import { Clock, CheckCircle, XCircle, Loader2, Download, Unlock, Star, Sparkles, Scissors, Maximize, Expand } from 'lucide-react';
-import { gsap } from 'gsap';
 
 interface JobStatusProps {
   jobId: string;
@@ -13,30 +12,36 @@ interface JobStatusProps {
   onJobCompleted?: (job: JobResponseDTO) => void;
 }
 
-// Global proteccion for DevTools
-const setupGlobalProtection = () => {
-  // Detect DevTools
-  let devtools = { open: false };
-  
-  setInterval(() => {
-    if (window.outerHeight - window.innerHeight > 160 || window.outerWidth - window.innerWidth > 160) {
-      if (!devtools.open) {
-        devtools.open = true;
-        document.body.innerHTML = `
-          <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: #fff; display: flex; align-items: center; justify-content: center; z-index: 999999; font-family: Arial;">
-            <div style="text-align: center;">
-              <h1>🚫 Access Denied</h1>
-              <p>Developer tools are not allowed on this page.</p>
-              <p>Please close DevTools and refresh the page.</p>
-            </div>
-          </div>
-        `;
-      }
-    }
-  }, 100);
+// Lazy load GSAP only when needed
+const loadGSAP = () => import('gsap').then(module => module.gsap);
 
-  // Block specific keys
-  document.addEventListener('keydown', (e) => {
+// Optimized global protection - only run once
+let globalProtectionSetup = false;
+const setupGlobalProtection = () => {
+  if (globalProtectionSetup) return;
+  globalProtectionSetup = true;
+
+  // Use requestAnimationFrame for better performance
+  let rafId: number;
+  const detectDevTools = () => {
+    if (window.outerHeight - window.innerHeight > 160 || window.outerWidth - window.innerWidth > 160) {
+      document.body.innerHTML = `
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: #fff; display: flex; align-items: center; justify-content: center; z-index: 999999; font-family: Arial;">
+          <div style="text-align: center;">
+            <h1>🚫 Access Denied</h1>
+            <p>Developer tools are not allowed on this page.</p>
+            <p>Please close DevTools and refresh the page.</p>
+          </div>
+        </div>
+      `;
+      return;
+    }
+    rafId = requestAnimationFrame(detectDevTools);
+  };
+  detectDevTools();
+
+  // Optimized event listeners with passive option
+  const keydownHandler = (e: KeyboardEvent) => {
     if (e.key === 'F12' || 
         (e.ctrlKey && e.shiftKey && e.key === 'I') ||
         (e.ctrlKey && e.shiftKey && e.key === 'J') ||
@@ -46,37 +51,28 @@ const setupGlobalProtection = () => {
         (e.ctrlKey && e.key === 'P')) {
       e.preventDefault();
       e.stopPropagation();
-      return false;
     }
-  });
+  };
 
-  // Protection for text selecting
-  document.addEventListener('selectstart', (e) => {
-    e.preventDefault();
-    return false;
-  });
+  document.addEventListener('keydown', keydownHandler, { passive: false });
+  document.addEventListener('selectstart', (e) => e.preventDefault(), { passive: false });
+  document.addEventListener('dragstart', (e) => e.preventDefault(), { passive: false });
+  document.addEventListener('contextmenu', (e) => e.preventDefault(), { passive: false });
 
-  // Protection for drag and drop
-  document.addEventListener('dragstart', (e) => {
-    e.preventDefault();
-    return false;
-  });
-
-  // Protection for  right click global
-  document.addEventListener('contextmenu', (e) => {
-    e.preventDefault();
-    return false;
-  });
-
-  // Clean console periodically
+  // Reduce console clear frequency
   setInterval(() => {
     console.clear();
     console.log('%cStop!', 'color: red; font-size: 50px; font-weight: bold;');
     console.log('%cThis is a browser feature intended for developers. Content is protected.', 'color: red; font-size: 16px;');
-  }, 1000);
+  }, 5000); // Reduced from 1000ms to 5000ms
 };
 
-const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceType = 'background-removal', onJobCompleted }) => {
+const JobStatus: React.FC<JobStatusProps> = ({ 
+  jobId, 
+  initialImageUrl, 
+  serviceType = 'background-removal', 
+  onJobCompleted 
+}) => {
   const [job, setJob] = useState<JobResponseDTO | null>(null);
   const [error, setError] = useState('');
   const [unlocking, setUnlocking] = useState(false);
@@ -84,61 +80,72 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
   const imageRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const processedCanvasRef = useRef<HTMLCanvasElement>(null);
+  const originalCanvasRef = useRef<HTMLCanvasElement>(null);
   const [progress, setProgress] = useState(0);
   const [isDevToolsOpen, setIsDevToolsOpen] = useState(false);
+  const [gsapLoaded, setGsapLoaded] = useState(false);
 
-  
+  // Optimized devtools detection with debounce
   useEffect(() => {
     setupGlobalProtection();
     
-    // Detect if devtools is open
+    let timeoutId: NodeJS.Timeout;
     const detectDevTools = () => {
       const threshold = 160;
-      if (window.outerHeight - window.innerHeight > threshold || 
-          window.outerWidth - window.innerWidth > threshold) {
-        setIsDevToolsOpen(true);
-      } else {
-        setIsDevToolsOpen(false);
+      const isOpen = window.outerHeight - window.innerHeight > threshold || 
+                     window.outerWidth - window.innerWidth > threshold;
+      
+      if (isOpen !== isDevToolsOpen) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => setIsDevToolsOpen(isOpen), 100);
       }
     };
 
-    const interval = setInterval(detectDevTools, 100);
-    return () => clearInterval(interval);
-  }, []);
+    const interval = setInterval(detectDevTools, 500); // Reduced frequency
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeoutId);
+    };
+  }, [isDevToolsOpen]);
 
-  
-  const originalCanvasRef = useRef<HTMLCanvasElement>(null);
-
-
+  // Optimized canvas rendering with memoization
   const renderImageToCanvas = useCallback((canvas: HTMLCanvasElement, src: string) => {
     if (!canvas || !src) return;
     
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
+    const ctx = canvas.getContext('2d', { alpha: false }); // Disable alpha for performance
+    if (!ctx) return;
     
+    const img = new Image();
     img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx!.drawImage(img, 0, 0);
-      
-      // Añadir marca de agua invisible
-      ctx!.globalAlpha = 0.01;
-      ctx!.fillStyle = 'white';
-      ctx!.font = '20px Arial';
-      ctx!.fillText('Protected Content', 10, 30);
+      // Use requestAnimationFrame for smoother rendering
+      requestAnimationFrame(() => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        
+        // Optimized watermark
+        ctx.globalAlpha = 0.01;
+        ctx.fillStyle = 'white';
+        ctx.font = '20px Arial';
+        ctx.fillText('Protected Content', 10, 30);
+        ctx.globalAlpha = 1;
+      });
     };
     
     img.crossOrigin = 'anonymous';
     img.src = src;
   }, []);
 
-
+  // Lazy load images
   useEffect(() => {
     if (originalCanvasRef.current && initialImageUrl) {
-      renderImageToCanvas(originalCanvasRef.current, initialImageUrl);
+      // Defer non-critical image loading
+      const timeoutId = setTimeout(() => {
+        renderImageToCanvas(originalCanvasRef.current!, initialImageUrl);
+      }, 0);
+      return () => clearTimeout(timeoutId);
     }
   }, [initialImageUrl, renderImageToCanvas]);
-
 
   useEffect(() => {
     if (processedCanvasRef.current && job?.thumbnailUrl) {
@@ -146,78 +153,61 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
     }
   }, [job?.thumbnailUrl, renderImageToCanvas]);
 
-
-  const preventRightClick = (e: React.MouseEvent) => {
+  // Memoized event handlers
+  const preventRightClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    return false;
-  };
+  }, []);
 
-  const preventDragStart = (e: React.DragEvent) => {
+  const preventDragStart = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    return false;
-  };
+  }, []);
 
-  const preventSelection = (e: React.MouseEvent) => {
+  const preventSelection = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-    return false;
-  };
+  }, []);
 
-  const preventInspect = (e: React.KeyboardEvent) => {
+  const preventInspect = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'F12' || 
         (e.ctrlKey && e.shiftKey && e.key === 'I') ||
         (e.ctrlKey && e.shiftKey && e.key === 'C') ||
         (e.ctrlKey && e.key === 'U') ||
         (e.ctrlKey && e.key === 'S')) {
       e.preventDefault();
-      return false;
     }
-  };
+  }, []);
 
+  // Optimized download function
+  const downloadImage = useCallback(async (imageUrl: string, fileName: string = 'image.png'): Promise<void> => {
+    try {
+      const response = await fetch(imageUrl);
+      if (!response.ok) throw new Error(`Error downloading image: ${response.status}`);
 
-  const downloadImage = async (imageUrl: string, fileName: string = 'image.png'): Promise<void> => {
-  try {
-    
-    const response = await fetch(imageUrl);
-    
-    if (!response.ok) {
-      throw new Error(`Error downloading image: ${response.status}`);
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.startsWith('image/')) {
+        throw new Error('Invalid image format');
+      }
+
+      const blob = await response.blob();
+      const fileExtension = contentType.split('/')[1] || 'png';
+      const finalFileName = fileName.includes('.') ? fileName : `${fileName}.${fileExtension}`;
+      
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = finalFileName;
+      link.style.display = 'none';
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('Download failed:', error);
     }
+  }, []);
 
- 
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.startsWith('image/')) {
-      throw new Error('Invalid image format');
-    }
-
-    const blob = await response.blob();
-    
-  
-    const fileExtension = contentType.split('/')[1] || 'png';
-    const finalFileName = fileName.includes('.') ? fileName : `${fileName}.${fileExtension}`;
-    
-    const blobUrl = window.URL.createObjectURL(blob);
-
-    const link = document.createElement('a');
-    link.href = blobUrl;
-    link.download = finalFileName;
-    link.style.display = 'none';
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(blobUrl);
-    
-  } catch (error) {
-    console.error('Download failed:', error);
-    
-
-  
-  }
-};
-
-
-  // Service-specific configuration
+  // Memoized service configuration
   const serviceConfig = useMemo(() => {
     const configs = {
       'background-removal': {
@@ -269,19 +259,11 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
     return phrases[Math.floor(Math.random() * phrases.length)];
   }, [serviceConfig.phrases]);
 
+  // Optimized job polling with exponential backoff
   useEffect(() => {
-    (window as any)._mockJob = {
-      jobId: jobId,
-      status: JobStatusEnum.PENDING,
-      createdAt: new Date().toISOString(),
-      completedAt: null,
-      thumbnailUrl: null,
-      processedImageUrl: null,
-      isPremiumQuality: false,
-      tokenCost: 1,
-      errorMessage: '',
-    };
-
+    let interval: NodeJS.Timeout;
+    let pollCount = 0;
+    
     const pollJobStatus = async () => {
       try {
         const response = await getJobStatus(jobId);
@@ -292,36 +274,57 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
             onJobCompleted(response);
           }
           clearInterval(interval);
+          return;
         }
+
+        // Exponential backoff for polling
+        pollCount++;
+        const nextInterval = Math.min(1000 + (pollCount * 500), 5000);
+        clearInterval(interval);
+        interval = setTimeout(pollJobStatus, nextInterval);
+        
       } catch (err: any) {
         setError(err.message || 'Failed to get job status');
         clearInterval(interval);
       }
     };
 
-    const interval = setInterval(pollJobStatus, 3500);
+    // Start with immediate poll, then use intervals
     pollJobStatus();
 
     return () => clearInterval(interval);
   }, [jobId, onJobCompleted]);
 
-  // Entrance animation
+  // Lazy load GSAP and entrance animation
   useEffect(() => {
-    if (containerRef.current) {
-      gsap.fromTo(containerRef.current, 
-        { opacity: 0, y: 40, scale: 0.95 },
-        { opacity: 1, y: 0, scale: 1, duration: 0.8, ease: "power3.out" }
-      );
-      
-      containerRef.current.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'center' 
+    if (containerRef.current && !gsapLoaded) {
+      loadGSAP().then(gsap => {
+        setGsapLoaded(true);
+        gsap.fromTo(containerRef.current, 
+          { opacity: 0, y: 40, scale: 0.95 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.8, ease: "power3.out" }
+        );
+        
+        containerRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      }).catch(() => {
+        // Fallback without animation
+        setGsapLoaded(true);
+        if (containerRef.current) {
+          containerRef.current.style.opacity = '1';
+          containerRef.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          });
+        }
       });
     }
-  }, []);
+  }, [gsapLoaded]);
 
-  const handleUnlockPremium = async () => {
-    if (!job) return;
+  const handleUnlockPremium = useCallback(async () => {
+    if (!job || unlocking) return;
 
     setUnlocking(true);
     try {
@@ -333,17 +336,17 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
     } finally {
       setUnlocking(false);
     }
-  };
+  }, [job, unlocking]);
 
+  // Memoized status checks
   const isProcessing = useMemo(() => {
-    if (JobStatusEnum.PENDING === job?.status || JobStatusEnum.QUEUED === job?.status || JobStatusEnum.PROCESSING === job?.status) {
-      return true;
-    }
-    return false;
-  }, [job]);
+    return job?.status === JobStatusEnum.PENDING || 
+           job?.status === JobStatusEnum.QUEUED || 
+           job?.status === JobStatusEnum.PROCESSING;
+  }, [job?.status]);
 
-  const isCompleted = useMemo(() => job?.status === JobStatusEnum.COMPLETED, [job]);
-  const isFailed = useMemo(() => job?.status === JobStatusEnum.FAILED, [job]);
+  const isCompleted = useMemo(() => job?.status === JobStatusEnum.COMPLETED, [job?.status]);
+  const isFailed = useMemo(() => job?.status === JobStatusEnum.FAILED, [job?.status]);
 
   const statusConfig = useMemo(() => {
     const ServiceIcon = serviceConfig.icon;
@@ -381,37 +384,13 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
           pulse: false
         };
     }
-  }, [job, serviceConfig, getRandomPhrase]);
+  }, [job?.status, serviceConfig, getRandomPhrase]);
 
   const StatusIcon = statusConfig.icon;
 
-  // Processing animation effects
+  // Optimized processing animation
   useEffect(() => {
-    let tl: gsap.core.Timeline | null = null;
-    
-    if (isProcessing && overlayRef.current) {
-      tl = gsap.timeline({ repeat: -1 });
-      tl.to(overlayRef.current, { 
-        background: `linear-gradient(45deg, rgba(0,0,0,0.1), rgba(255,255,255,0.1))`,
-        duration: 2,
-        ease: "power2.inOut"
-      })
-      .to(overlayRef.current, { 
-        background: `linear-gradient(45deg, rgba(255,255,255,0.1), rgba(0,0,0,0.1))`,
-        duration: 2,
-        ease: "power2.inOut"
-      });
-    }
-    
-    return () => {
-      if (tl) {
-        tl.kill();
-      }
-    };
-  }, [isProcessing]);
-
-  useEffect(() => {
-    if (!isProcessing) {
+    if (!isProcessing || !gsapLoaded) {
       setProgress(0);
       return;
     }
@@ -421,20 +400,16 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
       timeElapsed += 300;
       
       setProgress((prev) => {
-        if (prev >= 70) {
-          return Math.min(prev + Math.random() * 0.5, 85);
-        }
-        if (prev >= 50) {
-          return prev + Math.random() * 1;
-        }
+        if (prev >= 70) return Math.min(prev + Math.random() * 0.5, 85);
+        if (prev >= 50) return prev + Math.random() * 1;
         return prev + Math.random() * 3;
       });
     }, 300);
 
     return () => clearInterval(interval);
-  }, [isProcessing]);
+  }, [isProcessing, gsapLoaded]);
 
-  // Pantalla de bloqueo si DevTools están abiertas
+  // Early return for dev tools
   if (isDevToolsOpen) {
     return (
       <div className="fixed inset-0 bg-black text-white flex items-center justify-center z-50">
@@ -447,6 +422,7 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
     );
   }
 
+  // Early return for errors
   if (error) {
     return (
       <div 
@@ -489,28 +465,16 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
         userSelect: 'none',
         WebkitUserSelect: 'none',
         MozUserSelect: 'none',
-        msUserSelect: 'none'
+        msUserSelect: 'none',
+        opacity: gsapLoaded ? 1 : 0
       }}
     >
-      {/* Overlay de protección global */}
-      <div 
-        className="fixed inset-0 pointer-events-none z-40"
-        onContextMenu={preventRightClick}
-        onKeyDown={preventInspect}
-        style={{ 
-          userSelect: 'none',
-          WebkitUserSelect: 'none',
-          MozUserSelect: 'none',
-          msUserSelect: 'none'
-        }}
-      />
-      
       <div className="bg-white/95 backdrop-blur-3xl rounded-3xl p-8 shadow-2xl border border-white/30 ring-1 ring-slate-900/5 transition-all duration-300 hover:shadow-3xl relative z-50">
         
         {/* Image Container */}
         <div ref={imageRef} className="relative mb-8">
           <div className="aspect-[4/3] bg-slate-50 rounded-2xl overflow-hidden relative ring-1 ring-slate-900/5 shadow-inner">
-            {/* Capa de protección adicional */}
+          
             <div 
               className="absolute inset-0 z-10 bg-transparent"
               onContextMenu={preventRightClick}
@@ -581,14 +545,6 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
               }}
             />
             
-            {/* Overlay de protección adicional para imagen procesada */}
-            <div 
-              className={`absolute inset-0 bg-transparent z-30 ${isCompleted ? 'block' : 'hidden'}`}
-              onContextMenu={preventRightClick}
-              onDragStart={preventDragStart}
-              onMouseDown={preventSelection}
-            />
-            
             {/* Completion Celebration Overlay */}
             {isCompleted && (
               <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium shadow-lg z-40">
@@ -643,7 +599,7 @@ const JobStatus: React.FC<JobStatusProps> = ({ jobId, initialImageUrl, serviceTy
               )}
 
               <div className="space-y-3">
-                {/* Thumbnail Download Button - Always Available */}
+                {/* Thumbnail Download Button */}
                 {job.thumbnailUrl && (
                   <button
                     onClick={() => downloadImage(job.thumbnailUrl!, 'PixelPerfect_Image')}
