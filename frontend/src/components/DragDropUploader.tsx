@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Upload, Image, CheckCircle } from 'lucide-react';
 
 interface DragDropUploaderProps {
@@ -19,7 +19,9 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [, setDragCounter] = useState(0);
   const [error, setError] = useState<string>('');
+  const [isPasteReady, setIsPasteReady] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Sample images - using placeholder images
   const sampleImages = [
@@ -75,6 +77,44 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
     }
   }, [onFileSelect, validateFile]);
 
+  // 👇 Nueva función para manejar el paste
+  const handlePaste = useCallback((e: ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.indexOf('image') !== -1) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file && validateFile(file)) {
+          onFileSelect(file);
+        }
+        break;
+      }
+    }
+  }, [onFileSelect, validateFile]);
+
+  // 👇 useEffect para agregar/remover el event listener
+  useEffect(() => {
+    const handleGlobalPaste = (e: ClipboardEvent) => {
+      // Solo procesar si el contenedor está enfocado o si no hay un input enfocado
+      const activeElement = document.activeElement;
+      const isInputFocused = activeElement && (
+        activeElement.tagName === 'INPUT' || 
+        activeElement.tagName === 'TEXTAREA' || 
+        (activeElement as HTMLElement).contentEditable === 'true'
+      );
+      
+      if (!isInputFocused || isPasteReady) {
+        handlePaste(e);
+      }
+    };
+
+    document.addEventListener('paste', handleGlobalPaste);
+    return () => document.removeEventListener('paste', handleGlobalPaste);
+  }, [handlePaste, isPasteReady]);
+
   const handleClick = () => {
     inputRef.current?.click();
   };
@@ -94,6 +134,14 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
     }
   };
 
+  const handleContainerFocus = () => {
+    setIsPasteReady(true);
+  };
+
+  const handleContainerBlur = () => {
+    setIsPasteReady(false);
+  };
+
   return (
     <div className={`${className}`}>
       {/* 👇 Input real, oculto visualmente pero funcional */}
@@ -106,19 +154,24 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
       />
 
       <div
+        ref={containerRef}
         onClick={handleClick}
         onDrop={handleDrop}
         onDragOver={(e) => e.preventDefault()}
         onDragEnter={(e) => { e.preventDefault(); setIsDragging(true); setDragCounter((c) => c + 1); }}
         onDragLeave={(e) => { e.preventDefault(); setDragCounter((c) => { const n = c - 1; if (n === 0) setIsDragging(false); return n; }); }}
+        onFocus={handleContainerFocus}
+        onBlur={handleContainerBlur}
+        tabIndex={0}
         className={`
-          relative border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-300
+          relative border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-300 outline-none
           ${isDragging 
             ? 'border-blue-400 bg-blue-50 scale-105' 
             : preview 
               ? 'border-green-300 bg-green-50'
               : 'border-slate-300 hover:border-slate-400 hover:bg-slate-50'
           }
+          ${isPasteReady ? 'ring-2 ring-blue-200' : ''}
         `}
       >
         {preview ? (
@@ -132,7 +185,7 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
             </div>
             <div className="text-sm text-green-700 flex items-center justify-center gap-2">
               <CheckCircle size={16} />
-              Perfect! Click to change or drag a new image.
+              Perfect! Click to change, drag a new image, or paste with Ctrl+V.
             </div>
           </div>
         ) : (
@@ -149,7 +202,7 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
                 {isDragging ? 'Drop it like it\'s hot!' : 'Upload Your Image'}
               </h3>
               <p className="text-slate-600 mb-2">
-                Drag and drop an image file, or click to browse
+                Drag and drop, click to browse, or paste with <kbd className="px-2 py-1 bg-slate-100 rounded text-xs">Ctrl+V</kbd>
               </p>
               <p className="text-sm text-slate-500">
                 Supports: JPG, PNG, GIF, WEBP (max {maxSize}MB)

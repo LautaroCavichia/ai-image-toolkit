@@ -694,37 +694,35 @@ const services = [
       </div>
 
       {/* Services Section */}
-     <div
+    <div
   ref={servicesRef}
   id="services"
-  className="py-32 bg-white/40 backdrop-blur-sm"
+  className="py-20 sm:py-32 bg-white/40 backdrop-blur-sm"
 >
-  <div className="max-w-6xl mx-auto px-6">
-    <div className="text-center mb-20">
-      <h2 className="services-title text-4xl md:text-5xl font-light text-slate-900 mb-6 tracking-tight">
+  <div className="max-w-6xl mx-auto px-4 sm:px-6">
+    <div className="text-center mb-12 sm:mb-20">
+      <h2 className="services-title text-3xl sm:text-4xl md:text-5xl font-light text-slate-900 mb-4 sm:mb-6 tracking-tight px-4">
         <em className="italic text-slate-600">Powerful</em> AI Tools
       </h2>
-      <p className="services-subtitle text-xl text-slate-600 max-w-2xl mx-auto font-light">
+      <p className="services-subtitle text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto font-light px-4">
         Everything you need to transform your creative vision into reality.
       </p>
     </div>
 
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
       {services.map((service) => (
         <a
           key={service.href}
           href={service.href}
-          className={`service-card group relative bg-white border border-slate-200 rounded-3xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:border-slate-300 hover:-translate-y-2 ${service.comingSoon ? 'cursor-default opacity-90' : ''}`}
+          className={`service-card group relative bg-white border border-slate-200 rounded-2xl sm:rounded-3xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:border-slate-300 hover:-translate-y-1 sm:hover:-translate-y-2 ${service.comingSoon ? 'cursor-default opacity-90' : ''}`}
         >
-          {/* Coming Soon badge */}
           {service.comingSoon && (
-            <div className="absolute top-6 right-6 bg-slate-100 text-slate-500 text-xs font-medium px-3 py-1 rounded-full z-10">
+            <div className="absolute top-4 sm:top-6 right-4 sm:right-6 bg-slate-100 text-slate-500 text-xs font-medium px-2 sm:px-3 py-1 rounded-full z-10">
               Coming Soon
             </div>
           )}
 
-          {/* Video Container - Vertical aspect ratio */}
-          <div className="relative w-full h-64 bg-slate-100 overflow-hidden">
+          <div className="relative w-full h-48 sm:h-64 bg-slate-100 overflow-hidden">
             {service.videoUrl ? (
               <video
                 autoPlay
@@ -733,13 +731,6 @@ const services = [
                 playsInline
                 preload={service.videoPreload || "none"}
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                onEnded={(e) => {
-                  // Mantener el video en el último frame
-                  if (service.videoLoop === false) {
-                    const video = e.target as HTMLVideoElement;
-                    video.currentTime = video.duration;
-                  }
-                }}
               >
                 <source src={service.videoUrl} type="video/mp4" />
                 <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
@@ -752,26 +743,23 @@ const services = [
               </div>
             )}
             
-            {/* Video overlay gradient */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             
-            {/* Play indicator */}
-            <div className="absolute top-4 left-4 w-8 h-8 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <div className="w-3 h-3 bg-white rounded-full"></div>
+            <div className="absolute top-3 sm:top-4 left-3 sm:left-4 w-6 h-6 sm:w-8 sm:h-8 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <div className="w-2 h-2 sm:w-3 sm:h-3 bg-white rounded-full"></div>
             </div>
           </div>
 
-          {/* Content */}
-          <div className="p-8">
-            <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-slate-900 transition-colors duration-300">
-              <service.icon className="text-slate-600 group-hover:text-white transition-colors duration-300" size={24} />
+          <div className="p-4 sm:p-6 lg:p-8">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-slate-100 rounded-xl sm:rounded-2xl flex items-center justify-center mb-4 sm:mb-6 group-hover:bg-slate-900 transition-colors duration-300">
+              <service.icon className="text-slate-600 group-hover:text-white transition-colors duration-300" size={20} />
             </div>
 
-            <h3 className={`text-xl font-medium mb-3 ${service.gradient} bg-clip-text text-transparent`}>
+            <h3 className={`text-lg sm:text-xl font-medium mb-2 sm:mb-3 ${service.gradient} bg-clip-text text-transparent`}>
               {service.title}
             </h3>
             
-            <p className="text-slate-600 text-sm mb-6 leading-relaxed">
+            <p className="text-slate-600 text-sm leading-relaxed mb-4 sm:mb-6">
               {service.description}
             </p>
 
@@ -793,51 +781,48 @@ const services = [
   </div>
 </div>
 
-<div ref={forTeamsRef} className="min-h-screen bg-white py-24 px-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Feature Cards */}
-        <h2 className="text-4xl font-bold text-center text-gray-900 mb-20 tracking-tight">
-  Empowering Creators, Teams, and Developers Alike.
-        </h2>
-        <div className="grid md:grid-cols-3 gap-8 mb-32">
-          {features.map((feature, index) => (
-            <div 
-              key={index}
-              className="group relative bg-gray-50/80 backdrop-blur-xl border border-gray-200/50 rounded-2xl p-10 hover:bg-white hover:shadow-2xl hover:shadow-gray-200/30 transition-all duration-700 hover:-translate-y-1"
-            >
-              {/* Title */}
-              <h3 className="text-2xl font-semibold mb-6 text-gray-900 tracking-tight">
-                {feature.title}
-              </h3>
-              
-              {/* Description */}
-              <p className="text-gray-600 leading-relaxed text-[15px] font-normal">
-                {feature.description}
-              </p>
-              
-              {/* Arrow Icon */}
-              <div className="absolute top-8 right-8 w-10 h-10 bg-gray-100/80 rounded-full flex items-center justify-center group-hover:bg-gray-200/80 transition-all duration-300">
-                <ArrowUpRight className="w-5 h-5 text-gray-700 group-hover:rotate-12 transition-transform duration-300" />
-              </div>
-            </div>
-          ))}
-        </div>
 
-        {/* As Featured In Section */}
-         <div className="text-center max-w-4xl mx-auto">
-      <p className="text-sm font-medium text-gray-500 mb-8 uppercase tracking-wider">
+<div ref={forTeamsRef} className="min-h-screen bg-white py-16 sm:py-24 px-4 sm:px-6">
+  <div className="max-w-7xl mx-auto">
+    <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-center text-gray-900 mb-12 sm:mb-20 tracking-tight px-4">
+      Empowering Creators, Teams, and Developers Alike.
+    </h2>
+    
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 mb-16 sm:mb-32">
+      {features.map((feature, index) => (
+        <div 
+          key={index}
+          className="group relative bg-gray-50/80 backdrop-blur-xl border border-gray-200/50 rounded-xl sm:rounded-2xl p-6 sm:p-8 lg:p-10 hover:bg-white hover:shadow-2xl hover:shadow-gray-200/30 transition-all duration-700 hover:-translate-y-1"
+        >
+          <h3 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6 text-gray-900 tracking-tight pr-12">
+            {feature.title}
+          </h3>
+          
+          <p className="text-gray-600 leading-relaxed text-sm sm:text-[15px] font-normal">
+            {feature.description}
+          </p>
+          
+          <div className="absolute top-6 sm:top-8 right-6 sm:right-8 w-8 h-8 sm:w-10 sm:h-10 bg-gray-100/80 rounded-full flex items-center justify-center group-hover:bg-gray-200/80 transition-all duration-300">
+            <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700 group-hover:rotate-12 transition-transform duration-300" />
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <div className="text-center max-w-4xl mx-auto">
+      <p className="text-xs sm:text-sm font-medium text-gray-500 mb-6 sm:mb-8 uppercase tracking-wider">
         We are a product of
       </p>
-      <div className="mb-12">
+      <div className="mb-8 sm:mb-12">
         <a 
           href="https://zonda.dev" 
           target="_blank" 
           rel="noopener noreferrer"
           className="group inline-block cursor-pointer"
         >
-          <div className="flex items-center justify-center gap-3 mb-2">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2">
             <span 
-              className="text-6xl font-bold tracking-wider group-hover:scale-105 transition-transform duration-300"
+              className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-wider group-hover:scale-105 transition-transform duration-300"
               style={{
                 color: 'transparent',
                 background: 'linear-gradient(90deg, #000000 0%, #ff3131 40%, #ff3131 60%, #000000 100%)',
@@ -851,12 +836,13 @@ const services = [
               ZONDA
             </span>
           </div>
-         
         </a>
       </div>
-      <p className="text-sm font-medium text-gray-500 mb-12 uppercase tracking-wider">
+      
+      <p className="text-xs sm:text-sm font-medium text-gray-500 mb-8 sm:mb-12 uppercase tracking-wider">
         Trusted by Early Adopters
       </p>
+      
       <div 
         className="relative overflow-hidden"
         onMouseEnter={(e) => {
@@ -868,11 +854,10 @@ const services = [
           if (scrollElement) scrollElement.style.animationPlayState = 'running';
         }}
       >
-        <div className="flex items-center gap-16 opacity-40 animate-scroll">
-         
+        <div className="flex items-center gap-8 sm:gap-16 opacity-40 animate-scroll">
           {[
             "AI Creators Collective",
-            "Design Foundry",
+            "Design Foundry", 
             "IndieDev Hub",
             "NextGen Studios",
             "Product Makers",
@@ -882,17 +867,16 @@ const services = [
               key={index}
               className="text-gray-700 hover:opacity-100 transition-opacity duration-300 cursor-default whitespace-nowrap flex-shrink-0"
             >
-              <div className="text-lg font-medium tracking-wide">
+              <div className="text-sm sm:text-base lg:text-lg font-medium tracking-wide">
                 {name}
               </div>
             </div>
           ))}
           
-          
           {[
             "AI Creators Collective",
             "Design Foundry",
-            "IndieDev Hub",
+            "IndieDev Hub", 
             "NextGen Studios",
             "Product Makers",
             "Visual Architects",
@@ -901,42 +885,33 @@ const services = [
               key={`duplicate-${index}`}
               className="text-gray-700 hover:opacity-100 transition-opacity duration-300 cursor-default whitespace-nowrap flex-shrink-0"
             >
-              <div className="text-base font-medium tracking-wide">
+              <div className="text-sm sm:text-base font-medium tracking-wide">
                 {name}
               </div>
             </div>
           ))}
         </div>
         
-       
-        <div className="absolute top-0 left-0 w-32 h-full bg-gradient-to-r from-white to-transparent pointer-events-none z-10"></div>
-        <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-white to-transparent pointer-events-none z-10"></div>
+        <div className="absolute top-0 left-0 w-16 sm:w-32 h-full bg-gradient-to-r from-white to-transparent pointer-events-none z-10"></div>
+        <div className="absolute top-0 right-0 w-16 sm:w-32 h-full bg-gradient-to-l from-white to-transparent pointer-events-none z-10"></div>
       </div>
     </div>
-
-      </div>
-      
-      
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/20 to-purple-50/20 pointer-events-none"></div>
-    </div>
+  </div>
+  
+  <div className="absolute inset-0 bg-gradient-to-br from-blue-50/20 to-purple-50/20 pointer-events-none"></div>
+</div>
 
 <div
   ref={sectionRef}
   className="relative bg-animated-mesh"
-  style={{ height: `${contentData.length * 50}vh` }}
+  style={{ height: `${contentData.length * 40}vh` }} // Reducido para móvil
 >
-  <div className="sticky top-0 h-screen flex justify-center items-center px-6 relative">
+  <div className="sticky top-0 h-screen flex justify-center items-center px-4 sm:px-6 relative">
+    <div className="absolute top-0 left-0 w-full h-16 sm:h-24 bg-gradient-to-b from-white to-transparent pointer-events-none z-20" />
+    <div className="absolute bottom-0 left-0 w-full h-16 sm:h-24 bg-gradient-to-t from-white to-transparent pointer-events-none z-20" />
 
-    {/* Top gradient fade */}
-    <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-white to-transparent pointer-events-none z-20" />
-
-    {/* Bottom gradient fade */}
-    <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-white to-transparent pointer-events-none z-20" />
-
-    <section className="max-w-7xl w-full flex flex-col lg:flex-row items-center gap-20 z-10 relative">
-
-      {/* Image container */}
-      <div className="flex-shrink-0 w-80 sm:w-96 lg:w-[28rem] aspect-square rounded-2xl overflow-hidden bg-white/8 backdrop-blur-sm border border-white/15 relative shadow-2xl shadow-black/40">
+    <section className="max-w-7xl w-full flex flex-col lg:flex-row items-center gap-8 sm:gap-12 lg:gap-20 z-10 relative">
+      <div className="flex-shrink-0 w-72 sm:w-80 lg:w-[28rem] aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-white/8 backdrop-blur-sm border border-white/15 relative shadow-xl sm:shadow-2xl shadow-black/40">
         {contentData.map((content, index) => (
           <img
             key={index}
@@ -950,30 +925,27 @@ const services = [
         ))}
       </div>
 
-      {/* Content */}
-      <div className="max-w-xl text-center lg:text-left">
-        <h2 className="text-5xl font-light leading-tight mb-6 tracking-tight text-green-900">
+      <div className="max-w-xl text-center lg:text-left px-4 sm:px-0">
+        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-light leading-tight mb-4 sm:mb-6 tracking-tight text-green-900">
           {currentContent.title}
         </h2>
 
-        <p className="text-lg text-gray-600 mb-6 leading-relaxed">
+        <p className="text-base sm:text-lg text-gray-600 mb-4 sm:mb-6 leading-relaxed">
           {currentContent.description}
         </p>
 
-        <div className="flex justify-center lg:justify-start gap-4 text-sm text-gray-500 uppercase tracking-widest font-medium">
+        <div className="flex justify-center lg:justify-start gap-3 sm:gap-4 text-sm text-gray-500 uppercase tracking-widest font-medium">
           <span>{currentContent.highlight1.text}</span>
           <span>•</span>
           <span>{currentContent.highlight2.text}</span>
         </div>
       </div>
-
     </section>
   </div>
 </div>
 
 {/* Info Section */}
-<div ref={infoSectionRef} className="py-36 bg-white relative z-10 overflow-hidden">
-  {/* Decorative Background */}
+<div ref={infoSectionRef} className="py-20 sm:py-36 bg-white relative z-10 overflow-hidden">
   <div className="absolute inset-0 -z-10">
     <svg
       className="w-full h-full opacity-5"
@@ -992,32 +964,30 @@ const services = [
     </svg>
   </div>
 
-  <div className="max-w-7xl mx-auto px-6">
-    <div className="grid md:grid-cols-2 items-center gap-20">
-
-      {/* Text Section */}
-      <div>
-        <div className="mb-4 text-sm font-medium text-[#0a2540] uppercase tracking-widest">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-12 sm:gap-16 lg:gap-20">
+      <div className="order-2 md:order-1">
+        <div className="mb-3 sm:mb-4 text-xs sm:text-sm font-medium text-[#0a2540] uppercase tracking-widest">
           Now with Generative Fill
         </div>
-        <h2 className="text-3xl md:text-4xl font-light text-slate-900 mb-8 leading-tight tracking-tight">
-          <span className="block mb-3">Edit</span>
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-light text-slate-900 mb-6 sm:mb-8 leading-tight tracking-tight">
+          <span className="block mb-2 sm:mb-3">Edit</span>
           <span className="block">
             <span className="bg-gradient-to-r from-[#1e3a8a] to-[#2563eb] bg-clip-text text-transparent font-semibold">
-            images effortlessly
+              images effortlessly
             </span>
             <span className="text-slate-700"> in just seconds</span>
           </span>
         </h2>
-        <p className="text-base md:text-lg text-slate-600 font-light mb-5 leading-relaxed">
+        <p className="text-sm sm:text-base md:text-lg text-slate-600 font-light mb-4 sm:mb-5 leading-relaxed">
           PixelPerfect is your creative assistant — remove backgrounds, upscale, erase objects, and transform ideas into visuals. All in one elegant, powerful toolkit.
         </p>
-        <p className="text-base md:text-lg text-slate-600 font-light mb-6 leading-relaxed">
+        <p className="text-sm sm:text-base md:text-lg text-slate-600 font-light mb-6 leading-relaxed">
           From high-resolution exports to AI-generated artwork, achieve studio-quality results with zero friction. Fast. Precise. Intuitive.
         </p>
         <button
           onClick={() => setShowPopup(true)}
-          className="inline-flex items-center gap-2 px-6 py-3 bg-[#0a2540] text-white text-base rounded-full shadow-md hover:bg-[#122f4e] transition-all"
+          className="inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-[#0a2540] text-white text-sm sm:text-base rounded-full shadow-md hover:bg-[#122f4e] transition-all"
         >
           View Community Gallery
           <svg
@@ -1032,106 +1002,100 @@ const services = [
         </button>
       </div>
 
-      {/* Image Section */}
-      <div className="rounded-3xl overflow-hidden shadow-2xl border border-slate-100">
+      <div className="order-1 md:order-2 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl sm:shadow-2xl border border-slate-100">
         <img
           src="https://i.imgur.com/9Lk9jkz.jpeg"
           alt="PixelPerfect UI"
-          className="w-full h-[520px] object-cover"
+          className="w-full h-80 sm:h-96 lg:h-[520px] object-cover"
         />
       </div>
-
     </div>
   </div>
 </div>
 
 {/* Apple-like Unlimited Banner Section */}
-<div ref={forYouRef} className="py-24 bg-gradient-to-br from-slate-50 to-blue-50 relative overflow-hidden">
-  {/* Decorative Background Elements */}
+<div ref={forYouRef} className="py-16 sm:py-24 bg-gradient-to-br from-slate-50 to-blue-50 relative overflow-hidden">
   <div className="absolute inset-0 -z-10">
-    <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse"></div>
-    <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-25 animate-pulse delay-1000"></div>
+    <div className="absolute top-1/4 left-1/4 w-48 h-48 sm:w-72 sm:h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-pulse"></div>
+    <div className="absolute bottom-1/4 right-1/4 w-56 h-56 sm:w-80 sm:h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-25 animate-pulse delay-1000"></div>
   </div>
 
-  <div className="max-w-6xl mx-auto px-6">
-    <div className="relative flex flex-col md:flex-row items-center bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden border border-white/20">
-      
-      {/* Left content */}
-      <div className="w-full md:w-1/2 p-12 text-center md:text-left">
-        <div className="mb-4 text-sm font-medium text-[#0a2540] uppercase tracking-widest">
+  <div className="max-w-6xl mx-auto px-4 sm:px-6">
+    <div className="relative flex flex-col md:flex-row items-center bg-white/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden border border-white/20">
+      <div className="w-full md:w-1/2 p-8 sm:p-12 text-center md:text-left">
+        <div className="mb-3 sm:mb-4 text-xs sm:text-sm font-medium text-[#0a2540] uppercase tracking-widest">
           Premium Experience
         </div>
-        <h2 className="text-3xl md:text-4xl font-light text-slate-900 mb-6 leading-tight tracking-tight">
-          <span className="block mb-2">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-light text-slate-900 mb-4 sm:mb-6 leading-tight tracking-tight">
+          <span className="block mb-1 sm:mb-2">
             <span className="bg-gradient-to-r from-[#1e3a8a] to-[#2563eb] bg-clip-text text-transparent font-semibold">
               Unlimited images.
             </span>
           </span>
           <span className="block font-light text-slate-600 italic">Endless creativity.</span>
         </h2>
-        <p className="text-slate-600 text-base md:text-lg leading-relaxed mb-8 max-w-lg mx-auto md:mx-0">
+        <p className="text-slate-600 text-sm sm:text-base md:text-lg leading-relaxed mb-6 sm:mb-8 max-w-lg mx-auto md:mx-0">
           Generate and edit unlimited images with all our AI models. <br />
           <strong className="font-semibold text-slate-900">No credits, no limits: your ideas will flow freely.</strong>
         </p>
-        <div className="flex flex-col sm:flex-row justify-center md:justify-start gap-4">
+        <div className="flex flex-col sm:flex-row justify-center md:justify-start gap-3 sm:gap-4">
           <a
             href="/pricing?origin=freepik_web"
-            className="px-8 py-3 border border-[#0a2540] rounded-full text-[#0a2540] font-medium hover:bg-[#0a2540] hover:text-white transition-all duration-300 text-center"
+            className="px-6 sm:px-8 py-2.5 sm:py-3 border border-[#0a2540] rounded-full text-[#0a2540] font-medium hover:bg-[#0a2540] hover:text-white transition-all duration-300 text-center text-sm sm:text-base"
           >
             View plans
           </a>
           <a
             href="/demo"
-            className="px-8 py-3 rounded-full bg-[#0a2540] text-white font-medium hover:bg-[#122f4e] transition-all duration-300 shadow-lg hover:shadow-xl text-center"
+            className="px-6 sm:px-8 py-2.5 sm:py-3 rounded-full bg-[#0a2540] text-white font-medium hover:bg-[#122f4e] transition-all duration-300 shadow-lg hover:shadow-xl text-center text-sm sm:text-base"
           >
             Try for free
           </a>
         </div>
       </div>
 
-      <div className="w-full md:w-1/2 relative select-none p-6 flex justify-center items-center">
-  <div
-    className="relative w-100 h-100  overflow-hidden"
-    style={{
-      clipPath: 'polygon(10.25% 27.27%, 10.10% 29.62%, 11.11% 31.96%, 12.12% 33.14%, 12.12% 33.43%, 12.70% 33.87%, 12.70% 34.16%, 13.42% 34.75%, 13.42% 35.04%, 14.29% 35.78%, 14.29% 36.07%, 16.02% 37.83%, 16.02% 38.12%, 16.88% 38.86%, 16.88% 39.15%, 18.04% 40.32%, 18.04% 40.62%, 18.47% 40.91%, 18.47% 41.20%, 18.90% 41.50%, 18.90% 41.79%, 19.34% 42.08%, 19.34% 42.38%, 19.77% 42.67%, 19.77% 42.96%, 20.92% 44.43%, 21.07% 45.01%, 21.36% 45.16%, 23.23% 48.83%, 24.68% 53.23%, 24.82% 57.77%, 24.24% 60.70%, 23.23% 63.64%, 22.66% 64.52%, 22.66% 64.96%, 19.48% 70.97%, 18.61% 73.61%, 18.61% 75.66%, 19.19% 77.13%, 20.49% 78.45%, 21.36% 78.89%, 22.22% 79.18%, 24.82% 79.18%, 28.14% 78.15%, 35.93% 74.19%, 36.36% 74.19%, 36.65% 73.90%, 37.09% 73.90%, 37.37% 73.61%, 40.26% 72.58%, 43.43% 71.99%, 46.32% 72.14%, 47.76% 72.58%, 49.35% 73.46%, 51.37% 75.81%, 52.81% 79.47%, 54.11% 85.19%, 55.27% 87.10%, 56.13% 87.54%, 57.72% 87.54%, 59.02% 87.10%, 59.16% 86.80%, 60.61% 86.07%, 61.62% 85.04%, 62.05% 84.02%, 62.34% 83.87%, 62.34% 83.43%, 63.06% 81.82%, 64.65% 71.11%, 65.66% 67.89%, 66.09% 67.30%, 66.09% 66.86%, 66.81% 65.40%, 67.10% 65.25%, 67.68% 63.93%, 68.83% 62.61%, 69.12% 61.88%, 69.70% 61.44%, 69.70% 61.14%, 71.28% 59.38%, 71.28% 59.09%, 71.86% 58.65%, 71.86% 58.36%, 72.44% 57.92%, 72.44% 57.62%, 73.16% 57.04%, 73.16% 56.74%, 73.88% 56.16%, 73.88% 55.87%, 74.60% 55.28%, 75.18% 54.25%, 75.90% 53.67%, 75.90% 53.37%, 76.62% 52.79%, 77.20% 51.76%, 77.92% 51.17%, 77.92% 50.88%, 79.65% 48.97%, 79.65% 48.68%, 80.09% 48.39%, 80.09% 48.09%, 80.52% 47.80%, 80.52% 47.51%, 80.95% 47.21%, 80.95% 46.92%, 81.39% 46.63%, 81.39% 46.33%, 81.82% 46.04%, 82.40% 44.87%, 83.41% 43.70%, 83.55% 43.11%, 84.27% 42.23%, 85.43% 39.88%, 85.86% 38.56%, 85.86% 35.04%, 85.28% 34.46%, 84.70% 34.31%, 82.54% 34.75%, 74.75% 38.86%, 71.43% 40.03%, 69.41% 40.32%, 67.97% 40.18%, 65.66% 39.15%, 64.21% 37.68%, 64.07% 37.10%, 63.78% 36.95%, 63.35% 36.07%, 62.34% 32.11%, 62.05% 29.33%, 62.19% 16.42%, 61.90% 14.52%, 61.47% 13.05%, 60.89% 12.02%, 60.03% 11.14%, 58.87% 10.70%, 57.00% 10.85%, 55.41% 12.17%, 55.41% 12.46%, 54.98% 12.76%, 54.98% 13.05%, 54.11% 14.08%, 53.82% 14.96%, 53.54% 15.10%, 53.25% 15.98%, 52.96% 16.13%, 51.37% 19.35%, 50.79% 19.94%, 50.07% 21.41%, 49.21% 22.29%, 49.21% 22.58%, 48.48% 23.17%, 48.48% 23.46%, 45.31% 26.39%, 42.42% 28.01%, 40.55% 28.45%, 40.12% 28.74%, 37.23% 29.18%, 32.76% 29.03%, 27.56% 28.01%, 27.13% 27.71%, 25.54% 27.42%, 18.90% 25.22%, 15.87% 24.63%, 13.42% 24.63%, 12.41% 24.93%, 10.68% 26.39%, 10.25% 27.27%)',
-      
-    }}
-  >
-    <img
-      src="https://res.cloudinary.com/drzokg7bb/image/upload/v1752321215/pixelperfect/processed/8d27f1aa-5c1a-4da7-ab05-f1d6b5f66b39_pixel_perfect.png"
-      alt="PixelPerfect star shape"
-      className="w-full h-full object-cover relative z-10 rounded-[20px]"
-      loading="lazy"
-      draggable={false}
-      
-    />
-  
-    
-  </div>
-</div>
-
+      <div className="w-full md:w-1/2 relative select-none p-4 sm:p-6 flex justify-center items-center">
+        <div
+          className="relative w-64 h-64 sm:w-80 sm:h-80 lg:w-96 lg:h-96 overflow-hidden"
+          style={{
+            clipPath: 'polygon(10.25% 27.27%, 10.10% 29.62%, 11.11% 31.96%, 12.12% 33.14%, 12.12% 33.43%, 12.70% 33.87%, 12.70% 34.16%, 13.42% 34.75%, 13.42% 35.04%, 14.29% 35.78%, 14.29% 36.07%, 16.02% 37.83%, 16.02% 38.12%, 16.88% 38.86%, 16.88% 39.15%, 18.04% 40.32%, 18.04% 40.62%, 18.47% 40.91%, 18.47% 41.20%, 18.90% 41.50%, 18.90% 41.79%, 19.34% 42.08%, 19.34% 42.38%, 19.77% 42.67%, 19.77% 42.96%, 20.92% 44.43%, 21.07% 45.01%, 21.36% 45.16%, 23.23% 48.83%, 24.68% 53.23%, 24.82% 57.77%, 24.24% 60.70%, 23.23% 63.64%, 22.66% 64.52%, 22.66% 64.96%, 19.48% 70.97%, 18.61% 73.61%, 18.61% 75.66%, 19.19% 77.13%, 20.49% 78.45%, 21.36% 78.89%, 22.22% 79.18%, 24.82% 79.18%, 28.14% 78.15%, 35.93% 74.19%, 36.36% 74.19%, 36.65% 73.90%, 37.09% 73.90%, 37.37% 73.61%, 40.26% 72.58%, 43.43% 71.99%, 46.32% 72.14%, 47.76% 72.58%, 49.35% 73.46%, 51.37% 75.81%, 52.81% 79.47%, 54.11% 85.19%, 55.27% 87.10%, 56.13% 87.54%, 57.72% 87.54%, 59.02% 87.10%, 59.16% 86.80%, 60.61% 86.07%, 61.62% 85.04%, 62.05% 84.02%, 62.34% 83.87%, 62.34% 83.43%, 63.06% 81.82%, 64.65% 71.11%, 65.66% 67.89%, 66.09% 67.30%, 66.09% 66.86%, 66.81% 65.40%, 67.10% 65.25%, 67.68% 63.93%, 68.83% 62.61%, 69.12% 61.88%, 69.70% 61.44%, 69.70% 61.14%, 71.28% 59.38%, 71.28% 59.09%, 71.86% 58.65%, 71.86% 58.36%, 72.44% 57.92%, 72.44% 57.62%, 73.16% 57.04%, 73.16% 56.74%, 73.88% 56.16%, 73.88% 55.87%, 74.60% 55.28%, 75.18% 54.25%, 75.90% 53.67%, 75.90% 53.37%, 76.62% 52.79%, 77.20% 51.76%, 77.92% 51.17%, 77.92% 50.88%, 79.65% 48.97%, 79.65% 48.68%, 80.09% 48.39%, 80.09% 48.09%, 80.52% 47.80%, 80.52% 47.51%, 80.95% 47.21%, 80.95% 46.92%, 81.39% 46.63%, 81.39% 46.33%, 81.82% 46.04%, 82.40% 44.87%, 83.41% 43.70%, 83.55% 43.11%, 84.27% 42.23%, 85.43% 39.88%, 85.86% 38.56%, 85.86% 35.04%, 85.28% 34.46%, 84.70% 34.31%, 82.54% 34.75%, 74.75% 38.86%, 71.43% 40.03%, 69.41% 40.32%, 67.97% 40.18%, 65.66% 39.15%, 64.21% 37.68%, 64.07% 37.10%, 63.78% 36.95%, 63.35% 36.07%, 62.34% 32.11%, 62.05% 29.33%, 62.19% 16.42%, 61.90% 14.52%, 61.47% 13.05%, 60.89% 12.02%, 60.03% 11.14%, 58.87% 10.70%, 57.00% 10.85%, 55.41% 12.17%, 55.41% 12.46%, 54.98% 12.76%, 54.98% 13.05%, 54.11% 14.08%, 53.82% 14.96%, 53.54% 15.10%, 53.25% 15.98%, 52.96% 16.13%, 51.37% 19.35%, 50.79% 19.94%, 50.07% 21.41%, 49.21% 22.29%, 49.21% 22.58%, 48.48% 23.17%, 48.48% 23.46%, 45.31% 26.39%, 42.42% 28.01%, 40.55% 28.45%, 40.12% 28.74%, 37.23% 29.18%, 32.76% 29.03%, 27.56% 28.01%, 27.13% 27.71%, 25.54% 27.42%, 18.90% 25.22%, 15.87% 24.63%, 13.42% 24.63%, 12.41% 24.93%, 10.68% 26.39%, 10.25% 27.27%)',
+          }}
+        >
+          <img
+            src="https://res.cloudinary.com/drzokg7bb/image/upload/v1752321215/pixelperfect/processed/8d27f1aa-5c1a-4da7-ab05-f1d6b5f66b39_pixel_perfect.png"
+            alt="PixelPerfect star shape"
+            className="w-full h-full object-cover relative z-10 rounded-[15px] sm:rounded-[20px]"
+            loading="lazy"
+            draggable={false}
+          />
+        </div>
+      </div>
     </div>
   </div>
 </div>
                 
  {/* Launch App Section */}
-<div ref={launchAppRef} className="py-32 bg-white relative z-10">
-  <div className="max-w-6xl mx-auto px-6">
-    <div className="grid md:grid-cols-2 items-center gap-16">
-      <div className="rounded-3xl overflow-hidden shadow-xl shadow-gray-300/20">
+{/* Launch App Section - Mobile Optimized */}
+<div ref={launchAppRef} className="py-16 sm:py-24 md:py-32 bg-white relative z-10">
+  <div className="max-w-6xl mx-auto px-4 sm:px-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-8 sm:gap-12 md:gap-16">
+      {/* Image - Mobile First */}
+      <div className="order-2 md:order-1 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl shadow-gray-300/20">
         <img
           src="https://i.imgur.com/vFbGwUI.jpeg"
           alt="Launch App"
-          className="w-full h-[500px] object-cover transition-transform duration-500 ease-in-out hover:scale-[1.03]"
+          className="w-full h-[300px] sm:h-[400px] md:h-[500px] object-cover transition-transform duration-500 ease-in-out hover:scale-[1.03]"
           style={{ willChange: 'transform' }}
         />
       </div>
-      <div>
-        <h2 className="text-5xl font-extralight text-gray-900 mb-8 tracking-tight leading-[1.1] font-sans">
-          <span className="block mb-3">Get started now.</span>
-          <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+      
+      {/* Content - Mobile First */}
+      <div className="order-1 md:order-2 text-center md:text-left">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-extralight text-gray-900 mb-6 sm:mb-8 tracking-tight leading-[1.1] font-sans">
+          <span className="block mb-2 sm:mb-3">Get started now.</span>
+          <div className="flex flex-wrap justify-center md:justify-start items-center gap-2 sm:gap-4 md:gap-6">
             <span className="relative inline-block cursor-default select-none">
-              <span className="italic bg-gradient-to-r from-blue-700 to-cyan-600 bg-clip-text text-transparent font-light text-[2.75rem] drop-shadow-sm">
+              <span className="italic bg-gradient-to-r from-blue-700 to-cyan-600 bg-clip-text text-transparent font-light text-[2rem] sm:text-[2.5rem] md:text-[2.75rem] drop-shadow-sm">
                 Launch
               </span>
               <span
@@ -1139,11 +1103,11 @@ const services = [
                 transition-opacity duration-300"
               ></span>
             </span>
-            <span className="text-gray-900 font-extralight text-[1.8rem] select-none opacity-80 tracking-wider">
+            <span className="text-gray-900 font-extralight text-[1.2rem] sm:text-[1.5rem] md:text-[1.8rem] select-none opacity-80 tracking-wider">
               the
             </span>
             <span className="relative inline-block cursor-default select-none">
-              <span className="italic bg-gradient-to-r from-cyan-600 to-purple-700 bg-clip-text text-transparent font-light text-[2.75rem] drop-shadow-sm">
+              <span className="italic bg-gradient-to-r from-cyan-600 to-purple-700 bg-clip-text text-transparent font-light text-[2rem] sm:text-[2.5rem] md:text-[2.75rem] drop-shadow-sm">
                 App
               </span>
               <span
@@ -1153,12 +1117,12 @@ const services = [
             </span>
           </div>
         </h2>
-        <p className="text-lg md:text-xl text-gray-600 font-light leading-relaxed max-w-lg mb-10 font-sans tracking-wide opacity-90">
+        <p className="text-base sm:text-lg md:text-xl text-gray-600 font-light leading-relaxed max-w-lg mx-auto md:mx-0 mb-8 sm:mb-10 font-sans tracking-wide opacity-90">
           Discover the tools that bring your creative vision to life.
         </p>
         <button
           onClick={() => setShowPopup(true)}
-          className="inline-flex items-center px-10 py-4 bg-gray-900 text-white text-base rounded-full shadow-lg
+          className="inline-flex items-center px-8 sm:px-10 py-3 sm:py-4 bg-gray-900 text-white text-sm sm:text-base rounded-full shadow-lg
             hover:bg-gray-800 transition-colors duration-300 font-light tracking-wider font-sans"
           style={{ boxShadow: '0 8px 20px rgb(0 0 0 / 0.15)' }}
         >
@@ -1166,110 +1130,111 @@ const services = [
         </button>
       </div>
     </div>
-  
-      {showPopup && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-2xl shadow-xl max-w-4xl w-full space-y-6 relative">
-            <button
-              onClick={() => setShowPopup(false)}
-              className="absolute top-3 right-3 text-slate-500 hover:text-slate-800"
-            >
-              ✕
-            </button>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[
-    {
-      name: 'Background Removal',
-      key: 'bg-removal',
-      img: 'https://i.imgur.com/tcqYJZV.png',
-      href: 'background-removal', 
-    },
-    {
-      name: 'Upscaling',
-      key: 'upscaling',
-      img: 'https://i.imgur.com/XioAAH7.jpeg',
-      href: 'upscale', 
-    },
-    {
-      name: 'Generative Fill',
-      key: 'generative-fill',
-      img: 'https://i.imgur.com/LjEnkZx.jpeg',
-      href: 'enlarge', 
-    },
-    {
-      name: 'Object Removal',
-      key: 'object-removal',
-      img: 'https://i.imgur.com/MikJwxb.png',
-      href: 'object-removal', 
-    },
-    {
-      name: 'Text to Image',
-      key: 'text-to-image',
-      img: 'https://i.imgur.com/birXPAV.png',
-      href: 'image-generation', 
-    },
-  ].map((tool) => (
-    <div
-      key={tool.key}
-      className="border border-slate-200 rounded-xl p-4 flex flex-col items-center text-center hover:shadow-md transition-shadow"
-    >
-      <div className="w-full h-32 bg-slate-100 rounded-lg mb-4 overflow-hidden">
-        <img
-          src={tool.img}
-          alt={tool.name}
-          className="w-full h-full object-cover rounded-lg"
-        />
-      </div>
-      <h3 className="text-lg font-semibold text-slate-800 mb-2">
-        {tool.name}
-      </h3>
-      <a
-        href={tool.href}
-        className="px-4 py-2 bg-slate-900 text-white text-sm rounded-full hover:bg-slate-700 transition-colors"
-      >
-        Try {tool.name}
-      </a>
-    </div>
-  ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  </div>
-          
-      {/* Privacy Section */}
-      <div ref={featuresRef} className="py-32 bg-slate-50/60 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-light text-slate-900 mb-6 tracking-tight">
-              Your <em className="italic">Privacy</em> Matters
-            </h2>
-            <p className="text-xl text-slate-600 max-w-3xl mx-auto font-light leading-relaxed">
-              We believe your creative work should remain private. That's why we've built our platform with privacy at its core.
-            </p>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            {privacyFeatures.map((feature) => (
+    {/* Mobile Optimized Popup */}
+    {showPopup && (
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto relative">
+          <button
+            onClick={() => setShowPopup(false)}
+            className="absolute top-3 right-3 text-slate-500 hover:text-slate-800 text-xl sm:text-base z-10"
+          >
+            ✕
+          </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-8 sm:mt-0">
+            {[
+              {
+                name: 'Background Removal',
+                key: 'bg-removal',
+                img: 'https://i.imgur.com/tcqYJZV.png',
+                href: 'background-removal', 
+              },
+              {
+                name: 'Upscaling',
+                key: 'upscaling',
+                img: 'https://i.imgur.com/XioAAH7.jpeg',
+                href: 'upscale', 
+              },
+              {
+                name: 'Generative Fill',
+                key: 'generative-fill',
+                img: 'https://i.imgur.com/LjEnkZx.jpeg',
+                href: 'enlarge', 
+              },
+              {
+                name: 'Object Removal',
+                key: 'object-removal',
+                img: 'https://i.imgur.com/MikJwxb.png',
+                href: 'object-removal', 
+              },
+              {
+                name: 'Text to Image',
+                key: 'text-to-image',
+                img: 'https://i.imgur.com/birXPAV.png',
+                href: 'image-generation', 
+              },
+            ].map((tool) => (
               <div
-                key={feature.title}
-                className="feature-card text-center group opacity-0"
+                key={tool.key}
+                className="border border-slate-200 rounded-xl p-3 sm:p-4 flex flex-col items-center text-center hover:shadow-md transition-shadow"
               >
-                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:shadow-xl transition-shadow duration-300">
-                  <feature.icon className="text-slate-700" size={28} />
+                <div className="w-full h-24 sm:h-32 bg-slate-100 rounded-lg mb-3 sm:mb-4 overflow-hidden">
+                  <img
+                    src={tool.img}
+                    alt={tool.name}
+                    className="w-full h-full object-cover rounded-lg"
+                  />
                 </div>
-                <h3 className="text-xl font-medium text-slate-900 mb-4">
-                  {feature.title}
+                <h3 className="text-base sm:text-lg font-semibold text-slate-800 mb-2 leading-tight">
+                  {tool.name}
                 </h3>
-                <p className="text-slate-600 leading-relaxed">
-                  {feature.description}
-                </p>
+                <a
+                  href={tool.href}
+                  className="px-3 sm:px-4 py-2 bg-slate-900 text-white text-xs sm:text-sm rounded-full hover:bg-slate-700 transition-colors"
+                >
+                  Try {tool.name}
+                </a>
               </div>
             ))}
           </div>
         </div>
       </div>
+    )}
+  </div>
+</div>
+
+{/* Privacy Section - Mobile Optimized */}
+<div ref={featuresRef} className="py-16 sm:py-24 md:py-32 bg-slate-50/60 backdrop-blur-sm">
+  <div className="max-w-6xl mx-auto px-4 sm:px-6">
+    <div className="text-center mb-12 sm:mb-16 md:mb-20">
+      <h2 className="text-3xl sm:text-4xl md:text-5xl font-light text-slate-900 mb-4 sm:mb-6 tracking-tight">
+        Your <em className="italic">Privacy</em> Matters
+      </h2>
+      <p className="text-lg sm:text-xl text-slate-600 max-w-3xl mx-auto font-light leading-relaxed px-4 sm:px-0">
+        We believe your creative work should remain private. That's why we've built our platform with privacy at its core.
+      </p>
+    </div>
+
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 sm:gap-10 md:gap-12">
+      {privacyFeatures.map((feature) => (
+        <div
+          key={feature.title}
+          className="feature-card text-center group opacity-0"
+        >
+          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+            <feature.icon className="text-slate-700" size={24} />
+          </div>
+          <h3 className="text-lg sm:text-xl font-medium text-slate-900 mb-3 sm:mb-4">
+            {feature.title}
+          </h3>
+          <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
+            {feature.description}
+          </p>
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
 
     </Layout>
   );
