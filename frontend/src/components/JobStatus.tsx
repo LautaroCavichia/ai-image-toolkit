@@ -64,7 +64,7 @@ const setupGlobalProtection = () => {
     console.clear();
     console.log('%cStop!', 'color: red; font-size: 50px; font-weight: bold;');
     console.log('%cThis is a browser feature intended for developers. Content is protected.', 'color: red; font-size: 16px;');
-  }, 5000); // Reduced from 1000ms to 5000ms
+  }, 5000); 
 };
 
 const JobStatus: React.FC<JobStatusProps> = ({ 

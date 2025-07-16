@@ -24,6 +24,14 @@ import com.chunaudis.image_toolkit.security.JwtUtil;
 import com.chunaudis.image_toolkit.service.PasswordResetService;
 import com.chunaudis.image_toolkit.service.EmailVerificationService;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.JsonFactory;
+import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.chunaudis.image_toolkit.dto.GoogleAuthRequestDTO;
+import java.util.Collections;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -41,6 +49,13 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final PasswordResetService passwordResetService;
     private final EmailVerificationService emailVerificationService;
+    
+    // Variables para Google OAuth
+    @Value("${google.client.id}")
+    private String googleClientId;
+    
+    private final NetHttpTransport transport = new NetHttpTransport();
+    private final JsonFactory jsonFactory = GsonFactory.getDefaultInstance();
 
     public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil, 
                          PasswordResetService passwordResetService, EmailVerificationService emailVerificationService) {
@@ -70,10 +85,9 @@ public ResponseEntity<?> login(@Valid @RequestBody AuthRequestDTO authRequest) {
         if (userOpt.isPresent()) {
             User user = userOpt.get();
 
-            // 🔒 Chequeamos si está bloqueado
             if (user.isAccountLocked()) {
                 OffsetDateTime lastFail = user.getLastFailedLogin();
-                int attemptsOverThreshold = Math.max(0, user.getFailedLoginAttempts() - 4); // solo desde el 5to intento
+                int attemptsOverThreshold = Math.max(0, user.getFailedLoginAttempts() - 4);
                 Duration lockDuration = Duration.ofMinutes(5L * attemptsOverThreshold);
                 OffsetDateTime unlockTime = lastFail.plus(lockDuration);
 
@@ -87,17 +101,15 @@ public ResponseEntity<?> login(@Valid @RequestBody AuthRequestDTO authRequest) {
                         String.format("Your account is locked due to too many failed login attempts. Try again in %d minutes and %d seconds.", minutes, seconds)
                     );
                 } else {
-                    // ⏱ Ya pasó el tiempo → desbloquear
                     user.setAccountLocked(false);
                     userRepository.save(user);
                     log.info("User {} unlocked after lock duration expired", user.getEmail());
                 }
             }
 
-            // ✅ Si la contraseña es correcta
             if (passwordEncoder.matches(authRequest.getPassword(), user.getPasswordHash())) {
 
-                // Check if email is verified (only for non-guest users)
+              
                 if (!user.getIsGuest() && !emailVerificationService.isEmailVerified(user)) {
                     return ResponseEntity.status(403).body(Map.of(
                         "error", "EMAIL_NOT_VERIFIED",
@@ -106,11 +118,11 @@ public ResponseEntity<?> login(@Valid @RequestBody AuthRequestDTO authRequest) {
                     ));
                 }
 
-                // Reset intentos fallidos
+
                 user.setFailedLoginAttempts(0);
                 user.setAccountLocked(false);
 
-                // 👇 Si era guest, lo actualizamos a registrado
+                
                 if (user.getIsGuest()) {
                     user.setIsGuest(false);
                 }
@@ -128,7 +140,7 @@ public ResponseEntity<?> login(@Valid @RequestBody AuthRequestDTO authRequest) {
                     "Registered"
                 ));
             } else {
-                // ❌ Contraseña incorrecta → sumamos intento fallido
+                
                 int attempts = user.getFailedLoginAttempts() + 1;
                 user.setFailedLoginAttempts(attempts);
                 user.setLastFailedLogin(OffsetDateTime.now());
@@ -248,9 +260,77 @@ public ResponseEntity<?> createTestUser() {
 }
 
 
-
-
-
-
-
+@PostMapping("/login-with-google")
+public ResponseEntity loginWithGoogle(@Valid @RequestBody GoogleAuthRequestDTO googleAuthRequest) {
+    System.out.println("=== ENDPOINT REACHED ===");
+    try {
+        log.info("Google login attempt with token");
+        
+        // Validar el token de Google
+        GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(transport, jsonFactory)
+            .setAudience(Collections.singletonList(googleClientId))
+            .build();
+        
+        GoogleIdToken idToken = verifier.verify(googleAuthRequest.getCredential());
+        
+        if (idToken == null) {
+            log.warn("Invalid Google token");
+            return ResponseEntity.status(401).body("Invalid Google token");
+        }
+        
+        GoogleIdToken.Payload payload = idToken.getPayload();
+        String email = payload.getEmail();
+        String name = (String) payload.get("name");
+        String googleId = payload.getSubject();
+        
+        log.info("Google login for email: {}", email);
+        
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        
+        User user;
+        if (userOpt.isPresent()) {
+            user = userOpt.get();
+            log.info("Existing user found: {}", email);
+        } else {
+            user = new User();
+            user.setEmail(email);
+            // Generate a unique hash for Google users
+            user.setPasswordHash(generateGoogleUserHash(googleId, email));
+            user.setIsGuest(false);
+            user.setDisplayName(name);
+            user.setEmailVerified(true);
+            
+            user = userRepository.save(user);
+            log.info("New Google user created: {}", email);
+        }
+        
+        // Actualizar último login
+        updateLastLoginTime(user.getUserId());
+        
+        // Generar JWT
+        String token = jwtUtil.generateToken(user.getUserId(), user.getEmail(), user.getIsGuest());
+        
+        return ResponseEntity.ok(new AuthResponseDTO(
+            token,
+            user.getUserId().toString(),
+            user.getEmail(),
+            user.getDisplayName(),
+            "Registered"
+        ));
+        
+    } catch (Exception e) {
+        log.error("Google login error", e);
+        return ResponseEntity.internalServerError().body("Google authentication failed");
+    }
 }
+
+private String generateGoogleUserHash(String googleId, String email) {
+    // Create a unique identifier for Google users
+    String googleIdentifier = "GOOGLE_AUTH_" + googleId + "_" + email;
+    
+    // Use your existing password encoder to create a hash
+    return passwordEncoder.encode(googleIdentifier);
+}
+}
+
+
